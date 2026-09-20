@@ -22,13 +22,38 @@ interface AIWorkspaceValue {
 const AIWorkspaceContext = createContext<AIWorkspaceValue | null>(null);
 
 export function AIWorkspaceProvider({ children }: { children: ReactNode }) {
-  const [context, setContextState] = useState<AIContext>({
-    app: 'thanawy',
-    language: 'ar',
+  const [context, setContextState] = useState<AIContext>(() => {
+    if (typeof window === "undefined") return { app: "thanawy", language: "ar" };
+    try {
+      const raw = window.localStorage.getItem("thanawy:ai-context");
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<AIContext>;
+        return {
+          app: "thanawy",
+          language: "ar",
+          subject: typeof parsed.subject === "string" ? parsed.subject : undefined,
+          year: typeof parsed.year === "string" ? parsed.year : undefined,
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+    return { app: "thanawy", language: "ar" };
   });
 
   const setContext = useCallback((nextContext: Partial<AIContext>) => {
-    setContextState((current) => ({ ...current, ...nextContext }));
+    setContextState((current) => {
+      const merged = { ...current, ...nextContext };
+      try {
+        window.localStorage.setItem(
+          "thanawy:ai-context",
+          JSON.stringify({ subject: merged.subject, year: merged.year })
+        );
+      } catch {
+        /* ignore */
+      }
+      return merged;
+    });
   }, []);
 
   const withContext = useCallback((body: unknown, feature: string) => {

@@ -31,8 +31,10 @@ import { ar } from "date-fns/locale";
 import { SITE } from "@thanawy/shared/site-config";
 import WalletGrowthChart from "./WalletGrowthChart";
 import { WalletHeroSkeleton } from "./BillingSkeletons";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchWalletSummaryRaw,
+  topupWalletRaw,
+} from "@/features/payments/api/payments-gateway";
 import {
   PAYMENT_METHOD_META,
   resolvePaymentAction,
@@ -300,12 +302,12 @@ export default function WalletDashboard() {
 
   const fetchData = async () => {
     try {
-      const walletData = await apiClient.get<{
+      const walletData = await fetchWalletSummaryRaw<{
         balance?: number;
         history?: Transaction[];
         transactions?: Transaction[];
         invoices?: Invoice[];
-      }>(apiRoutes.billing.wallet);
+      }>();
 
       setBalance(typeof walletData?.balance === "number" && Number.isFinite(walletData.balance) ? walletData.balance : 0);
       // تطبيع القوائم — أي عنصر ناقص من الـ API يُستبدل بقيم آمنة حتى لا يسقط العرض
@@ -345,12 +347,12 @@ export default function WalletDashboard() {
   }, []);
 
   const handleDeposit = async (amount: number, method: PaymentMethod) => {
-    const data = await apiClient.post<PaymentInitResponse & { balance?: number; message?: string }>(
-      apiRoutes.billing.topup,
-      // Backend `CreatePaymentRequest` validates the `Method` field
-      // (JSON `method`) as required — `paymentMethod` is kept as an alias
-      // for any handler that still reads the old key.
-      { amount, method, paymentMethod: method },
+    // Backend `CreatePaymentRequest` validates the `Method` field
+    // (JSON `method`) as required — `paymentMethod` is kept as an alias
+    // for any handler that still reads the old key.
+    const data = await topupWalletRaw<PaymentInitResponse & { balance?: number; message?: string }>(
+      amount,
+      method,
     );
 
     // شحن مباشر (رصيد داخلي/إداري) يعيد الرصيد فوراً بدون بوابة دفع

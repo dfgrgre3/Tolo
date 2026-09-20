@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { LayoutTemplate, Plus, Trash2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import { createTaskRaw } from '@/features/tasks/api/tasks-gateway';
 import { logger } from '@/lib/logger';
 import type { Task } from '../types';
 import { buildTaskPayload, mergeServerTask } from './_components/task-utils';
@@ -81,7 +80,9 @@ export default function TaskTemplates({ onTaskCreate }: Props) {
   }, []);
   useEffect(() => { localStorage.setItem(KEY, JSON.stringify(custom)); }, [custom]);
 
-  const useTemplate = async (t: Template) => {
+  // NOTE: intentionally NOT named `use*` — this is a plain event handler,
+  // not a React Hook. The `use` prefix trips react-hooks/rules-of-hooks.
+  const applyTemplate = async (t: Template) => {
     setBusyId(t.id);
     const due = new Date();
     due.setHours(23, 59, 0, 0);
@@ -102,7 +103,7 @@ export default function TaskTemplates({ onTaskCreate }: Props) {
       })),
     };
     try {
-      const saved = await apiClient.postJson<Task>(apiRoutes.tasks.create, buildTaskPayload(local));
+      const saved = await createTaskRaw<Task>(buildTaskPayload(local));
       const next = mergeServerTask(local, saved);
       onTaskCreate?.(next);
       toast.success(`تم إنشاء مهمة من قالب "${t.name}" مع ${t.subtasks.length} مهام فرعية`);
@@ -158,7 +159,7 @@ export default function TaskTemplates({ onTaskCreate }: Props) {
                 <Badge variant="outline" className="text-[10px]">{t.estimatedTime} د</Badge>
                 <Badge variant="outline" className="text-[10px]">{t.subtasks.length} فرعية</Badge>
               </div>
-              <Button size="sm" variant="outline" className="w-full mt-2 h-8 text-xs" disabled={busyId === t.id} onClick={() => useTemplate(t)}>
+              <Button size="sm" variant="outline" className="w-full mt-2 h-8 text-xs" disabled={busyId === t.id} onClick={() => applyTemplate(t)}>
                 <Copy className="h-3.5 w-3.5 ms-1" /> {busyId === t.id ? 'جارٍ الإنشاء...' : 'استخدام القالب'}
               </Button>
             </div>

@@ -1,8 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchCoursesListRaw } from "@/features/courses/api/courses-gateway";
 import React, { useEffect, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -30,7 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Progress } from "../../../components/ui/progress";
-import { Badge } from "../../../components/ui/badge";import { useGamification } from "@/hooks/use-gamification";
+import { Badge } from "../../../components/ui/badge";import { useGamification } from "@/features/gamification";
 import { logger } from '@/lib/logger';
 
 interface DashboardCourse {
@@ -59,7 +58,7 @@ export default function GamifiedCoursesDashboard() {
     const fetchMyCourses = async () => {
       try {
         setLoading(true);
-        const data = await apiClient.get<{ items?: DashboardCourse[] }>(apiRoutes.courses.list);
+        const data = await fetchCoursesListRaw<{ items?: DashboardCourse[] }>();
         const fetchedCourses = Array.isArray(data?.items) ? data.items : [];
         setCourses(fetchedCourses);
       } catch (err) {
@@ -98,7 +97,7 @@ export default function GamifiedCoursesDashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700" dir="rtl">
-      {/* ─── Stats Header ────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Stats Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <m.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -112,11 +111,11 @@ export default function GamifiedCoursesDashboard() {
             <div className="absolute -top-10 -left-10 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl group-hover:bg-amber-500/30 transition-colors" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">رتبة المحارب</p>
+                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Ø±ØªØ¨Ø© Ø§Ù„Ù…Ø­Ø§Ø±Ø¨</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-black text-foreground">Lv.{masteryLevel}</span>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">{totalXP} نقطة خبرة (XP)</p>
+                <p className="text-xs text-muted-foreground font-medium">{totalXP} Ù†Ù‚Ø·Ø© Ø®Ø¨Ø±Ø© (XP)</p>
               </div>
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transform group-hover:rotate-12 transition-transform">
                 <Crown className="h-8 w-8 text-white" />
@@ -131,11 +130,11 @@ export default function GamifiedCoursesDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">مهام التدريب</p>
+                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Ù…Ù‡Ø§Ù… Ø§Ù„ØªØ¯Ø±ÙŠØ¨</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-black text-foreground">{activeQuests.length}</span>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">قيد التنفيذ حالياً</p>
+                <p className="text-xs text-muted-foreground font-medium">Ù‚ÙŠØ¯ Ø§Ù„ØªÙ†ÙÙŠØ° Ø­Ø§Ù„ÙŠØ§Ù‹</p>
               </div>
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 transform group-hover:-rotate-12 transition-transform">
                 <Sword className="h-8 w-8 text-white" />
@@ -150,11 +149,11 @@ export default function GamifiedCoursesDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">انتصارات</p>
+                <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Ø§Ù†ØªØµØ§Ø±Ø§Øª</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-black text-foreground">{examsPassedCount}</span>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">دورات مكتملة بالكامل</p>
+                <p className="text-xs text-muted-foreground font-medium">Ø¯ÙˆØ±Ø§Øª Ù…ÙƒØªÙ…Ù„Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„</p>
               </div>
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 transform group-hover:scale-110 transition-transform">
                 <Trophy className="h-8 w-8 text-white" />
@@ -169,12 +168,12 @@ export default function GamifiedCoursesDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">شعلة الحماس</p>
+                <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Ø´Ø¹Ù„Ø© Ø§Ù„Ø­Ù…Ø§Ø³</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-black text-foreground">{currentStreak}</span>
-                  <span className="text-sm font-bold text-muted-foreground">يوم</span>
+                  <span className="text-sm font-bold text-muted-foreground">ÙŠÙˆÙ…</span>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">الالتزام المتواصل</p>
+                <p className="text-xs text-muted-foreground font-medium">Ø§Ù„Ø§Ù„ØªØ²Ø§Ù… Ø§Ù„Ù…ØªÙˆØ§ØµÙ„</p>
               </div>
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-rose-400 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/30 transform group-hover:rotate-12 transition-transform">
                 <Flame className="h-8 w-8 text-white" />
@@ -184,7 +183,7 @@ export default function GamifiedCoursesDashboard() {
         </m.div>
       </m.div>
 
-      {/* ─── Main Content Area ───────────────────────────────────── */}
+      {/* â”€â”€â”€ Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Col: Lists */}
@@ -199,7 +198,7 @@ export default function GamifiedCoursesDashboard() {
                     activeTab === "active" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground hover:text-foreground"}`
                     }>
                     
-                    <Target className="h-4 w-4" /> النشطة
+                    <Target className="h-4 w-4" /> Ø§Ù„Ù†Ø´Ø·Ø©
                   </button>
                   <button
                     onClick={() => setActiveTab("completed")}
@@ -207,7 +206,7 @@ export default function GamifiedCoursesDashboard() {
                     activeTab === "completed" ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" : "text-muted-foreground hover:text-foreground"}`
                     }>
                     
-                    <Trophy className="h-4 w-4" /> المكتملة
+                    <Trophy className="h-4 w-4" /> Ø§Ù„Ù…ÙƒØªÙ…Ù„Ø©
                   </button>
                   <button
                     onClick={() => setActiveTab("explore")}
@@ -215,7 +214,7 @@ export default function GamifiedCoursesDashboard() {
                     activeTab === "explore" ? "bg-amber-500 text-white shadow-md shadow-amber-500/20" : "text-muted-foreground hover:text-foreground"}`
                     }>
                     
-                    <Star className="h-4 w-4" /> استكشاف
+                    <Star className="h-4 w-4" /> Ø§Ø³ØªÙƒØ´Ø§Ù
                   </button>
                 </div>
               </div>
@@ -251,7 +250,7 @@ export default function GamifiedCoursesDashboard() {
                               {course.title || course.name}
                             </h3>
                             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                              <span>التقدم</span>
+                              <span>Ø§Ù„ØªÙ‚Ø¯Ù…</span>
                               <span className="font-black text-primary">{Math.round(course.progress || 0)}%</span>
                             </div>
                             <Progress value={course.progress || 0} className="h-2" />
@@ -262,17 +261,17 @@ export default function GamifiedCoursesDashboard() {
                       onClick={() => router.push(course.slug ? `/courses/${course.slug}/learn` : `/learning/${course.id}`)}
                       className="w-full sm:w-auto mt-2 sm:mt-0 gap-2 rounded-xl bg-primary text-primary-foreground font-bold hover:shadow-lg hover:shadow-primary/30">
                       
-                            متابعة <Play className="h-3 w-3 fill-current" />
+                            Ù…ØªØ§Ø¨Ø¹Ø© <Play className="h-3 w-3 fill-current" />
                           </Button>
                         </div>
                   ) :
 
                   <div className="flex flex-col items-center justify-center text-center py-12">
                         <Target className="h-12 w-12 text-muted-foreground/30 mb-3" />
-                        <h4 className="text-lg font-bold">لا يوجد مهام تدريبية نشطة</h4>
-                        <p className="text-sm text-muted-foreground mt-1 mb-4">اكتشف معسكرات التدريب الجديدة لتطوير مهاراتك!</p>
+                        <h4 className="text-lg font-bold">Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ù‡Ø§Ù… ØªØ¯Ø±ÙŠØ¨ÙŠØ© Ù†Ø´Ø·Ø©</h4>
+                        <p className="text-sm text-muted-foreground mt-1 mb-4">Ø§ÙƒØªØ´Ù Ù…Ø¹Ø³ÙƒØ±Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ¨ Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ù„ØªØ·ÙˆÙŠØ± Ù…Ù‡Ø§Ø±Ø§ØªÙƒ!</p>
                         <Button onClick={() => setActiveTab("explore")} variant="outline" className="gap-2 rounded-xl">
-                          <Star className="h-4 w-4" /> تصفح الدورات
+                          <Star className="h-4 w-4" /> ØªØµÙØ­ Ø§Ù„Ø¯ÙˆØ±Ø§Øª
                         </Button>
                       </div>
                   }
@@ -296,14 +295,14 @@ export default function GamifiedCoursesDashboard() {
                           <div className="mt-2 space-y-3">
                             <h3 className="font-bold text-base truncate">{course.title || course.name}</h3>
                             <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                              <Award className="h-4 w-4" /> تم الإنجاز بنجاح
+                              <Award className="h-4 w-4" /> ØªÙ… Ø§Ù„Ø¥Ù†Ø¬Ø§Ø² Ø¨Ù†Ø¬Ø§Ø­
                             </div>
                             <Button
                         variant="ghost"
                         onClick={() => router.push(`/courses/${course.id}`)}
                         className="w-full justify-center gap-2 mt-4 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl text-xs font-bold">
                         
-                              مراجعة المعسكر <ChevronRight className="h-3 w-3" />
+                              Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ù…Ø¹Ø³ÙƒØ± <ChevronRight className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -311,8 +310,8 @@ export default function GamifiedCoursesDashboard() {
 
                   <div className="col-span-2 flex flex-col items-center justify-center text-center py-12">
                         <Trophy className="h-12 w-12 text-muted-foreground/30 mb-3" />
-                        <h4 className="text-lg font-bold">لم تنجز أي مهام تدريبية بعد</h4>
-                        <p className="text-sm text-muted-foreground mt-1">طريق الألف ميل يبدأ بخطوة. أكمل دورة للحصول على شارة النصر.</p>
+                        <h4 className="text-lg font-bold">Ù„Ù… ØªÙ†Ø¬Ø² Ø£ÙŠ Ù…Ù‡Ø§Ù… ØªØ¯Ø±ÙŠØ¨ÙŠØ© Ø¨Ø¹Ø¯</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Ø·Ø±ÙŠÙ‚ Ø§Ù„Ø£Ù„Ù Ù…ÙŠÙ„ ÙŠØ¨Ø¯Ø£ Ø¨Ø®Ø·ÙˆØ©. Ø£ÙƒÙ…Ù„ Ø¯ÙˆØ±Ø© Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø´Ø§Ø±Ø© Ø§Ù„Ù†ØµØ±.</p>
                       </div>
                   }
                   </m.div>
@@ -353,7 +352,7 @@ export default function GamifiedCoursesDashboard() {
                         onClick={() => router.push(`/courses/${course.id}`)}
                         className="w-full rounded-xl">
                         
-                                استكشاف
+                                Ø§Ø³ØªÙƒØ´Ø§Ù
                              </Button>
                            </div>
                         </div>
@@ -361,7 +360,7 @@ export default function GamifiedCoursesDashboard() {
 
                   <div className="flex flex-col items-center justify-center text-center py-12">
                         <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-3" />
-                        <h4 className="text-lg font-bold">لا توجد دورات جديدة متاحة حالياً</h4>
+                        <h4 className="text-lg font-bold">Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¯ÙˆØ±Ø§Øª Ø¬Ø¯ÙŠØ¯Ø© Ù…ØªØ§Ø­Ø© Ø­Ø§Ù„ÙŠØ§Ù‹</h4>
                       </div>
                   }
                   </m.div>
@@ -378,28 +377,28 @@ export default function GamifiedCoursesDashboard() {
             <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-3xl opacity-50 group-hover:opacity-70 transition-opacity" />
             <CardHeader className="relative z-10">
               <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                 <Target className="h-5 w-5 text-primary" /> التدريب المكثف
+                 <Target className="h-5 w-5 text-primary" /> Ø§Ù„ØªØ¯Ø±ÙŠØ¨ Ø§Ù„Ù…ÙƒØ«Ù
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 relative z-10">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground font-medium">التقدم الأسبوعي</span>
+                  <span className="text-muted-foreground font-medium">Ø§Ù„ØªÙ‚Ø¯Ù… Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ÙŠ</span>
                   <span className="font-bold text-primary">65%</span>
                 </div>
                 <Progress value={Math.min(totalXP ? (totalXP % 1000) / 10 : 0, 100)} className="h-2 bg-primary/20" />
-                <p className="text-[10px] text-muted-foreground text-left">3 ساعات متبقية لتحقيق الهدف</p>
+                <p className="text-[10px] text-muted-foreground text-left">3 Ø³Ø§Ø¹Ø§Øª Ù…ØªØ¨Ù‚ÙŠØ© Ù„ØªØ­Ù‚ÙŠÙ‚ Ø§Ù„Ù‡Ø¯Ù</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-background/50 rounded-xl p-3 border border-white/5 space-y-1">
                   <BookOpen className="h-4 w-4 text-emerald-500" />
-                  <p className="text-[10px] font-bold text-muted-foreground">دروس مكتملة</p>
+                  <p className="text-[10px] font-bold text-muted-foreground">Ø¯Ø±ÙˆØ³ Ù…ÙƒØªÙ…Ù„Ø©</p>
                   <p className="text-xl font-black">{tasksCompletedCount}</p>
                 </div>
                 <div className="bg-background/50 rounded-xl p-3 border border-white/5 space-y-1">
                   <Clock className="h-4 w-4 text-amber-500" />
-                  <p className="text-[10px] font-bold text-muted-foreground">ساعات التعلم</p>
+                  <p className="text-[10px] font-bold text-muted-foreground">Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØªØ¹Ù„Ù…</p>
                   <p className="text-xl font-black">{studyTimeHours}</p>
                 </div>
               </div>
@@ -408,7 +407,7 @@ export default function GamifiedCoursesDashboard() {
                 onClick={() => router.push("/courses")}
                 className="w-full gap-2 rounded-xl h-11 bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30">
                 
-                 <LayoutGrid className="h-4 w-4" /> كتالوج الدورات
+                 <LayoutGrid className="h-4 w-4" /> ÙƒØªØ§Ù„ÙˆØ¬ Ø§Ù„Ø¯ÙˆØ±Ø§Øª
               </Button>
             </CardContent>
           </Card>
@@ -417,7 +416,7 @@ export default function GamifiedCoursesDashboard() {
           <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl">
              <CardHeader className="pb-4">
                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                 <Shield className="h-4 w-4 text-purple-500" /> شارات المجد
+                 <Shield className="h-4 w-4 text-purple-500" /> Ø´Ø§Ø±Ø§Øª Ø§Ù„Ù…Ø¬Ø¯
                </CardTitle>
              </CardHeader>
              <CardContent>

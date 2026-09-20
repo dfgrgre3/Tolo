@@ -2,8 +2,11 @@
 
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  enableMfa,
+  setupMfaTotp,
+} from "@/features/auth/api";
+import { ApiError } from "@/lib/api/api-client";
 import MfaSetupInitStep from "@/components/auth/MfaSetupInitStep";
 import MfaSetupVerifyStep from "@/components/auth/MfaSetupVerifyStep";
 import MfaSetupBackupStep from "@/components/auth/MfaSetupBackupStep";
@@ -36,9 +39,7 @@ export default function MfaPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const responseData = await apiClient.post<MfaSetupResponse>(apiRoutes.auth.mfa.setup, {
-        method: "totp",
-      });
+      const responseData = await setupMfaTotp<MfaSetupResponse>();
       setSecret(responseData.secret);
       setQrCodeUrl(responseData.qrCodeUrl || "");
       setStep("verify");
@@ -59,10 +60,7 @@ export default function MfaPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const responseData = await apiClient.post<{ backupCodes?: string[] }>(
-        apiRoutes.auth.mfa.enable,
-        { code }
-      );
+      const responseData = await enableMfa<{ backupCodes?: string[] }>(code);
       setBackupCodes(responseData.backupCodes || []);
       setSuccess("تم تفعيل المصادقة الثنائية بنجاح!");
       setSecret("");

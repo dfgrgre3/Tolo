@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AlertCircle, Briefcase, RefreshCw } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,18 +27,8 @@ export function JobsEmptyState({
   action?: React.ReactNode;
   icon?: React.ComponentType<{ className?: string }>;
 }) {
-  return (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-          <Icon className="h-6 w-6 text-muted-foreground" />
-        </span>
-        <h3 className="text-base font-semibold">{title}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{body}</p>
-        {action ? <div className="pt-2">{action}</div> : null}
-      </CardContent>
-    </Card>
-  );
+  // B-11: markup lives in components/ui/empty-state; same signature.
+  return <EmptyState title={title} description={body} icon={Icon} action={action} />;
 }
 
 /**

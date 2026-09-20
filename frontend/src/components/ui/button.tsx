@@ -1,8 +1,14 @@
-"use client"
-
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+
+// NOTE: intentionally NO "use client" here. This module is pure presentational
+// (no hooks, no browser APIs), so server components can render it without
+// pulling it into the client bundle (B-09). It still works inside client
+// components — directives are porous downward. Do NOT re-add the directive:
+// every server-side importer would become client code again. Verified: all
+// 167 importers either carry their own directive or sit under one, and no
+// true-server leaf passes event handlers/refs to <Button>.
 
 const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }>(
   ({ children, ...props }, ref) => {

@@ -22,7 +22,7 @@ const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-x-auto -mx-1 px-1 scroll-smooth-mobile">
+  <div className="relative w-full overflow-x-auto -mx-1 px-1 scroll-smooth-mobile no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     <TabsPrimitive.List
       ref={ref}
       className={cn(

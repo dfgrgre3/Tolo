@@ -45,6 +45,21 @@ export async function aiRequest<T>(endpoint: string, options: AIRequestOptions =
   return unwrap(payload);
 }
 
+// ─── مرايا النقل الخام لمحادثات المساعد (F-018) ─────────────────────
+// 1:1 mirrors of pre-existing UI call sites (same route + method).
+
+export function fetchAiConversationsRaw<T>(): Promise<T> {
+  return apiClient.get<T>(apiRoutes.ai.conversations);
+}
+
+export function fetchAiConversationRaw<T>(convId: string): Promise<T> {
+  return apiClient.get<T>(apiRoutes.ai.conversation(convId));
+}
+
+export function deleteAiConversationRaw(convId: string): Promise<unknown> {
+  return apiClient.delete(apiRoutes.ai.deleteConversation(convId));
+}
+
 export const aiClient = {
   request: aiRequest,
   streamChat: (options: AIRequestOptions = {}) => apiClient.fetch(apiRoutes.ai.chat, {

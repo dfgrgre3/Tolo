@@ -119,7 +119,7 @@ export const RecommendationCard = ({ recommendation, index: _index }: Recommenda
 
           {recommendation.actionUrl ? (
             <Link href={recommendation.actionUrl} className="block mt-2">
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-11 rounded-xl active:scale-95">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-11 rounded-xl">
                 <span>بدء التنفيذ</span>
                 <ArrowRight className="h-4 w-4 mr-2" />
               </Button>

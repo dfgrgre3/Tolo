@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchMyCoursesRaw } from "@/features/courses/api/courses-gateway";
 import { addSearchQuery } from "@/lib/search-history";
 import { sortCourses } from "./_components/utils";
 import { CatalogStats } from "./_components/catalog-stats";
@@ -132,7 +132,7 @@ export default function CoursesClient({
   // into the same view model so "دوراتي فقط" is based on server state.
   useEffect(() => {
     if (!user?.id || courses.length === 0) return;
-    apiClient.get<unknown>("/my-courses")
+    fetchMyCoursesRaw()
       .then((payload) => {
         const root = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
         const data = root.data && typeof root.data === "object" ? root.data as Record<string, unknown> : root;

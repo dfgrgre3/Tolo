@@ -20,7 +20,8 @@ import {
 	type LucideIcon
 } from "lucide-react";
 import { SITE, CONTACT, LEGAL, SOCIAL, APP_VERSION } from "@thanawy/shared/site-config";
-import { apiClient } from "@/lib/api/api-client";
+import { toSafeJsonLd } from "@/lib/security/json-ld";
+import { fetchCategoriesRaw } from "@/features/courses/api/courses-gateway";
 import { apiRoutes } from "@/lib/api/routes";
 import { queryProfiles } from "@/lib/query/query-profiles";
 
@@ -120,7 +121,7 @@ export default function Footer({ nonce }: { nonce?: string }) {
 		queryKey: ["footer-top-categories"],
 		queryFn: async () => {
 			try {
-				const data = await apiClient.get<{ data?: Category[] } | Category[]>(`${apiRoutes.categories}?limit=8`);
+				const data = await fetchCategoriesRaw<{ data?: Category[] } | Category[]>("?limit=8");
 				return Array.isArray(data) ? data : data?.data || [];
 			} catch {
 				return [];
@@ -165,7 +166,7 @@ export default function Footer({ nonce }: { nonce?: string }) {
 			<script
 				type="application/ld+json"
 				nonce={nonce}
-				dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+				dangerouslySetInnerHTML={{ __html: toSafeJsonLd(organizationSchema) }}
 				suppressHydrationWarning
 			/>
 

@@ -18,7 +18,7 @@ export function InstructorCtaSection({ stats }: InstructorCtaSectionProps) {
   const router = useRouter();
 
   return (
-    <section className={`${SECTION.padding} bg-gradient-to-l from-[#0F766E] to-[#1e3a5f] text-white`}>
+    <section data-keep-bg className={`keep-bg ${SECTION.padding} bg-gradient-to-l from-[#0F766E] to-[#1e3a5f] text-white`}>
       <div className={CONTAINER.className}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-5">
@@ -31,7 +31,7 @@ export function InstructorCtaSection({ stats }: InstructorCtaSectionProps) {
               <br />
               <span className="text-[#F59E0B]">وحقق دخلاً رائعاً</span>
             </h2>
-            <p className="text-white/80 text-sm sm:text-base leading-relaxed">
+            <p className="text-white text-sm sm:text-base leading-relaxed font-medium">
               انضم إلى فريق مدربينا وأنشئ دوراتك التدريبية بسهولة، وتواصل مع الطلاب في
               جميع أنحاء العالم العربي.
             </p>
@@ -67,7 +67,7 @@ export function InstructorCtaSection({ stats }: InstructorCtaSectionProps) {
                 >
                   <Icon className="h-6 w-6 text-[#F59E0B] mx-auto mb-2" />
                   <div className="text-2xl font-black">{value.toLocaleString('ar-EG')}</div>
-                  <div className="text-xs text-white/70 mt-1">{label}</div>
+                  <div className="text-xs text-white mt-1">{label}</div>
                 </div>
               ))}
             </div>

@@ -42,7 +42,7 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
   const heroThumb = featuredCourse?.thumbnailUrl || featuredCourse?.thumbnail;
 
   return (
-    <section className="relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-8 pb-10">
+    <section data-keep-bg className="keep-bg relative bg-gradient-to-br from-[#0F766E] via-[#0e7280] to-[#1e3a5f] overflow-hidden pt-8 pb-10">
       <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#F59E0B]/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-emerald-300/10 rounded-full blur-[100px]" />
@@ -61,7 +61,7 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
               <span className="text-[#F59E0B]">واصنع مستقبلك اليوم</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-white/80 max-w-2xl leading-relaxed">
+            <p className="text-base sm:text-lg text-white max-w-2xl leading-relaxed font-medium">
               منصة تعليمية عربية متكاملة تمنحك فرصة التعلم على يد الخبراء والمدربين،
               مع شهادات وتطبيقات عملية.
             </p>
@@ -88,7 +88,7 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
 
             {loading ? (
               <div className="flex flex-wrap items-center gap-2" aria-hidden="true">
-                <span className="text-xs font-bold text-white/60">تصفح المجالات:</span>
+                <span className="text-xs font-bold text-white">تصفح المجالات:</span>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div
                     key={i}
@@ -99,12 +99,12 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
             ) : (
               categories.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-white/60">تصفح المجالات:</span>
+                  <span className="text-xs font-bold text-white">تصفح المجالات:</span>
                   {categories.map((cat) => (
                     <Link
                       key={cat.id}
                       href={`/courses?categoryId=${cat.id}`}
-                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white rounded-full"
+                      className="px-3 py-1.5 bg-white/15 hover:bg-white/25 border border-white/40 text-xs font-semibold text-white rounded-full"
                     >
                       {cat.name}
                     </Link>
@@ -123,7 +123,7 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
               stats.students > 0 && (
                 <div className="flex items-center gap-2 pt-2">
                   <Users className="h-4 w-4 text-[#F59E0B]" />
-                  <span className="text-sm text-white/80 font-medium">
+                  <span className="text-sm text-white font-medium">
                     {stats.students.toLocaleString('ar-EG')} طالب مسجّل على المنصة
                   </span>
                 </div>

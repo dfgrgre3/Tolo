@@ -1,8 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchUserProfile } from "@/features/auth/api";
 import { useAuthContext } from "@/contexts/auth-context";
 
 export interface UserProfileData {
@@ -27,7 +26,7 @@ export function useProfileData(): UseProfileDataResult {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["user-profile", userId],
-    queryFn: () => apiClient.get<UserProfileData>(apiRoutes.users.profile),
+    queryFn: () => fetchUserProfile<UserProfileData>(),
     enabled: Boolean(userId), staleTime: 60_000, gcTime: 10 * 60_000,
   });
   return {

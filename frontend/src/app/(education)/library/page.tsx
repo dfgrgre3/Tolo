@@ -16,7 +16,11 @@ import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
+import {
+  createLibraryBookRaw,
+  fetchLibraryBooksRaw,
+  fetchLibraryCategoriesRaw,
+} from "@/features/courses/api/courses-gateway";
 
 // New Components
 import { Book, Category } from "@/components/library/types";
@@ -55,8 +59,8 @@ export default function LibraryPage() {
       setLoading(true);
       try {
         const [catData, bookData] = await Promise.all([
-          apiClient.get<Category[] | { categories?: Category[] }>("/categories"),
-          apiClient.get<Book[] | { books?: Book[] }>("/library/books")
+          fetchLibraryCategoriesRaw<Category[] | { categories?: Category[] }>(),
+          fetchLibraryBooksRaw<Book[] | { books?: Book[] }>()
         ]);
         setCategories(Array.isArray(catData) ? catData : (catData?.categories || []));
         setBooks(Array.isArray(bookData) ? bookData : (bookData?.books || []));
@@ -104,7 +108,7 @@ export default function LibraryPage() {
     
     setUploading(true);
     try {
-      await apiClient.post<Book>("/library/books", {
+      await createLibraryBookRaw<Book>({
         title: formData.title,
         author: formData.author,
         description: formData.description,
@@ -116,8 +120,8 @@ export default function LibraryPage() {
 
       toast.success("تم إرسال المخطوطة للأرشيف الملكي!");
       setShowUploadModal(false);
-      
-      const bookData = await apiClient.get<Book[] | { books?: Book[] }>("/library/books");
+
+      const bookData = await fetchLibraryBooksRaw<Book[] | { books?: Book[] }>();
       setBooks(Array.isArray(bookData) ? bookData : (bookData?.books || []));
       
       setFormData({

@@ -90,7 +90,7 @@ function FAQItemComponent({ item, isOpen, onToggle }: {
         </div>
         <div className="ml-4 shrink-0">
           <ChevronDown
-            className={`h-5 w-5 text-[#0F766E] dark:text-orange-500 transition-transform duration-300 ${
+            className={`h-5 w-5 text-[#0F766E] dark:text-orange-500 ${
               isOpen ? 'rotate-180' : ''
             }`}
           />

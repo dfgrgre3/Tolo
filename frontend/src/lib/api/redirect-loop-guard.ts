@@ -17,6 +17,8 @@
  * here.
  */
 
+import { logger } from '@/lib/logger';
+
 /**
  * Endpoints that own their own 401 handling — a 401 from these must NOT trigger
  * an automatic redirect to /login. `/auth/me` returns 401 for every guest, and
@@ -198,7 +200,7 @@ export function handleUnauthorized(endpoint: string): void {
     }
 
     if (detectRedirectLoop()) {
-        console.error(
+        logger.error(
             'API redirect loop detected — stopping automatic redirects. ' +
             'The user may need to log in manually.'
         );

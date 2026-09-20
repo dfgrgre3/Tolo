@@ -170,10 +170,9 @@ export const SECTION_HEADER = {
 // SECTION WRAPPER (spacing rhythm)
 // ============================================================================
 export const SECTION = {
-  // The only vertical rhythm on the homepage. 32px top/bottom on mobile
-  // (64px between neighbouring sections) and 40px from sm up (80px gap) —
-  // enough room to breathe without slicing the page into separate blocks.
-  padding: 'py-8 sm:py-10',
+  // Generous static rhythm: 48px top/bottom on mobile (96px between
+  // neighbouring sections) and 64px from sm up (128px gap). No motion.
+  padding: 'py-12 sm:py-16',
 } as const;
 
 // ============================================================================
@@ -238,10 +237,10 @@ export const BREAKPOINTS = {
 // TRANSITION UTILITIES
 // ============================================================================
 export const TRANSITIONS = {
-  fast: 'transition-all duration-150',
-  base: 'transition-all duration-200',
-  slow: 'transition-all duration-300',
-  none: '', // For efficiency mode
+  fast: 'transition-none',
+  base: 'transition-none',
+  slow: 'transition-none',
+  none: '', // Static homepage: no motion by design
 } as const;
 
 // ============================================================================

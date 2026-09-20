@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from 'react';
 import { m } from "framer-motion";
-import { useGamification } from '@/hooks/use-gamification';
+import { useGamification } from '@/features/gamification';
 import { useAuth } from '@/hooks/use-auth';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import {
@@ -88,13 +88,13 @@ export default function LeaderboardPage() {
           
           <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
             <Shield className="h-5 w-5" />
-            <span>الحلبة الكبرى للمتفوقين</span>
+            <span>Ø§Ù„Ø­Ù„Ø¨Ø© Ø§Ù„ÙƒØ¨Ø±Ù‰ Ù„Ù„Ù…ØªÙÙˆÙ‚ÙŠÙ†</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-             مدرج <span className={STYLES.neonText}>خالد الطلبة</span> 🏛️
+             Ù…Ø¯Ø±Ø¬ <span className={STYLES.neonText}>Ø®Ø§Ù„Ø¯ Ø§Ù„Ø·Ù„Ø¨Ø©</span> ðŸ›ï¸
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl mx-auto">
-            هنا تخلد أسماء الأبطال الذين قهروا رغبات الراحة وبنوا مجدهم بالعلم والاجتهاد. هل أنت مستعد لتحدي العظماء؟
+            Ù‡Ù†Ø§ ØªØ®Ù„Ø¯ Ø£Ø³Ù…Ø§Ø¡ Ø§Ù„Ø£Ø¨Ø·Ø§Ù„ Ø§Ù„Ø°ÙŠÙ† Ù‚Ù‡Ø±ÙˆØ§ Ø±ØºØ¨Ø§Øª Ø§Ù„Ø±Ø§Ø­Ø© ÙˆØ¨Ù†ÙˆØ§ Ù…Ø¬Ø¯Ù‡Ù… Ø¨Ø§Ù„Ø¹Ù„Ù… ÙˆØ§Ù„Ø§Ø¬ØªÙ‡Ø§Ø¯. Ù‡Ù„ Ø£Ù†Øª Ù…Ø³ØªØ¹Ø¯ Ù„ØªØ­Ø¯ÙŠ Ø§Ù„Ø¹Ø¸Ù…Ø§Ø¡ØŸ
           </p>
         </m.div>
 
@@ -132,7 +132,7 @@ export default function LeaderboardPage() {
                       </div>
                       <div className="text-center">
                           <h3 className="text-xl font-black text-white">{entry.username!}</h3>
-                         <p className={`${colors.text} font-black text-sm uppercase tracking-widest`}>{idx === 0 ? 'الإمبراطور' : idx === 1 ? 'الملك' : 'الفارس'}</p>
+                         <p className={`${colors.text} font-black text-sm uppercase tracking-widest`}>{idx === 0 ? 'Ø§Ù„Ø¥Ù…Ø¨Ø±Ø§Ø·ÙˆØ±' : idx === 1 ? 'Ø§Ù„Ù…Ù„Ùƒ' : 'Ø§Ù„ÙØ§Ø±Ø³'}</p>
                       </div>
                    </div>
 
@@ -141,7 +141,7 @@ export default function LeaderboardPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                       <div className="relative z-10 space-y-2">
                           <p className="text-3xl font-black text-white">{entry.totalXP!.toLocaleString()}</p>
-                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">XP كلي</p>
+                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">XP ÙƒÙ„ÙŠ</p>
                       </div>
                    </div>
                 </m.div>);
@@ -164,22 +164,22 @@ export default function LeaderboardPage() {
                     </div>
                  </div>
                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">رتبتك الحالية في المملكة</p>
-                    <h2 className="text-3xl font-black text-white">أنت المصنف <span className="text-primary">#{userRank || '?'}</span></h2>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Ø±ØªØ¨ØªÙƒ Ø§Ù„Ø­Ø§Ù„ÙŠØ© ÙÙŠ Ø§Ù„Ù…Ù…Ù„ÙƒØ©</p>
+                    <h2 className="text-3xl font-black text-white">Ø£Ù†Øª Ø§Ù„Ù…ØµÙ†Ù <span className="text-primary">#{userRank || '?'}</span></h2>
                  </div>
               </div>
 
               <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
                  <div className="text-center">
                     <p className="text-white font-black text-2xl">{userProgress.totalXP.toLocaleString()}</p>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">مجموع نقاط XP</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Ù…Ø¬Ù…ÙˆØ¹ Ù†Ù‚Ø§Ø· XP</p>
                  </div>
                  <div className="text-center">
                     <p className="text-white font-black text-2xl">{userProgress.longestStreak}</p>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">أطول سلسلة أيام</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Ø£Ø·ÙˆÙ„ Ø³Ù„Ø³Ù„Ø© Ø£ÙŠØ§Ù…</p>
                  </div>
                  <Button className="h-14 px-10 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
-                    تحدي أصدقائك
+                    ØªØ­Ø¯ÙŠ Ø£ØµØ¯Ù‚Ø§Ø¦Ùƒ
                  </Button>
               </div>
            </m.div>
@@ -194,19 +194,19 @@ export default function LeaderboardPage() {
                 className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'global' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
                 
                     <Users className="w-5 h-5" />
-                    <span>المملكة بأكملها</span>
+                    <span>Ø§Ù„Ù…Ù…Ù„ÙƒØ© Ø¨Ø£ÙƒÙ…Ù„Ù‡Ø§</span>
                  </button>
                  <button
                 onClick={() => setLeaderboardType('friends')}
                 className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'friends' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
                 
                     <Sparkles className="w-5 h-5" />
-                    <span>كتيبة الرفاق</span>
+                    <span>ÙƒØªÙŠØ¨Ø© Ø§Ù„Ø±ÙØ§Ù‚</span>
                  </button>
               </div>
               <div className="text-xs font-black uppercase tracking-widest text-gray-500 flex items-center gap-2">
                  <Clock className="w-4 h-4 text-primary" />
-                 <span>تحديث تلقائي: فوري</span>
+                 <span>ØªØ­Ø¯ÙŠØ« ØªÙ„Ù‚Ø§Ø¦ÙŠ: ÙÙˆØ±ÙŠ</span>
               </div>
            </div>
 
@@ -215,7 +215,7 @@ export default function LeaderboardPage() {
                  {others.length === 0 && safeLeaderboard.length < 4 ?
               <div className="p-20 text-center space-y-4">
                        <Zap className="w-16 h-16 text-gray-800 mx-auto" />
-                       <p className="text-gray-500 font-black uppercase tracking-widest">لا يوجد محاربون آخرون في القاعة حالياً</p>
+                       <p className="text-gray-500 font-black uppercase tracking-widest">Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ø­Ø§Ø±Ø¨ÙˆÙ† Ø¢Ø®Ø±ÙˆÙ† ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø© Ø­Ø§Ù„ÙŠØ§Ù‹</p>
                     </div> :
 
               others.map((entry, idx) =>
@@ -234,10 +234,10 @@ export default function LeaderboardPage() {
                              <div className="space-y-1 min-w-0">
                                 <div className="font-black text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
                                    {entry.username}
-                                   {entry.userId === userId && <Badge className="me-3 bg-primary text-[10px] font-black h-5 uppercase">أنت</Badge>}
+                                   {entry.userId === userId && <Badge className="me-3 bg-primary text-[10px] font-black h-5 uppercase">Ø£Ù†Øª</Badge>}
                                 </div>
                                 <div className="flex items-center gap-4 text-xs font-bold text-gray-500 flex-wrap">
-                                   <span className="uppercase tracking-widest text-primary/70">المستوى {entry.level}</span>
+                                   <span className="uppercase tracking-widest text-primary/70">Ø§Ù„Ù…Ø³ØªÙˆÙ‰ {entry.level}</span>
                                    <div className="h-1 w-20 bg-white/5 rounded-full overflow-hidden">
                                       <div className="h-full bg-primary/40 w-[65%]" />
                                    </div>
@@ -246,7 +246,7 @@ export default function LeaderboardPage() {
                           </div>
                           <div className="text-start sm:text-left shrink-0 self-end sm:self-center pe-12 sm:pe-0">
                              <p className="text-2xl font-black text-white">{entry.totalXP.toLocaleString()}</p>
-                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP عسكري</p>
+                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP Ø¹Ø³ÙƒØ±ÙŠ</p>
                           </div>
                        </m.div>
               )
@@ -258,9 +258,9 @@ export default function LeaderboardPage() {
         {/* --- Summary Boxes --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 pb-20">
             {[
-          { label: "المحاربون المسجلون", val: safeLeaderboard.length, icon: Users, color: "text-blue-400" },
-          { label: "أعلى نقاط مسجلة", val: safeLeaderboard.length > 0 ? Math.max(...safeLeaderboard.map((l) => l.totalXP)).toLocaleString() : '0', icon: Crown, color: "text-amber-400" },
-          { label: "ساعات التفوق", val: userProgress ? Math.floor((userProgress.totalStudyTime ?? 0) / 60) : 0, icon: Clock, color: "text-purple-400" }].
+          { label: "Ø§Ù„Ù…Ø­Ø§Ø±Ø¨ÙˆÙ† Ø§Ù„Ù…Ø³Ø¬Ù„ÙˆÙ†", val: safeLeaderboard.length, icon: Users, color: "text-blue-400" },
+          { label: "Ø£Ø¹Ù„Ù‰ Ù†Ù‚Ø§Ø· Ù…Ø³Ø¬Ù„Ø©", val: safeLeaderboard.length > 0 ? Math.max(...safeLeaderboard.map((l) => l.totalXP)).toLocaleString() : '0', icon: Crown, color: "text-amber-400" },
+          { label: "Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØªÙÙˆÙ‚", val: userProgress ? Math.floor((userProgress.totalStudyTime ?? 0) / 60) : 0, icon: Clock, color: "text-purple-400" }].
           map((stat, i) =>
           <div key={i} className={STYLES.glass + " p-6 flex items-center gap-6 group hover:translate-y-[-5px] transition-all"}>
                  <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>

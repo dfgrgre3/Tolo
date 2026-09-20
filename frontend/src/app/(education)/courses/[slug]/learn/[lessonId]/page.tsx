@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SITE } from "@thanawy/shared/site-config";
 import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
 import { ApiError } from "@/lib/api/api-client";
+import { logger } from "@/lib/logger";
 import { LearningHubView } from "@/app/(education)/learning/[courseId]/LearningHubView";
 
 interface Props {
@@ -25,7 +26,7 @@ async function resolveCourse(slug: string) {
     // A 404 from the backend means the course is unknown or not public: render
     // the real 404 rather than leaking that the course exists.
     if (!(error instanceof ApiError && error.status === 404)) {
-      console.error("Error resolving course for lesson route:", error);
+      logger.error("Error resolving course for lesson route:", error);
     }
     return null;
   }

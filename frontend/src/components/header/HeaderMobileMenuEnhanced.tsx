@@ -19,7 +19,7 @@ import { SITE } from "@thanawy/shared/site-config";
 import { cn, toggleThemeWithTransition } from "@/lib/utils";
 import { useTheme } from "@/providers/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/lib/api/api-client";
+import { searchDirectoryRaw } from "@/features/discovery/api/discovery-gateway";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { logger } from "@/lib/logger";
 import { useLoginUrl } from "./useHeaderOptimizations";
@@ -228,8 +228,8 @@ export function HeaderMobileMenuEnhanced({
 		}
 		setIsApiSearching(true);
 		try {
-			const data = await apiClient.get<{ results: SearchResult[] }>(
-				`/search?q=${encodeURIComponent(query)}&type=all&limit=5`
+			const data = await searchDirectoryRaw<{ results: SearchResult[] }>(
+				`?q=${encodeURIComponent(query)}&type=all&limit=5`
 			);
 			setApiResults(data?.results || []);
 		} catch (error) {

@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Laptop, Smartphone, Monitor, LogOut, Loader2 } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  fetchSessions,
+  revokeOtherSessions,
+  revokeSession,
+} from "@/features/auth/api";
 import { formatArabicDate } from "./profile.constants";
 import InlineErrorState from "./InlineErrorState";
 
@@ -54,8 +58,7 @@ export default function ConnectedDevicesCard() {
   // inside the effect body.
   useEffect(() => {
     const controller = new AbortController();
-    apiClient
-      .get<DeviceSession[]>(apiRoutes.auth.sessions.list, { signal: controller.signal })
+    fetchSessions<DeviceSession[]>({ signal: controller.signal })
       .then((data) => {
         setSessions(Array.isArray(data) ? data : []);
         setError(null);
@@ -77,7 +80,7 @@ export default function ConnectedDevicesCard() {
   async function handleRevoke(id: string) {
     setRevokingId(id);
     try {
-      await apiClient.delete(apiRoutes.auth.sessions.revoke(id));
+      await revokeSession(id);
       setSessions((prev) => (prev ? prev.filter((s) => s.id !== id) : prev));
       toast.success("تم إنهاء الجلسة");
     } catch (err) {
@@ -91,7 +94,7 @@ export default function ConnectedDevicesCard() {
   async function handleRevokeOthers() {
     setRevokingAll(true);
     try {
-      await apiClient.post(apiRoutes.auth.sessions.revokeOthers, {});
+      await revokeOtherSessions();
       setSessions((prev) => (prev ? prev.filter((s) => s.isCurrent) : prev));
       toast.success("تم إنهاء الجلسات الأخرى");
     } catch (err) {

@@ -18,6 +18,8 @@ interface LoginCredentialsStepProps {
   rememberMe: boolean;
   onRememberMeChange: (value: boolean) => void;
   error: string | null;
+  /** Backend rejected the login as unverified — show a verify-email CTA. */
+  needsVerification?: boolean;
   isLoading: boolean;
   registered: boolean;
   sessionExpired: boolean;
@@ -41,6 +43,7 @@ export default function LoginCredentialsStep({
   rememberMe,
   onRememberMeChange,
   error,
+  needsVerification = false,
   isLoading,
   registered,
   sessionExpired,
@@ -66,7 +69,20 @@ export default function LoginCredentialsStep({
             <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle className="font-semibold me-2">خطأ في تسجيل الدخول</AlertTitle>
-              <AlertDescription dir="rtl" className="me-2">{error}</AlertDescription>
+              <AlertDescription dir="rtl" className="me-2">
+                {error}
+                {needsVerification && (
+                  <>
+                    {" "}
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(email.trim())}`}
+                      className="font-bold underline underline-offset-4 hover:opacity-80"
+                    >
+                      الانتقال إلى صفحة التفعيل
+                    </Link>
+                  </>
+                )}
+              </AlertDescription>
             </Alert>
           )}
           {sessionExpired && !error && (
@@ -80,7 +96,13 @@ export default function LoginCredentialsStep({
             <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <AlertTitle className="font-semibold me-2">تم إنشاء الحساب</AlertTitle>
-              <AlertDescription dir="rtl" className="me-2">تم إنشاء حسابك بنجاح. سجّل الدخول للمتابعة.</AlertDescription>
+              <AlertDescription dir="rtl" className="me-2">
+                تم إنشاء حسابك بنجاح. أدخل رمز التفعيل المرسل إلى بريدك في{" "}
+                <Link href="/verify-email" className="font-bold underline underline-offset-4 hover:opacity-80">
+                  صفحة التفعيل
+                </Link>{" "}
+                ثم سجّل الدخول.
+              </AlertDescription>
             </Alert>
           )}
 

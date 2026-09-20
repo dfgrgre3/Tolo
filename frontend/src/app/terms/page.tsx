@@ -303,7 +303,7 @@ export default function TermsPage() {
         </div>
 
         {/* ========== TABLE OF CONTENTS ========== */}
-        <div className="rounded-2xl border border-border bg-card/60 p-6 sm:p-8 mb-10 lg:mb-12">
+        <div className="py-8 border-t border-b border-border mb-10 lg:mb-12">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
               <FileText className="w-5 h-5" />
@@ -335,7 +335,7 @@ export default function TermsPage() {
             <section
               key={section.id}
               id={section.id}
-              className="scroll-mt-24 rounded-2xl border border-border bg-gradient-to-br from-card/30 to-card/10 p-6 sm:p-8 lg:p-10"
+              className="scroll-mt-24 py-8 sm:py-10 border-t border-border"
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
                 <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0 w-fit">
@@ -375,7 +375,7 @@ export default function TermsPage() {
         </div>
 
         {/* ========== CONTACT ========== */}
-        <div className="mt-12 lg:mt-16 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-8 sm:p-10 text-center">
+        <div className="mt-12 lg:mt-16 py-10 border-t border-border text-center">
           <div className="p-3 rounded-xl bg-primary/20 border border-primary/30 text-primary w-fit mx-auto mb-4">
             <Mail className="w-8 h-8" />
           </div>
@@ -397,7 +397,7 @@ export default function TermsPage() {
             </Link>
             <Link
               href="/privacy"
-              className="inline-flex items-center gap-2 px-8 py-4 border border-border bg-card font-bold rounded-2xl hover:border-primary/30 transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-4 border border-border font-bold rounded-2xl"
             >
               <ShieldCheck className="w-4 h-4" />
               سياسة الخصوصية

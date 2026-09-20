@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchTeachingAnalyticsRaw } from "@/features/teaching/api/teaching-gateway";
 import {
   AreaChart,
   Area,
@@ -37,7 +36,7 @@ export default function AnalyticsPanel() {
 
   const { data, isLoading, isError, refetch } = useQuery<AnalyticsResponse>({
     queryKey: ["teaching", "analytics"],
-    queryFn: () => apiClient.get<AnalyticsResponse>(apiRoutes.teaching.analytics),
+    queryFn: () => fetchTeachingAnalyticsRaw<AnalyticsResponse>(),
     retry: 1,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

@@ -33,7 +33,7 @@ export function StatsStrip({ stats }: StatsStripProps) {
           <div className="text-2xl sm:text-3xl font-black text-white">
             {value.toLocaleString('ar-EG')}
           </div>
-          <div className="text-xs text-white/70 font-medium mt-1">{label}</div>
+          <div className="text-xs text-white font-medium mt-1">{label}</div>
         </div>
       ))}
     </div>
@@ -57,12 +57,12 @@ export function AchievementStrip({ stats }: StatsStripProps) {
       <div className={CONTAINER.className}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {items.map(({ value, label, icon: Icon }) => (
-            <div key={label} className="flex flex-col items-center animate-fade-in-up">
+            <div key={label} className="flex flex-col items-center">
               <Icon className="h-7 w-7 text-[#F59E0B] mb-2.5" />
               <div className="text-2xl sm:text-3xl font-black text-white mb-1">
                 {value.toLocaleString('ar-EG')}
               </div>
-              <div className="text-sm text-white/60 font-medium">{label}</div>
+              <div className="text-sm text-slate-300 font-medium">{label}</div>
             </div>
           ))}
         </div>

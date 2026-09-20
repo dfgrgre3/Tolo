@@ -6,6 +6,7 @@
  */
 
 import type { PaymentMethod, PaymentInitResponse, PaymentAction } from "./types";
+import { isPaymentRedirectUrl } from "@/lib/security/redirect-policy";
 
 // ─── بوابة Paymob ─────────────────────────────────────────────────
 
@@ -32,14 +33,17 @@ export function getFawryCode(data: PaymentInitResponse): string | null {
 
 /**
  * يحوّل استجابة تهيئة الدفع إلى إجراء واحد واضح بترتيب أولويات ثابت.
- * redirect الصريح أولاً، ثم معالجة كل طريقة دفع.
+ * redirect الصريح أولاً (بعد التحقق من allowlist المضيف)، ثم معالجة كل طريقة دفع.
+ * روابط redirect خارج allowlist تُتجاهل وتسقط لبقية المنطق بدل التنقل إليها.
  */
 export function resolvePaymentAction(
   paymentMethod: PaymentMethod,
   data: PaymentInitResponse,
 ): PaymentAction {
   if (data.success) return { kind: "success" };
-  if (data.redirectUrl) return { kind: "redirect", url: data.redirectUrl };
+  if (data.redirectUrl && isPaymentRedirectUrl(data.redirectUrl)) {
+    return { kind: "redirect", url: data.redirectUrl };
+  }
 
   if (paymentMethod === "fawry") {
     const code = getFawryCode(data);

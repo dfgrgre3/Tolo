@@ -4,6 +4,7 @@ import React from "react";
 import { m } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Inbox, Search, RefreshCw, ArrowUpDown, FileDown, AlertCircle } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 /* ── رأس الصفحة الموحد (نفس ستايل billing/page.tsx) ── */
 export function BillingPageHeader({
@@ -113,7 +114,7 @@ export function BillingStatusBadge({ status }: { status: string }) {
   );
 }
 
-/* ── حالة فارغة موحدة ── */
+/* ── حالة فارغة موحدة (B-11: delegate للمركزي، نفس التوقيع) ── */
 export function BillingEmptyState({
   icon: Icon,
   title,
@@ -126,14 +127,7 @@ export function BillingEmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="py-20 bg-gray-50 dark:bg-white/5 rounded-[3rem] border border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center gap-4 text-center px-6">
-      <div className="w-20 h-20 rounded-[1.8rem] bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center">
-        <Icon className="w-9 h-9 text-gray-400 dark:text-gray-500" />
-      </div>
-      <p className="text-gray-900 dark:text-white font-black text-lg">{title}</p>
-      {hint && <p className="text-gray-500 text-sm font-medium max-w-sm leading-relaxed">{hint}</p>}
-      {action}
-    </div>
+    <EmptyState title={title} description={hint} icon={Icon} action={action} />
   );
 }
 

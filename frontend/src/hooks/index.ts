@@ -12,11 +12,11 @@ export { useMediaQuery, useDeviceType, useOrientation } from "./use-media-query"
 export { useNetworkStatus } from "./use-network-status";
 export { useLocalStorage, useLocalStorageValue } from "./use-local-storage";
 
-// Feature-specific hooks
+// Feature-specific hooks (B-11: canonical sources; legacy @/hooks/* facades removed)
 export { useAuth } from "./use-auth";
 export { useCourses } from "./use-courses";
-export { usePermission } from "./use-permission";
-export { useGamification, type CustomGoal } from "./use-gamification";
+export { usePermission } from "@/features/auth/hooks/use-permission";
+export { useGamification, type CustomGoal } from "@/features/gamification";
 export { useTimeTrackerStore, type PomodoroState } from "./use-time-tracker-store";
 export { useOfflineOutboxStore } from "./use-offline-outbox-store";
 export { usePersistedQuery } from "./use-persisted-query";

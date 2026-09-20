@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/contexts/auth-context";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchCartRaw } from "@/features/courses/api/courses-gateway";
 import { logger } from "@/lib/logger";
 
 interface HeaderCartIconProps {
@@ -23,11 +23,11 @@ export function HeaderCartIcon({ user, mounted }: HeaderCartIconProps) {
 	const [count, setCount] = useState<number | null>(0);
 
 	// Cart badge is a non-critical convenience — never block the header on it.
-	// apiClient already retries transient failures internally; on final failure
+	// Transport retries transient failures internally; on final failure
 	// we just hide the badge rather than keep showing a possibly-stale count.
 	const fetchCount = useCallback(async () => {
 		try {
-			const data = await apiClient.get<CartResponse>("/cart");
+			const data = await fetchCartRaw<CartResponse>();
 			setCount(Array.isArray(data?.items) ? data.items.length : 0);
 		} catch (error) {
 			logger.error("Failed to fetch cart count", error);

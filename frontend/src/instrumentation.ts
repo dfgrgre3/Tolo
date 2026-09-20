@@ -5,6 +5,23 @@
  */
 import * as Sentry from '@sentry/nextjs';
 
+/**
+ * Adaptive trace sampling with an explicit error-trace budget.
+ *
+ * - Override per environment via SENTRY_TRACES_SAMPLE_RATE (0..1).
+ * - Default is 1.0 outside production (full local visibility) and 0.1 in
+ *   production (cost/volume budget at scale; errors are still captured at
+ *   100% — this rate only governs performance traces).
+ */
+function tracesSampleRate(): number {
+  const raw = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  if (raw !== undefined) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) return parsed;
+  }
+  return process.env.NODE_ENV === 'production' ? 0.1 : 1.0;
+}
+
 export async function register() {
   // Sentry's Next.js integration expects initialization from the runtime
   // instrumentation hook. Keeping the runtime-specific config imports here
@@ -12,13 +29,13 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     Sentry.init({
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN,
-      tracesSampleRate: 1.0,
+      tracesSampleRate: tracesSampleRate(),
       debug: false,
     });
   } else if (process.env.NEXT_RUNTIME === 'edge') {
     Sentry.init({
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN,
-      tracesSampleRate: 1.0,
+      tracesSampleRate: tracesSampleRate(),
       debug: false,
     });
   }

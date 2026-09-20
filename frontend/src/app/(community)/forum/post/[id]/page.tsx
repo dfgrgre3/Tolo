@@ -7,8 +7,12 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  createForumReplyRaw,
+  fetchForumPostRaw,
+  fetchForumRepliesRaw,
+  incrementForumPostViewRaw,
+} from "@/features/community/api/community-gateway";
 
 type ForumPost = {
   id: string;
@@ -51,7 +55,7 @@ export default function ForumPostPage() {
 
     const fetchPost = async () => {
       try {
-        const postData = await apiClient.get<ForumPost>(apiRoutes.forum.post(postId));
+        const postData = await fetchForumPostRaw<ForumPost>(postId);
         setPost(postData);
       } catch (error) {
         logger.error("Error fetching post:", error);
@@ -61,7 +65,7 @@ export default function ForumPostPage() {
 
     const fetchReplies = async () => {
       try {
-        const repliesData = await apiClient.get<ForumReply[]>(apiRoutes.forum.replies(postId));
+        const repliesData = await fetchForumRepliesRaw<ForumReply[]>(postId);
         setReplies(Array.isArray(repliesData) ? repliesData : []);
       } catch (error) {
         logger.error("Error fetching replies:", error);
@@ -70,7 +74,7 @@ export default function ForumPostPage() {
 
     const incrementViews = async () => {
       try {
-        await apiClient.postJson(apiRoutes.forum.incrementView(postId), {});
+        await incrementForumPostViewRaw(postId);
       } catch (error) {
         logger.error("Error incrementing views:", error);
       }
@@ -91,7 +95,7 @@ export default function ForumPostPage() {
 
     setIsSubmittingReply(true);
     try {
-      const newReply = await apiClient.postJson<ForumReply>(apiRoutes.forum.createReply(postId), {
+      const newReply = await createForumReplyRaw<ForumReply>(postId, {
         userId,
         content: replyContent
       });

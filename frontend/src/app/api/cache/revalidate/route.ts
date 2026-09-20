@@ -3,6 +3,11 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { isSameOriginRequest } from "@/lib/security/origin-check";
 import { getBackendApiUrl } from "@/lib/api/backend-url";
+import {
+  ADMIN_PRIVILEGE_ROLES,
+  normalizeRole,
+} from "@/lib/auth/roles";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +40,11 @@ export async function POST(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  const userId = cookieStore.get("user_id")?.value || cookieStore.get("userId")?.value;
+  // NOTE: never trust client-writable identity cookies (`user_id`/`userId`)
+  // as an auth pre-check — they are attacker-settable. The single source of
+  // truth is the live backend session verified below via `access_token`.
   const accessToken = cookieStore.get("access_token")?.value;
-  if (!userId) {
+  if (!accessToken) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
@@ -45,30 +52,61 @@ export async function POST(request: NextRequest) {
   try {
     backendApiUrl = getBackendApiUrl('/auth/me');
   } catch (err) {
-    console.error("[cache/revalidate] backend URL not configured:", err);
+    logger.error("[cache/revalidate] backend URL not configured:", err);
     return NextResponse.json(
       { error: "Backend service unavailable" },
       { status: 503 }
     );
   }
 
-  const me = await fetch(backendApiUrl, {
-    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-    cache: "no-store",
-  });
+  let me: Response;
+  try {
+    me = await fetch(backendApiUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "تعذر التحقق من الجلسة" },
+      { status: 502 },
+    );
+  }
   if (!me.ok) {
     return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
   }
 
-  let payload: { user?: { role?: string } };
+  let payload: unknown;
   try {
     payload = await me.json();
   } catch {
     return NextResponse.json({ error: "فشل التحقق من الجلسة" }, { status: 502 });
   }
 
-  const role = payload.user?.role;
-  if (role !== "ADMIN" && role !== "MODERATOR") {
+  // Accept both bare `{ user }` and enveloped `{ data: { user } | user }`
+  // shapes so a backend envelope change cannot silently lock out admins
+  // (fail-closed only when no role is actually present).
+  const record =
+    typeof payload === "object" && payload !== null
+      ? (payload as Record<string, unknown>)
+      : {};
+  const dataRecord =
+    typeof record.data === "object" && record.data !== null
+      ? (record.data as Record<string, unknown>)
+      : null;
+  const userRecord =
+    (typeof record.user === "object" && record.user !== null
+      ? (record.user as Record<string, unknown>)
+      : null) ??
+    (dataRecord !== null &&
+    typeof dataRecord.user === "object" &&
+    dataRecord.user !== null
+      ? (dataRecord.user as Record<string, unknown>)
+      : null) ??
+    dataRecord;
+  const rawRole = userRecord?.role ?? record.role;
+  const role = normalizeRole(rawRole);
+  if (role === null || !ADMIN_PRIVILEGE_ROLES.includes(role)) {
     return NextResponse.json({ error: "ممنوع" }, { status: 403 });
   }
 
@@ -80,12 +118,12 @@ export async function POST(request: NextRequest) {
   }
 
   const paths = body.paths;
-  if (!Array.isArray(paths) || paths.length === 0) {
+  if (!Array.isArray(paths) || paths.length === 0 || paths.length > 50) {
     return NextResponse.json({ error: "paths مطلوب" }, { status: 400 });
   }
 
   for (const p of paths) {
-    if (typeof p !== "string" || !p.startsWith("/")) {
+    if (typeof p !== "string" || !p.startsWith("/") || p.length > 2048) {
       return NextResponse.json(
         { error: "كل مسار يجب أن يبدأ بـ /" },
         { status: 400 },

@@ -6,6 +6,7 @@ import { GraduationCap, Play, BookmarkCheck, Bookmark, Share2, BookOpen, Clock, 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import type { CourseSummaryView } from "@/types/domain/mappers";
 
 export function CourseActionCard({
@@ -50,7 +51,7 @@ export function CourseActionCard({
           url: window.location.href,
         });
       } catch (err) {
-        console.error("Error sharing:", err);
+        logger.error("Error sharing:", err);
       }
     } else {
       navigator.clipboard.writeText(window.location.href);

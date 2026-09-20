@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +22,24 @@ import { formatCooldownAr } from "@/lib/auth/rate-limit";
 import { useResendCooldown } from "@/hooks/use-resend-cooldown";
 
 const VERIFY_RESEND_KEY = "resend:verify-email";
+const PENDING_EMAIL_KEY = "thanawy:pending-verification-email";
+
+function readPendingEmail(queryEmail: string | null): string {
+  if (queryEmail && queryEmail.includes("@")) return queryEmail.trim().toLowerCase();
+  try {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem(PENDING_EMAIL_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
 
 export default function VerifyEmailPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { refreshUser } = useAuthContext();
   const [code, setCode] = useState("");
+  const [email, setEmail] = useState(() => readPendingEmail(searchParams.get("email")));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +88,11 @@ export default function VerifyEmailPage() {
 
     setCodeThrottle(recordSuccess("verify-email"));
     await refreshUser();
+    try {
+      window.localStorage.removeItem(PENDING_EMAIL_KEY);
+    } catch {
+      // Ignore — the key is convenience only.
+    }
 
     setSuccess("تم تأكيد بريدك الإلكتروني بنجاح! سيتم تحويلك للوحة التحكم...");
     setTimeout(() => {
@@ -89,7 +107,7 @@ export default function VerifyEmailPage() {
     setError(null);
     setSuccess(null);
 
-    const result = await resendVerification();
+    const result = await resendVerification(email.trim().toLowerCase() || undefined);
 
     if (!result.success) {
       // A 429 carries the server's own wait — adopt it as the cooldown so
@@ -137,6 +155,19 @@ export default function VerifyEmailPage() {
                 </Alert>
               )}
               <ThrottleNotice snapshot={codeThrottle} />
+              <div className="grid gap-2">
+                <Label htmlFor="verify-email-address" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">البريد الإلكتروني</Label>
+                <Input
+                  id="verify-email-address"
+                  type="email"
+                  dir="ltr"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading || !!success}
+                  className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="code" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">رمز التحقق (OTP)</Label>
                 <Input

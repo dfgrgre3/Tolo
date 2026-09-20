@@ -279,10 +279,15 @@ export default [
   },
   // P0-1 / P0-4 Architecture Rule: Strict boundary on standardized features and video components.
   // Direct use of apiClient is forbidden — UI must call a domain service or feature hook.
+  // EXCEPTION: `src/features/**/api/*-gateway.ts` files ARE the sanctioned
+  // transport boundary (pure apiClient use, no UI logic) and are excluded.
   {
     files: [
       "src/components/video/**/*.{ts,tsx}",
       "src/features/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "src/features/**/api/**/*.{ts,tsx}",
     ],
     rules: {
       "no-restricted-imports": [

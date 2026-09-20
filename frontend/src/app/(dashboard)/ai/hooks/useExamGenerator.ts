@@ -58,9 +58,9 @@ interface UseExamGeneratorProps {
 }
 
 export function useExamGenerator(_props: UseExamGeneratorProps) {
-  const { generateExam, saveExam, setContext, poll } = useAIWorkspace();
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedYear, setSelectedYear] = useState("");
+  const { generateExam, saveExam, setContext, poll, context } = useAIWorkspace();
+  const [selectedSubject, setSelectedSubject] = useState(context.subject ?? "");
+  const [selectedYear, setSelectedYear] = useState(context.year ?? "");
   const [lesson, setLesson] = useState("");
   const [difficulty, setDifficulty] = useState("none");
   const [questionCount, setQuestionCount] = useState(10);

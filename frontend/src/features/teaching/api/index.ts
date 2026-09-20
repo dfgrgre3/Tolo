@@ -9,3 +9,5 @@ export {
   contractDeleteTeachingCourse,
   type ContractTeachingCoursePayload,
 } from "@/services/api/contracts-teaching-courses-service";
+
+export * from "./teaching-gateway";

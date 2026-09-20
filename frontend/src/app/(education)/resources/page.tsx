@@ -1,7 +1,7 @@
 import { SITE } from "@thanawy/shared/site-config";
 import ResourcesClient from "./resources-client";
 import type { Resource } from "./resources-client";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchResourcesRaw } from "@/features/courses/api/courses-gateway";
 import { logger } from "@/lib/logger";
 
 export const metadata = {
@@ -27,13 +27,11 @@ export const metadata = {
   },
 };
 
-// نستخدم apiClient بدلاً من fetch الخام لأنه على الخادم لا يوجد
-// NEXT_PUBLIC_API_URL بمسار نسبي للمتصفح — apiClient يحوّل العنوان
-// إلى العنوان المطلق للـ API الداخلي (INTERNAL_API_URL) تلقائياً.
-// أي فشل هنا يُرجع undefined فتتكفل الواجهة بالجلب البديل من المتصفح.
+// النقل عبر بوابة الكورسات (transport boundary) — أي فشل هنا يُرجع
+// undefined فتتكفل الواجهة بالجلب البديل من المتصفح.
 async function fetchResources(): Promise<Resource[] | undefined> {
   try {
-    const payload = await apiClient.get<unknown>("/resources");
+    const payload = await fetchResourcesRaw();
 
     // نفس منطق التفريغ في الواجهة: الاستجابة إما مصفوفة مباشرة
     // أو مغلّفة بالشكل { success, data } (انظر response.Success في Go).

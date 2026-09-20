@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api/api-client";
+import {
+  fetchTeachingSettingsRaw,
+  regenerateTeachingApiKeyRaw,
+  updateTeachingSettingsRaw,
+} from "@/features/teaching/api/teaching-gateway";
 import { User, CreditCard, Key, Check } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +30,7 @@ export default function SettingsPanel() {
 
   const { data } = useQuery<SettingsData>({
     queryKey: ["teaching", "settings"],
-    queryFn: () => apiClient.get<SettingsData>("/api/teaching/settings"),
+    queryFn: () => fetchTeachingSettingsRaw<SettingsData>(),
     retry: 1,
   });
 
@@ -41,7 +45,7 @@ export default function SettingsPanel() {
   }, [data]);
 
   const saveMutation = useMutation({
-    mutationFn: (body: SettingsData) => apiClient.patch("/api/teaching/settings", body),
+    mutationFn: (body: SettingsData) => updateTeachingSettingsRaw<unknown>(body),
     onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -54,8 +58,7 @@ export default function SettingsPanel() {
   };
 
   const generateNewKey = () => {
-    apiClient
-      .post<{ apiKey: string }>("/api/teaching/settings/api-key", {})
+    regenerateTeachingApiKeyRaw<{ apiKey: string }>()
       .then((res) => {
         if (res.apiKey) setApiKey(res.apiKey);
       })

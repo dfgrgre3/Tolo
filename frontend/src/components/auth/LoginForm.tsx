@@ -26,6 +26,7 @@ export default function LoginForm() {
     setMfaCode,
     mfaChallenge,
     error,
+    needsVerification,
     isLoading,
     loginThrottle,
     mfaThrottle,
@@ -59,6 +60,7 @@ export default function LoginForm() {
       rememberMe={rememberMe}
       onRememberMeChange={setRememberMe}
       error={error}
+      needsVerification={needsVerification}
       isLoading={isLoading}
       registered={registered}
       sessionExpired={sessionExpired}

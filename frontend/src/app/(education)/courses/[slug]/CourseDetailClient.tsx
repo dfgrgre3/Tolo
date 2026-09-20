@@ -18,8 +18,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  addWishlistItemRaw,
+  checkEnrollmentEligibilityRaw,
+  enrollCourseRaw,
+  fetchCourseDetailRaw,
+  fetchWishlistRaw,
+  removeWishlistItemRaw,
+} from "@/features/courses/api/courses-gateway";
 import {
   toLessonCards,
   type CourseDetailHydrationResponse,
@@ -70,7 +76,7 @@ export default function CourseDetailClient({
     if (!userId) {
       return;
     }
-    apiClient.get<{ items?: Array<{ subjectId: string }> }>(apiRoutes.courses.wishlistList)
+    fetchWishlistRaw<{ items?: Array<{ subjectId: string }> }>()
       .then((data) => setBookmarked(Boolean(data.items?.some((item) => item.subjectId === courseSlug))))
       .catch(() => undefined);
   }, [courseSlug, userId]);
@@ -83,9 +89,9 @@ export default function CourseDetailClient({
     setBookmarkBusy(true);
     try {
       if (bookmarked) {
-        await apiClient.delete(apiRoutes.courses.wishlist(courseSlug));
+        await removeWishlistItemRaw(courseSlug);
       } else {
-        await apiClient.post(apiRoutes.courses.wishlist(courseSlug), {});
+        await addWishlistItemRaw(courseSlug);
       }
       setBookmarked((current) => !current);
     } finally {
@@ -104,7 +110,7 @@ export default function CourseDetailClient({
           // no ?userId= is appended (IDOR/BOLA hardening).
           // Refresh the same aggregate endpoint after authentication. This
           // keeps enrollment, access, lessons, and progress from one snapshot.
-          const payload = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseSlug));
+          const payload = await fetchCourseDetailRaw<CourseDetailHydrationResponse>(courseSlug);
           setCourse((prev) => ({
             ...prev,
             enrolled: payload.access.isEnrolled,
@@ -140,7 +146,7 @@ export default function CourseDetailClient({
     }
     setEnrolling(true);
     try {
-      const eligibility = await apiClient.get<EnrollmentEligibilityResponse>(apiRoutes.courses.eligibility(courseSlug));
+      const eligibility = await checkEnrollmentEligibilityRaw<EnrollmentEligibilityResponse>(courseSlug);
       if (eligibility.isEnrolled) {
         setCourse((prev) => ({ ...prev, enrolled: true }));
         return;
@@ -151,10 +157,10 @@ export default function CourseDetailClient({
         return;
       }
 
-      await apiClient.post<EnrollmentResponse>(apiRoutes.courses.enroll(courseSlug), {});
+      await enrollCourseRaw<EnrollmentResponse>(courseSlug);
       // Reconcile the complete server-owned snapshot so access, locks,
       // enrollment and completion cannot remain from the guest state.
-      const snapshot = await apiClient.get<CourseDetailHydrationResponse>(apiRoutes.courses.detail(courseSlug));
+      const snapshot = await fetchCourseDetailRaw<CourseDetailHydrationResponse>(courseSlug);
       setCourse((prev) => ({
         ...prev,
         enrolled: snapshot.access.isEnrolled,

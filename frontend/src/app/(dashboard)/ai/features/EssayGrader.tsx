@@ -1,24 +1,21 @@
+'use client';
 
-// Re-build trigger: 2026-06-06 — Async job queue pattern
-
-import React, { useState } from 'react';
-import { m } from 'framer-motion';
-import { PenTool, GraduationCap, AlertCircle, Loader2, Sparkles, Copy, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { PenLine, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAIWorkspace } from '../context/AIWorkspaceContext';
 import { pollAIJobResult } from '@/lib/pollJobResult';
 import { apiRoutes } from '@/lib/api/routes';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
+import { AISectionShell, AIError, AIResultHeader, HistoryBar, FieldLabel, useCopyText, downloadTextFile, loadLocal, saveLocal } from '../components/ai-shared';
 
-interface EvaluationPayload {
-  evaluation?: string;
-  result?: string;
-}
+interface EvaluationPayload { evaluation?: string; result?: string }
+interface GradeHistory { topic: string; evaluation: string; at: string }
+const HISTORY_KEY = 'thanawy:ai:grader-history';
 
 export default function EssayGrader() {
   const { gradeEssay: requestGradeEssay } = useAIWorkspace();
@@ -28,157 +25,99 @@ export default function EssayGrader() {
   const [isLoading, setIsLoading] = useState(false);
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<GradeHistory[]>([]);
+  const { copied, copy } = useCopyText();
+
+  useEffect(() => { setHistory(loadLocal<GradeHistory[]>(HISTORY_KEY, [])); }, []);
 
   const gradeEssay = async () => {
+    if (content.trim().length < 100) { setError('اكتب موضوعاً لا يقل عن 100 حرف للحصول على تقييم دقيق'); return; }
     setIsLoading(true);
     setError(null);
     setEvaluation(null);
     try {
-      // Step 1 — enqueue the job (returns 202 + jobId in < 50 ms)
-      const data = await requestGradeEssay<{ jobId: string; status: string }>({ content, topic, language });
-
-      if (!data?.jobId) {
-        setError('فشل في إرسال الطلب. حاول مرة أخرى.');
-        return;
-      }
-
-      // Step 2 — poll every 1.5 s until completed/failed
-      const payload = await pollAIJobResult<EvaluationPayload & { status: string }>(
-        data.jobId,
-        apiRoutes.ai.gradeEssayStatusBase,
-        { intervalMs: 1500 },
-      );
-
-      setEvaluation(payload.evaluation ?? payload.result ?? '');
+      const data = await requestGradeEssay<{ jobId: string; status: string }>({ content: content.trim(), topic: topic.trim() || undefined, language });
+      if (!data?.jobId) { setError('فشل في إرسال الطلب. حاول مرة أخرى.'); return; }
+      const payload = await pollAIJobResult<EvaluationPayload & { status: string }>(data.jobId, apiRoutes.ai.gradeEssayStatusBase, { intervalMs: 1500 });
+      const text = payload.evaluation ?? payload.result ?? '';
+      if (!text) { setError('وصل رد فارغ. حاول مرة أخرى.'); return; }
+      setEvaluation(text);
+      const next = [{ topic: topic || content.slice(0, 50), evaluation: text, at: new Date().toISOString() }, ...history].slice(0, 10);
+      setHistory(next);
+      saveLocal(HISTORY_KEY, next);
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'AbortError') return;
-      const msg = e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
-      setError(msg);
+      setError(e instanceof Error ? e.message : 'حدث خطأ غير متوقع');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCopy = async () => {
-    if (!evaluation) return;
-    try {
-      await navigator.clipboard.writeText(evaluation);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError('تعذر نسخ التقييم. حاول مرة أخرى.');
-    }
-  };
-
   return (
-    <div className="space-y-8">
-      <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden relative group">
-        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-          <PenTool className="w-32 h-32 text-orange-500" />
+    <AISectionShell
+      badge="Linguistic AI"
+      title="مُصحح التعبير واللغات"
+      description="تقييم فوري: الدرجة، الأخطاء اللغوية، نقاط القوة، وخطة التحسين."
+      icon={<PenLine className="h-6 w-6" />}
+    >
+      <HistoryBar
+        items={history}
+        onClear={() => { setHistory([]); saveLocal(HISTORY_KEY, []); }}
+        onSelect={(h) => { setTopic(h.topic); setEvaluation(h.evaluation); }}
+        renderLabel={(h) => h.topic.slice(0, 40)}
+      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <FieldLabel>موضوع التعبير</FieldLabel>
+          <Input placeholder="عنوان الموضوع..." value={topic} onChange={(e) => setTopic(e.target.value.slice(0, 200))} className="h-12 rounded-xl" />
         </div>
-
-        <div className="relative z-10 space-y-6">
-          <div>
-            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 mb-4 px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-              Linguistic AI
-            </Badge>
-            <h2 className="text-3xl font-black text-white">مُصحح التعبير واللغات</h2>
-            <p className="text-gray-400 mt-2 font-medium">احصل على تقييم فوري وتصحيح لغوي دقيق لمواضيع التعبير الخاصة بك.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">موضوع التعبير</label>
-              <Input 
-                placeholder="عنوان الموضوع..."
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                className="bg-white/5 border-white/10 rounded-2xl h-14 text-white" 
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">اللغة</label>
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-14 text-white">
-                  <SelectValue placeholder="اختر اللغة" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-white/10 text-white">
-                  <SelectItem value="Arabic">اللغة العربية</SelectItem>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="French">Français</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <Textarea 
-              placeholder="اكتب موضوعك هنا..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[300px] bg-white/5 border-white/10 rounded-3xl p-6 text-white text-lg leading-relaxed focus:ring-orange-500/50"
-            />
-            
-            <Button 
-              onClick={gradeEssay}
-              disabled={isLoading || content.length < 100}
-              className="w-full md:w-auto px-12 h-14 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl shadow-xl shadow-orange-500/20 transition-all">
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 me-3 animate-spin" />
-                  جاري التقييم... (قد يستغرق بضع ثوانٍ)
-                </>
-              ) : (
-                <>
-                  <GraduationCap className="w-5 h-5 me-3" />
-                  تقييم الموضوع الآن
-                </>
-              )}
-            </Button>
-          </div>
-
-          {error && (
-            <m.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
-            >
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-              <p className="text-red-400 text-sm font-medium">{error}</p>
-            </m.div>
-          )}
+        <div>
+          <FieldLabel>اللغة</FieldLabel>
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="اختر اللغة" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Arabic">اللغة العربية</SelectItem>
+              <SelectItem value="English">English</SelectItem>
+              <SelectItem value="French">Français</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </Card>
+      </div>
+
+      <div className="mt-4">
+        <FieldLabel required>نص الموضوع (100 حرف على الأقل)</FieldLabel>
+        <Textarea
+          placeholder="اكتب موضوعك هنا..."
+          value={content}
+          onChange={(e) => setContent(e.target.value.slice(0, 12000))}
+          className="min-h-[220px] rounded-2xl p-5 text-base leading-relaxed"
+        />
+        <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+          <span>{content.length}/12000</span>
+          <span>{content.trim().length < 100 ? `متبقٍ ${100 - content.trim().length} حرف` : `عدد الكلمات ≈ ${content.trim().split(/\s+/).length} ✓`}</span>
+        </div>
+      </div>
+
+      <div className="mt-4"><AIError message={error} onRetry={gradeEssay} /></div>
+
+      <Button onClick={gradeEssay} disabled={isLoading || content.trim().length < 100} className="mt-4 h-12 rounded-xl px-10 font-bold">
+        {isLoading ? (<><Loader2 className="h-4 w-4 me-2 animate-spin" /> جاري التقييم...</>) : 'تقييم الموضوع الآن'}
+      </Button>
 
       {evaluation && (
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500/20 rounded-xl border border-orange-500/30">
-                <Sparkles className="w-5 h-5 text-orange-400" />
-              </div>
-              <h3 className="text-xl font-black text-white">نتائج التقييم الذكي</h3>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCopy}
-              className="text-gray-500 hover:text-white"
-              title="نسخ التقييم"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            </Button>
-          </div>
-
-          <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none">
+        <div className="mt-6">
+          <AIResultHeader
+            title="نتائج التقييم الذكي"
+            copied={copied}
+            onCopy={() => evaluation && copy(evaluation)}
+            onDownload={() => evaluation && downloadTextFile('evaluation.md', evaluation, 'text/markdown;charset=utf-8')}
+            onReset={() => setEvaluation(null)}
+          />
+          <Card className="prose max-w-none rounded-2xl p-6 dark:prose-invert">
             <SafeMarkdown>{evaluation}</SafeMarkdown>
           </Card>
-        </m.div>
+        </div>
       )}
-    </div>
+    </AISectionShell>
   );
 }

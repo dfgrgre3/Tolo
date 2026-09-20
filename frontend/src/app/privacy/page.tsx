@@ -368,7 +368,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* ========== EXECUTIVE SUMMARY ========== */}
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-6 sm:p-8 lg:p-10 mb-10 lg:mb-12">
+        <div className="relative py-8 sm:py-10 border-t border-border mb-10 lg:mb-12">
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 shrink-0">
               <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400" />
@@ -397,7 +397,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* ========== TABLE OF CONTENTS ========== */}
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-6 sm:p-8 mb-10 lg:mb-12">
+        <div className="relative py-8 border-t border-b border-border mb-10 lg:mb-12">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
               <FileText className="w-5 h-5" />
@@ -429,7 +429,7 @@ export default function PrivacyPage() {
             <section
               key={section.id}
               id={section.id}
-              className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/30 to-card/10 backdrop-blur-sm p-6 sm:p-8 lg:p-10"
+              className="relative scroll-mt-24 py-8 sm:py-10 border-t border-border"
             >
               {/* Section Header */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
@@ -476,7 +476,7 @@ export default function PrivacyPage() {
         {/* ========== CONTACT & DOWNLOAD SECTION ========== */}
         <div className="mt-12 lg:mt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Contact Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-8 sm:p-10 text-center">
+          <div className="relative py-8 sm:py-10 border-t border-border text-center">
             <div className="p-3 rounded-xl bg-primary/20 border border-primary/30 text-primary w-fit mx-auto mb-4">
               <Mail className="w-8 h-8" />
             </div>
@@ -495,7 +495,7 @@ export default function PrivacyPage() {
           </div>
 
           {/* Download / Print Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-8 sm:p-10 text-center">
+          <div className="relative py-8 sm:py-10 border-t border-border text-center">
             <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 w-fit mx-auto mb-4">
               <Download className="w-8 h-8" />
             </div>
@@ -508,7 +508,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* ========== DATA PROTECTION OFFICER NOTE ========== */}
-        <div className="mt-8 p-6 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+        <div className="mt-8 py-6 border-t border-border">
           <div className="flex items-start gap-4">
             <div className="p-2 rounded-lg bg-amber-500/20 shrink-0">
               <AlertTriangle className="w-5 h-5 text-amber-400" />

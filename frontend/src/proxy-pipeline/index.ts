@@ -68,7 +68,7 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
     // dead weight; clear so later requests stop retrying them. Transient
     // backend failure → preserve: the session may still be valid and the
     // next navigation will retry the refresh.
-    if (!refreshTransient) clearAuthCookies(response);
+    if (!refreshTransient) clearAuthCookies(response, request);
     return finalizeProxyResponse(response, nonce);
   }
 

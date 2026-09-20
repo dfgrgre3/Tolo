@@ -3,7 +3,7 @@
 import * as React from "react";
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
 import { logger } from "@/lib/logger";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchSystemSettingsRaw } from "@/lib/settings-preferences";
 
 const SETTINGS_CACHE_KEY = "tolo-system-settings-v1";
 
@@ -101,8 +101,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const fetchSettings = async () => {
     try {
-      const data = await apiClient.get<{ settings: SystemSettings }>(
-        "/settings",
+      const data = await fetchSystemSettingsRaw<{ settings: SystemSettings }>(
         { timeout: SETTINGS_TIMEOUT_MS },
       );
       if (data && data.settings) {

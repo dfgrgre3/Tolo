@@ -8,8 +8,10 @@ import { Layout } from "@/components/layout/Layout";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  createBlogPostRaw,
+  fetchBlogCategoriesRaw,
+} from "@/features/community/api/community-gateway";
 
 type BlogCategory = {
   id: string;
@@ -37,10 +39,11 @@ export default function NewBlogPostPage() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await apiClient.get<BlogCategory[]>(apiRoutes.blog.categories);
-      setCategories(Array.isArray(data) ? data : []);
-      if (Array.isArray(data) && data.length > 0 && data[0]) {
-        setCategoryId(data[0].id);
+      const data = await fetchBlogCategoriesRaw();
+      const list = Array.isArray(data) ? (data as BlogCategory[]) : [];
+      setCategories(list);
+      if (list.length > 0 && list[0]) {
+        setCategoryId(list[0].id);
       }
     };
 
@@ -64,7 +67,7 @@ export default function NewBlogPostPage() {
 
     setIsSubmitting(true);
     try {
-      const newPost = await apiClient.postJson<{ id: string }>(apiRoutes.blog.posts, {
+      const newPost = await createBlogPostRaw({
         userId,
         title,
         excerpt,

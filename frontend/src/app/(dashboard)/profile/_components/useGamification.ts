@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiClient } from "@/lib/api/api-client";
 import { CallerAbortError } from "@/lib/api/retry-policy";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchGamificationAchievementsRaw,
+  fetchGamificationProgressRaw,
+} from "@/features/gamification/api/gamification-gateway";
 
 /**
  * Deliberately narrower than `@/types/gamification`'s `UserProgress` /
@@ -59,8 +61,7 @@ export function useGamificationProgress() {
 
   useEffect(() => {
     const controller = new AbortController();
-    apiClient
-      .get<GamificationProgress>(apiRoutes.gamification.progress, {
+    fetchGamificationProgressRaw<GamificationProgress>({
         signal: controller.signal,
         retries: 0,
       })
@@ -90,8 +91,7 @@ export function useUnlockedAchievements() {
 
   useEffect(() => {
     const controller = new AbortController();
-    apiClient
-      .get<{ achievements: UnlockedAchievement[] | null }>(apiRoutes.gamification.achievements, {
+    fetchGamificationAchievementsRaw<{ achievements: UnlockedAchievement[] | null }>({
         signal: controller.signal,
       })
       .then((data) => {

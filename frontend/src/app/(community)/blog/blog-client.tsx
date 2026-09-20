@@ -20,8 +20,10 @@ import {
 import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchBlogCategoriesRaw,
+  fetchBlogPostsRaw,
+} from "@/features/community/api/community-gateway";
 
 export type BlogPost = {
   id: string;
@@ -85,8 +87,8 @@ export default function BlogClient({
       setLoading(true);
       try {
         const [catRes, postRes] = await Promise.all([
-          apiClient.get<unknown>(apiRoutes.blog.categories),
-          apiClient.get<unknown>(apiRoutes.blog.posts)
+          fetchBlogCategoriesRaw(),
+          fetchBlogPostsRaw()
         ]);
         const catData = catRes as { data?: BlogCategory[] } | BlogCategory[];
         setCategories(Array.isArray(catData) ? catData : catData?.data || []);

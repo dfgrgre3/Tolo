@@ -1,193 +1,183 @@
+'use client';
 
-// Re-build trigger: 2026-05-02
-
-import React, { useState } from 'react';
-import { m } from 'framer-motion';
-import { Calendar, Target, Clock, Sparkles, Loader2, CheckCircle2, AlertCircle, Copy, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CalendarDays, Target, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { logger } from '@/lib/logger';
 import { useAIWorkspace } from '../context/AIWorkspaceContext';
+import { pollAIJobResult } from '@/lib/pollJobResult';
+import { apiRoutes } from '@/lib/api/routes';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
+import { AISectionShell, AIError, AIResultHeader, AIEmptyState, HistoryBar, FieldLabel, useCopyText, downloadTextFile, loadLocal, saveLocal } from '../components/ai-shared';
 
-const MIN_DAILY_HOURS = 0;
-const MAX_DAILY_HOURS = 24;
+const MIN_DAILY_HOURS = 1;
+const MAX_DAILY_HOURS = 12;
+const HISTORY_KEY = 'thanawy:ai:planner-history';
+
+interface PlanHistory { examDate: string; targetGrade: string; dailyHours: number; plan: string; at: string }
 
 export default function StudyPlanner() {
-  const { generateStudyPlan } = useAIWorkspace();
+  const { generateStudyPlan, context } = useAIWorkspace();
   const [examDate, setExamDate] = useState('');
+  const [subjectsText, setSubjectsText] = useState(context.subject ?? '');
   const [targetGrade, setTargetGrade] = useState('');
   const [dailyHours, setDailyHours] = useState(4);
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<PlanHistory[]>([]);
+  const { copied, copy } = useCopyText();
 
-  const handleDailyHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const parsed = parseInt(e.target.value, 10);
-    // An empty or non-numeric input yields NaN — clamp instead of forwarding
-    // an invalid value to the backend.
-    if (Number.isNaN(parsed)) {
-      setDailyHours(MIN_DAILY_HOURS);
-      return;
-    }
-    setDailyHours(Math.min(MAX_DAILY_HOURS, Math.max(MIN_DAILY_HOURS, parsed)));
-  };
+  useEffect(() => {
+    setHistory(loadLocal<PlanHistory[]>(HISTORY_KEY, []));
+    if (context.subject) setSubjectsText((s) => s || context.subject!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [pollSeconds, setPollSeconds] = useState(0);
+
+  const minDate = new Date().toISOString().split('T')[0];
 
   const generatePlan = async () => {
+    if (!examDate) { setError('اختر تاريخ الامتحان أولاً'); return; }
     setIsLoading(true);
     setError(null);
     setPlan(null);
+    setPollSeconds(0);
+    const startedAt = Date.now();
+    const tick = window.setInterval(() => setPollSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     try {
-      const data = await generateStudyPlan<{ plan: string }>({ examDate, targetGrade, dailyHours });
-      if (data?.plan) {
-        setPlan(data.plan);
-      } else {
-        setError('لم يتم إنشاء خطة. حاول مرة أخرى.');
-      }
+      const subjects = subjectsText || context.subject || "مواد الثانوية العامة";
+      // The backend requires a `message` field, so compose a full prompt from
+      // the form fields alongside the structured data.
+      const message = [
+        "أنشئ لي خطة مذاكرة واقعية ومفصلة.",
+        `تاريخ الامتحان: ${examDate}.`,
+        `المواد: ${subjects}.`,
+        targetGrade ? `الدرجة المستهدفة: ${targetGrade}%.` : null,
+        `ساعات المذاكرة اليومية المتاحة: ${dailyHours}.`,
+        context.year ? `السنة الدراسية: ${context.year}.` : null,
+        "قسّم الخطة بالأسابيع والأيام مع مراجعات دورية ونصائح عملية.",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      // Async job: the endpoint returns 202 + jobId in milliseconds, then the
+      // worker runs the LLM call in the background (it can take a minute).
+      const enq = await generateStudyPlan<{ jobId: string; status: string }>({
+        message,
+        examDate,
+        subjects,
+        targetGrade: targetGrade || undefined,
+        dailyHours,
+        year: context.year,
+      });
+      if (!enq?.jobId) { setError('فشل في إرسال الطلب. حاول مرة أخرى.'); return; }
+      const payload = await pollAIJobResult<{ plan?: string; result?: string; reply?: string }>(
+        enq.jobId,
+        apiRoutes.ai.studyPlannerStatusBase,
+        { intervalMs: 2000 },
+      );
+      const text = payload.plan ?? payload.result ?? payload.reply ?? '';
+      if (!text) { setError('وصل رد فارغ من الخادم. حاول مرة أخرى.'); return; }
+      setPlan(text);
+      const entry: PlanHistory = { examDate, targetGrade, dailyHours, plan: text, at: new Date().toISOString() };
+      const next = [entry, ...history].slice(0, 10);
+      setHistory(next);
+      saveLocal(HISTORY_KEY, next);
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return;
       logger.error('Failed to generate study plan:', e);
-      setError(e instanceof Error ? e.message : 'حدث خطأ غير متوقع');
+      const raw = e instanceof Error ? e.message : 'حدث خطأ غير متوقع';
+      setError(
+        raw.includes('Message or image is required')
+          ? 'تعذّر إرسال الطلب: أكمل تاريخ الامتحان والمواد ثم حاول مجدداً.'
+          : raw,
+      );
     } finally {
+      window.clearInterval(tick);
       setIsLoading(false);
-    }
-  };
-
-  const handleCopy = async () => {
-    if (!plan) return;
-    try {
-      await navigator.clipboard.writeText(plan);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError('تعذر نسخ الخطة. حاول مرة أخرى.');
+      setPollSeconds(0);
     }
   };
 
   return (
-    <div className="space-y-8">
-      <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] overflow-hidden relative group">
-        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Calendar className="w-32 h-32 text-primary" />
+    <AISectionShell
+      badge="AI Planner"
+      title="مولد الخطط الدراسية الذكي"
+      description="جدول واقعي حسب تاريخ امتحانك وموادك وساعاتك اليومية — محفوظ محلياً."
+      icon={<CalendarDays className="h-6 w-6" />}
+    >
+      <HistoryBar
+        items={history}
+        onClear={() => { setHistory([]); saveLocal(HISTORY_KEY, []); }}
+        onSelect={(h) => { setExamDate(h.examDate); setTargetGrade(h.targetGrade); setDailyHours(h.dailyHours); setPlan(h.plan); }}
+        renderLabel={(h) => `خطة ${h.examDate} • ${h.dailyHours} س/يوم`}
+      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <FieldLabel required>تاريخ الامتحان</FieldLabel>
+          <div className="relative">
+            <CalendarDays className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input type="date" min={minDate} value={examDate} onChange={(e) => setExamDate(e.target.value)} className="h-12 ps-10 rounded-xl" />
+          </div>
         </div>
-
-        <div className="relative z-10 space-y-6">
-          <div>
-            <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-              AI Planner
-            </Badge>
-            <h2 className="text-3xl font-black text-white">مولد الخطط الدراسية الذكي</h2>
-            <p className="text-gray-400 mt-2 font-medium">سأقوم ببناء جدول مثالي لك بناءً على أهدافك ومواعيد امتحاناتك.</p>
+        <div>
+          <FieldLabel>المواد (اختياري)</FieldLabel>
+          <Input placeholder="مثال: فيزياء، كيمياء" value={subjectsText} onChange={(e) => setSubjectsText(e.target.value)} className="h-12 rounded-xl" />
+        </div>
+        <div>
+          <FieldLabel>الدرجة المستهدفة %</FieldLabel>
+          <div className="relative">
+            <Target className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input type="number" min={50} max={100} placeholder="مثال: 95" value={targetGrade} onChange={(e) => setTargetGrade(e.target.value)} className="h-12 ps-10 rounded-xl" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">تاريخ الامتحان</label>
-              <div className="relative">
-                <Calendar className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input 
-                  type="date" 
-                  value={examDate}
-                  onChange={(e) => setExamDate(e.target.value)}
-                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white focus:ring-primary/50" 
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">الدرجة المستهدفة (%)</label>
-              <div className="relative">
-                <Target className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input 
-                  type="number" 
-                  placeholder="مثال: 98"
-                  value={targetGrade}
-                  onChange={(e) => setTargetGrade(e.target.value)}
-                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white" 
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest me-2">ساعات المذاكرة اليومية</label>
-              <div className="relative">
-                <Clock className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input
-                  type="number"
-                  min={MIN_DAILY_HOURS}
-                  max={MAX_DAILY_HOURS}
-                  value={dailyHours}
-                  onChange={handleDailyHoursChange}
-                  className="bg-white/5 border-white/10 rounded-2xl ps-12 h-14 text-white"
-                />
-              </div>
-            </div>
+        </div>
+        <div>
+          <FieldLabel>ساعات المذاكرة اليومية</FieldLabel>
+          <div className="relative">
+            <Clock className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input type="number" min={MIN_DAILY_HOURS} max={MAX_DAILY_HOURS} value={dailyHours}
+              onChange={(e) => {
+                const p = parseInt(e.target.value, 10);
+                setDailyHours(Number.isNaN(p) ? MIN_DAILY_HOURS : Math.min(MAX_DAILY_HOURS, Math.max(MIN_DAILY_HOURS, p)));
+              }} className="h-12 ps-10 rounded-xl" />
           </div>
+        </div>
+      </div>
 
-            <Button
-              onClick={generatePlan}
-              disabled={isLoading || !examDate}
-              className="w-full md:w-auto px-12 h-14 bg-primary hover:bg-primary/90 text-black font-black rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 me-3 animate-spin" />
-                  جاري التخطيط...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 me-3" />
-                  إنشاء الخطة الدراسية
-                </>
-              )}
-            </Button>
+      <div className="mt-5">
+        <AIError message={error} onRetry={generatePlan} />
+      </div>
 
-            {error && (
-              <m.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl"
-              >
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <p className="text-red-400 text-sm font-medium">{error}</p>
-              </m.div>
-            )}
-          </div>
-        </Card>
-
-      {plan && (
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              </div>
-              <h3 className="text-xl font-black text-white">خطتك الدراسية المقترحة</h3>
-            </div>
-            <Button
-              variant="ghost"
-              onClick={handleCopy}
-              className="text-gray-400 hover:text-white"
-              title="نسخ الخطة"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 me-2 text-emerald-400" />
-              ) : (
-                <Copy className="w-4 h-4 me-2" />
-              )}
-              {copied ? 'تم النسخ' : 'نسخ الخطة'}
-            </Button>
-          </div>
-
-          <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-xl rounded-[2.5rem] prose prose-invert max-w-none">
-            <SafeMarkdown>{plan}</SafeMarkdown>
-          </Card>
-        </m.div>
+      <Button onClick={generatePlan} disabled={isLoading || !examDate} className="mt-5 h-12 rounded-xl px-10 font-bold">
+        {isLoading ? (<><Loader2 className="h-4 w-4 me-2 animate-spin" /> جاري التخطيط{pollSeconds > 0 ? ` (${pollSeconds} ث)` : '...'}...</>) : 'إنشاء الخطة الدراسية'}
+      </Button>
+      {isLoading && (
+        <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
+          طلبك في قائمة المهام الخلفية — نستطلع النتيجة كل ثانيتين. يمكنك البقاء هنا حتى تكتمل الخطة (قد تستغرق دقيقة).
+        </p>
       )}
-    </div>
+
+      <div className="mt-6">
+        {plan ? (
+          <div>
+            <AIResultHeader
+              title="خطتك الدراسية المقترحة"
+              copied={copied}
+              onCopy={() => plan && copy(plan)}
+              onDownload={() => plan && downloadTextFile('study-plan.txt', plan)}
+              onReset={() => setPlan(null)}
+            />
+            <Card className="prose max-w-none rounded-2xl p-6 dark:prose-invert">
+              <SafeMarkdown>{plan}</SafeMarkdown>
+            </Card>
+          </div>
+        ) : (
+          !isLoading && <AIEmptyState title="لا توجد خطة بعد" description="اختر تاريخ الامتحان وساعاتك اليومية ثم اضغط إنشاء الخطة. سيتم حفظ آخر 10 خطط على جهازك." />
+        )}
+      </div>
+    </AISectionShell>
   );
 }

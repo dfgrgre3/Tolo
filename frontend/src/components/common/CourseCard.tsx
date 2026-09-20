@@ -3,6 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Star, Users, Clock } from 'lucide-react';
 
+// NOTE (B-11): canonical PRESENTATIONAL course card (server-safe, flat props,
+// no wishlist/cart logic) for listings: home sections, teacher profile.
+// The courses browse page uses its own interactive card
+// (courses/_components/course-card: wishlist + cart + progress), and teaching
+// uses TeachingCourseCard (management actions). Do not merge them without a
+// redesign — different domains, different data shapes.
+
 export interface CourseCardProps {
   id: string;
   title: string;

@@ -12,7 +12,9 @@ import { toCourseSummary, toLessonCards } from "@/types/domain/mappers";
 import type { CourseSummaryView, LessonCardView } from "@/types/domain/mappers";
 import type { CourseDetailResponse } from "@/types/domain/mappers";
 import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
+import { toSafeJsonLd } from "@/lib/security/json-ld";
 import { ApiError } from "@/lib/api/api-client";
+import { logger } from "@/lib/logger";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -62,7 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   } catch (error) {
     if (!(error instanceof ApiError && error.status === 404)) {
-      console.error("Error generating dynamic metadata:", error);
+      logger.error("Error generating dynamic metadata:", error);
     }
     return {
       title: `تفاصيل الكورس | ${SITE.name}`,
@@ -122,7 +124,7 @@ export default async function Page({ params }: Props) {
     }));
   } catch (error) {
     if (!(error instanceof ApiError && error.status === 404)) {
-      console.error("Error generating Course schema:", error);
+      logger.error("Error generating Course schema:", error);
     }
   }
 
@@ -143,7 +145,7 @@ export default async function Page({ params }: Props) {
         <script
           type="application/ld+json"
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: toSafeJsonLd(schema) }}
         />
       )}
 

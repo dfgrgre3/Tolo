@@ -1,20 +1,34 @@
-﻿
-"use client";
+﻿"use client";
 
-import React, { useState } from 'react';
-import { BookOpen, Lightbulb, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw, Zap } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { BookOpen, Lightbulb, Target, AlertTriangle, CheckCircle2, Loader2, RefreshCw, Copy, Check } from "lucide-react";
 
-import { logger } from '@/lib/logger';
-import { useAIWorkspace } from '../context/AIWorkspaceContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logger } from "@/lib/logger";
+import { useAIWorkspace } from "../context/AIWorkspaceContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  AISectionShell,
+  AIError,
+  AIResultHeader,
+  AIEmptyState,
+  HistoryBar,
+  FieldLabel,
+  useCopyText,
+  downloadTextFile,
+  loadLocal,
+  saveLocal,
+} from "./ai-shared";
 
 interface Tip {
-  category: 'استراتيجيات الدراسة' | 'التغلب على التحديات' | 'المصادر التعليمية' | 'الخطة الدراسية' | 'تحسين الأداء';
+  category: string;
   title: string;
   content: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
 }
 
 interface TipsGeneratorProps {
@@ -23,260 +37,249 @@ interface TipsGeneratorProps {
   className?: string;
 }
 
-export default function TipsGenerator({
-  subjects = [],
-  userId,
-  className = ""
-}: TipsGeneratorProps) {
-  const { tips } = useAIWorkspace();
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [studyGoal, setStudyGoal] = useState('');
-  const [challenges, setChallenges] = useState('');
-  const [currentGrade, setCurrentGrade] = useState('');
+const HISTORY_KEY = "thanawy:ai:tips-history";
+interface TipsHistoryEntry { subject: string; goal: string; at: string; count: number }
+
+const CATEGORY_STYLE: Record<string, string> = {
+  "استراتيجيات الدراسة": "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  "التغلب على التحديات": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  "المصادر التعليمية": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  "الخطة الدراسية": "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30",
+  "تحسين الأداء": "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+};
+
+const CATEGORY_ICON: Record<string, React.ReactNode> = {
+  "استراتيجيات الدراسة": <BookOpen className="h-5 w-5" />,
+  "التغلب على التحديات": <AlertTriangle className="h-5 w-5" />,
+  "الخطة الدراسية": <Target className="h-5 w-5" />,
+  "تحسين الأداء": <CheckCircle2 className="h-5 w-5" />,
+};
+
+export default function TipsGenerator({ subjects = [], userId, className = "" }: TipsGeneratorProps) {
+  const { tips, context, setContext } = useAIWorkspace();
+  const [selectedSubject, setSelectedSubject] = useState(context.subject ?? "");
+  const [studyGoal, setStudyGoal] = useState("");
+  const [challenges, setChallenges] = useState("");
+  const [currentGrade, setCurrentGrade] = useState(context.year ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [tipsData, setTipsData] = useState<{tips?: Tip[];summary?: string;} | null>(null);
-  const [error, setError] = useState('');
+  const [tipsData, setTipsData] = useState<{ tips?: Tip[]; summary?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<TipsHistoryEntry[]>([]);
+  const [doneIdx, setDoneIdx] = useState<number[]>([]);
+  const { copied, copy } = useCopyText();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    setHistory(loadLocal<TipsHistoryEntry[]>(HISTORY_KEY, []));
+  }, []);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setIsGenerating(true);
-    setError('');
+    setError(null);
     setTipsData(null);
-
+    setDoneIdx([]);
     try {
-      const data = await tips<{tips?: Tip[]; summary?: string}>({
+      if (selectedSubject) setContext({ subject: selectedSubject });
+      const data = await tips<{ tips?: Tip[]; summary?: string }>({
         userId,
         subject: selectedSubject || undefined,
         studyGoal: studyGoal || undefined,
         challenges: challenges || undefined,
         currentGrade: currentGrade || undefined,
       });
-      setTipsData(data);
+      const list = Array.isArray(data?.tips) ? data!.tips! : [];
+      setTipsData({ tips: list, summary: data?.summary });
+      if (list.length === 0 && !data?.summary) {
+        setError("وصل رد فارغ. جرّب وصف هدفك بمزيد من التفاصيل.");
+        return;
+      }
+      setHistory((prev) => {
+        const next = [{ subject: selectedSubject || "عام", goal: studyGoal.slice(0, 40) || "تحسين عام", at: new Date().toISOString(), count: list.length }, ...prev].slice(0, 8);
+        saveLocal(HISTORY_KEY, next);
+        return next;
+      });
     } catch (err) {
-      logger.error('Error generating tips:', err);
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير معروف');
+      logger.error("Error generating tips:", err);
+      setError(err instanceof Error ? err.message : "حدث خطأ غير معروف");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const getCategoryIcon = (category: Tip['category']) => {
-    switch (category) {
-      case 'استراتيجيات الدراسة':
-        return <BookOpen className="h-5 w-5" />;
-      case 'التغلب على التحديات':
-        return <AlertTriangle className="h-5 w-5" />;
-      case 'المصادر التعليمية':
-        return <BookOpen className="h-5 w-5" />;
-      case 'الخطة الدراسية':
-        return <Target className="h-5 w-5" />;
-      case 'تحسين الأداء':
-        return <CheckCircle className="h-5 w-5" />;
-      default:
-        return <Lightbulb className="h-5 w-5" />;
-    }
-  };
+  const toggleDone = (i: number) => setDoneIdx((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
+  const progress = tipsData?.tips?.length ? Math.round((doneIdx.length / tipsData.tips.length) * 100) : 0;
 
-  const getCategoryStyle = (category: Tip['category']) => {
-    switch (category) {
-      case 'استراتيجيات الدراسة':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'التغلب على التحديات':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'المصادر التعليمية':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-      case 'الخطة الدراسية':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'تحسين الأداء':
-        return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const getPriorityStyle = (priority: Tip['priority']) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'medium':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'low':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const getPriorityText = (priority: Tip['priority']) => {
-    switch (priority) {
-      case 'high':
-        return 'عالية';
-      case 'medium':
-        return 'متوسطة';
-      case 'low':
-        return 'منخفضة';
-      default:
-        return '';
-    }
-  };
+  const allText = tipsData ? `${tipsData.summary ?? ""}\n\n${(tipsData.tips ?? []).map((t, i) => `${i + 1}. ${t.title} [${t.category}]: ${t.content}`).join("\n")}` : "";
 
   return (
-    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden ${className}`}>
-      <div className="p-8 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-amber-500/30 blur-lg rounded-full" />
-            <div className="relative p-3 bg-amber-500/20 rounded-xl border border-amber-500/30">
-              <Lightbulb className="h-6 w-6 text-amber-400" />
-            </div>
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-white">النصائح التعليمية</h2>
-            <p className="text-gray-400 text-sm mt-1">نصائح مخصصة لتحسين أدائك الدراسي</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
-          <Zap className="h-3 w-3" />
-          <span>المساعد الذكي الموحد</span>
-        </div>
-      </div>
+    <AISectionShell
+      badge="Study Coach"
+      title="النصائح التعليمية"
+      description="نصائح مخصصة حسب مادتك وهدفك وتحدياتك — علّم على ما أنجزته وتابع تقدمك."
+      icon={<Lightbulb className="h-6 w-6" />}
+    >
+      <div className={className}>
+        <HistoryBar
+          items={history}
+          onClear={() => {
+            setHistory([]);
+            saveLocal(HISTORY_KEY, []);
+          }}
+          onSelect={(h) => {
+            setSelectedSubject(h.subject === "عام" ? "" : h.subject);
+            setStudyGoal(h.goal === "تحسين عام" ? "" : h.goal);
+          }}
+          renderLabel={(h) => `${h.subject} • ${h.goal}`}
+        />
 
-      <div className="p-8">
         {!tipsData ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {subjects.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                    المادة
-                  </label>
+                <div>
+                  <FieldLabel>المادة</FieldLabel>
                   <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50">
-                      <SelectValue placeholder="اختر المادة" />
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="اختر المادة (اختياري)" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/10 text-white">
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                    <SelectContent>
+                      {subjects.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  المستوى الدراسي
-                </label>
-                <Input
-                  type="text"
-                  value={currentGrade}
-                  onChange={(e) => setCurrentGrade(e.target.value)}
-                  placeholder="مثال: أول ثانوي، ثالث إعدادي..."
-                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50"
-                />
+              <div>
+                <FieldLabel>السنة / المستوى</FieldLabel>
+                <Input value={currentGrade} onChange={(e) => setCurrentGrade(e.target.value.slice(0, 60))} placeholder="مثال: الثالث الثانوي" className="h-12 rounded-xl" />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  الهدف الدراسي
-                </label>
-                <Input
-                  type="text"
-                  value={studyGoal}
-                  onChange={(e) => setStudyGoal(e.target.value)}
-                  placeholder="مثال: تحسين الدرجات، فهم مفاهيم صعبة..."
-                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50"
-                />
+              <div>
+                <FieldLabel>الهدف الدراسي</FieldLabel>
+                <Input value={studyGoal} onChange={(e) => setStudyGoal(e.target.value.slice(0, 200))} placeholder="مثال: رفع الفيزياء من 70% إلى 95%" className="h-12 rounded-xl" />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  التحديات
-                </label>
-                <Input
-                  type="text"
-                  value={challenges}
-                  onChange={(e) => setChallenges(e.target.value)}
-                  placeholder="مثال: صعوبة الحفظ، قلة التركيز..."
-                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-amber-500/50"
-                />
+              <div>
+                <FieldLabel>أكبر تحدٍ يواجهك</FieldLabel>
+                <Select value={challenges} onValueChange={setChallenges}>
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="اختر أو اكتب تحديك" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["صعوبة الحفظ", "قلة التركيز", "إدارة الوقت", "القلق من الامتحان", "فهم المسائل", "المماطلة"].map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <FieldLabel>تفاصيل إضافية (اختياري)</FieldLabel>
+                <Textarea value={challenges.startsWith("تفاصيل:") ? challenges : ""} onChange={(e) => setChallenges(e.target.value.slice(0, 500))} placeholder="اشرح روتينك الحالي وساعات مذاكرتك..." className="min-h-[90px] rounded-2xl" />
+                <p className="mt-1 text-[11px] text-muted-foreground">كلما وصفت وضعك بدقة، كانت النصائح أنفع.</p>
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl">
-                {error}
-              </div>
-            )}
+            <AIError message={error} onRetry={() => handleSubmit()} />
 
-            <Button
-              type="submit"
-              disabled={isGenerating}
-              className="w-full md:w-auto px-12 h-14 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-2xl shadow-xl shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
+            <Button type="submit" disabled={isGenerating} className="h-12 rounded-xl px-10 font-bold">
               {isGenerating ? (
                 <>
-                  <Loader2 className="h-5 w-5 me-3 animate-spin" />
-                  جاري إنشاء النصائح...
+                  <Loader2 className="h-5 w-5 me-2 animate-spin" /> جاري إنشاء النصائح...
                 </>
               ) : (
                 <>
-                  <Lightbulb className="h-5 w-5 me-3" />
-                  احصل على نصائح تعليمية
+                  <Lightbulb className="h-5 w-5 me-2" /> احصل على نصائح مخصصة
                 </>
               )}
             </Button>
           </form>
         ) : (
-          <div
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-lg">نصائح مخصصة لك</h3>
-              <Button
-                onClick={() => {
-                  setTipsData(null);
-                  setError('');
-                }}
-                variant="outline"
-                className="h-10 rounded-xl border-white/10 text-gray-400 hover:bg-white/10"
-              >
-                <RefreshCw className="h-4 w-4 me-2" />
-                نصائح جديدة
-              </Button>
-            </div>
+          <div className="space-y-5">
+            <AIResultHeader
+              title={`نصائحك المخصصة (${tipsData.tips?.length ?? 0})`}
+              copied={copied}
+              onCopy={() => copy(allText)}
+              onDownload={() => downloadTextFile("study-tips.txt", allText)}
+              onReset={() => {
+                setTipsData(null);
+                setError(null);
+              }}
+            />
 
             {tipsData.summary && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-5">
-                <h4 className="font-bold text-blue-400 mb-2">ملخص النصائح</h4>
-                <p className="text-blue-300">{tipsData.summary}</p>
+              <Card className="rounded-2xl border-primary/20 bg-primary/5 p-5">
+                <h4 className="font-bold text-primary">الخلاصة</h4>
+                <p className="mt-1 text-sm leading-relaxed text-foreground">{tipsData.summary}</p>
+              </Card>
+            )}
+
+            {tipsData.tips && tipsData.tips.length > 0 && (
+              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                <div className="mb-2 flex items-center justify-between text-xs font-bold">
+                  <span>تقدم التنفيذ: {doneIdx.length}/{tipsData.tips.length}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                </div>
               </div>
             )}
 
-            <div className="space-y-4">
-              {tipsData.tips?.map((tip, index) => (
-                <div
-                  key={index}
-                  className="border border-white/10 rounded-xl p-5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl border ${getCategoryStyle(tip.category)}`}>
-                        {getCategoryIcon(tip.category)}
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {(tipsData.tips ?? []).map((tip, index) => {
+                const done = doneIdx.includes(index);
+                return (
+                  <Card key={index} className={`rounded-2xl p-5 transition ${done ? "border-emerald-500/40 bg-emerald-500/5" : "hover:border-primary/30"}`}>
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-xl border p-2.5 ${CATEGORY_STYLE[tip.category] ?? "border-border bg-muted text-muted-foreground"}`}>
+                          {CATEGORY_ICON[tip.category] ?? <Lightbulb className="h-5 w-5" />}
+                        </div>
+                        <div>
+                          <h4 className={`font-bold ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>{tip.title}</h4>
+                          <div className="mt-1 flex gap-1.5">
+                            <Badge variant="secondary" className="rounded-full text-[10px]">{tip.category}</Badge>
+                            <Badge className={`rounded-full text-[10px] ${tip.priority === "high" ? "bg-red-500/10 text-red-500" : tip.priority === "medium" ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>
+                              {tip.priority === "high" ? "أولوية عالية" : tip.priority === "medium" ? "متوسطة" : "منخفضة"}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
-                      <h4 className="font-bold text-white text-lg">{tip.title}</h4>
+                      <button onClick={() => copy(`${tip.title}: ${tip.content}`)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" title="نسخ النصيحة">
+                        {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                      </button>
                     </div>
-                    <span className={`text-xs px-3 py-1.5 rounded-full border font-bold ${getPriorityStyle(tip.priority)}`}>
-                      {getPriorityText(tip.priority)}
-                    </span>
-                  </div>
-                  <p className="text-gray-300 leading-relaxed">{tip.content}</p>
-                </div>
-              ))}
+                    <p className="text-sm leading-relaxed text-muted-foreground">{tip.content}</p>
+                    <Button variant={done ? "secondary" : "outline"} size="sm" className="mt-3 rounded-xl" onClick={() => toggleDone(index)}>
+                      {done ? "✓ تم التنفيذ — تراجع" : "علّم كمنفّذة"}
+                    </Button>
+                  </Card>
+                );
+              })}
             </div>
+
+            {(!tipsData.tips || tipsData.tips.length === 0) && (
+              <AIEmptyState title="لا توجد نصائح مفصلة" description="حاول وصف هدفك وتحديك بتفاصيل أكثر." />
+            )}
+
+            <Button
+              onClick={() => {
+                setTipsData(null);
+                setError(null);
+              }}
+              variant="outline"
+              className="h-11 rounded-xl"
+            >
+              <RefreshCw className="h-4 w-4 me-2" /> نصائح جديدة
+            </Button>
+          </div>
+        )}
+
+        {!tipsData && !isGenerating && history.length === 0 && (
+          <div className="mt-6">
+            <AIEmptyState icon={<Lightbulb className="h-6 w-6" />} title="كيف تعمل؟" description="أخبرنا بمادتك وهدفك وتحديك، وسنولّد خطة نصائح مرتبة بالأولوية مع تتبع التنفيذ." />
           </div>
         )}
       </div>
-    </div>
+    </AISectionShell>
   );
 }

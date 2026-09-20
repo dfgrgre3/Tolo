@@ -1,5 +1,6 @@
 import { useCallback, type MutableRefObject } from "react";
 import { Camera } from "lucide-react";
+import { logger } from "@/lib/logger";
 import type { PlayerFeedback } from "../types";
 
 type FrameCaptureOptions = {
@@ -47,7 +48,7 @@ export function useFrameCapture({
         label: "تم التقاط لقطة الشاشة وحفظها",
       });
     } catch (err) {
-      console.error("Screenshot failed", err);
+      logger.error("Screenshot failed", err);
       flashFeedback({
         icon: Camera,
         label: "فشل التقاط الشاشة",

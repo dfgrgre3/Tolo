@@ -6,6 +6,7 @@ if (typeof window !== 'undefined') {
 
 import Redis from 'ioredis';
 import * as Sentry from '@sentry/nextjs';
+import { logger } from '@/lib/logger';
 
 let redisClient: Redis | null = null;
 /**
@@ -32,7 +33,7 @@ async function connect(): Promise<Redis> {
     connectTimeout: 10_000,
     retryStrategy(times) {
       if (times > 3) {
-        console.error('[Redis] Max retries reached. Giving up.');
+        logger.error('[Redis] Max retries reached. Giving up.');
         return null;
       }
       return Math.min(times * 200, 2000);
@@ -62,19 +63,19 @@ async function connect(): Promise<Redis> {
   });
 
   client.on('connect', () => {
-    console.log('[Redis] Connected successfully');
+    logger.info('[Redis] Connected successfully');
   });
 
   client.on('error', (err) => {
-    console.error('[Redis] Connection error:', err.message);
+    logger.error('[Redis] Connection error:', err);
   });
 
   client.on('close', () => {
-    console.warn('[Redis] Connection closed');
+    logger.warn('[Redis] Connection closed');
   });
 
   client.on('reconnecting', () => {
-    console.log('[Redis] Reconnecting...');
+    logger.info('[Redis] Reconnecting...');
   });
 
   redisClient = await ready;

@@ -7,8 +7,7 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { createEventRaw } from "@/features/community/api/community-gateway";
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -47,7 +46,7 @@ export default function NewEventPage() {
 
     setIsSubmitting(true);
     try {
-      const newEvent = await apiClient.postJson<{ id: string }>(apiRoutes.events.list, {
+      const newEvent = await createEventRaw({
         userId,
         title,
         description,

@@ -20,9 +20,13 @@ import {
   ChevronRight,
   Inbox,
 } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
+import { ApiError } from "@/lib/api/api-client";
 import { CallerAbortError } from "@/lib/api/retry-policy";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchActivitiesRecent,
+  markActivityRead,
+  markAllActivitiesRead,
+} from "@/features/auth/api";
 import InlineErrorState from "./InlineErrorState";
 import { toast } from "sonner";
 
@@ -80,11 +84,10 @@ export default function ActivityLog() {
   // the promise callbacks, never synchronously inside the effect body.
   useEffect(() => {
     const controller = new AbortController();
-    apiClient
-      .get<ActivityPage | RawActivity[]>(
-        `${apiRoutes.activities.recent}?limit=${PAGE_SIZE}`,
-        { signal: controller.signal }
-      )
+    fetchActivitiesRecent<ActivityPage | RawActivity[]>(
+      `?limit=${PAGE_SIZE}`,
+      { signal: controller.signal }
+    )
       .then((data) => {
         const list = Array.isArray(data) ? data : data.activities ?? [];
         setItems(list);
@@ -106,7 +109,7 @@ export default function ActivityLog() {
     const previous = items;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, read: true } : i)));
     try {
-      await apiClient.post(apiRoutes.activities.markRead(id), {});
+      await markActivityRead(id);
     } catch {
       setItems(previous);
       toast.error("تعذر تحديث حالة العنصر.");
@@ -119,7 +122,7 @@ export default function ActivityLog() {
     const previous = items;
     setItems((prev) => prev.map((i) => ({ ...i, read: true })));
     try {
-      await apiClient.post(apiRoutes.activities.readAll, {});
+      await markAllActivitiesRead();
       toast.success("تم وضع علامة قراءة على الكل.");
     } catch {
       setItems(previous);
@@ -131,8 +134,8 @@ export default function ActivityLog() {
     if (!nextCursor) return;
     setIsLoadingMore(true);
     try {
-      const data = await apiClient.get<ActivityPage | RawActivity[]>(
-        `${apiRoutes.activities.recent}?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(nextCursor)}`
+      const data = await fetchActivitiesRecent<ActivityPage | RawActivity[]>(
+        `?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(nextCursor)}`
       );
       const list = Array.isArray(data) ? data : data.activities ?? [];
       setItems((prev) => [...prev, ...list]);

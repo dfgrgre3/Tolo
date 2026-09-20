@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { m } from "framer-motion";
-import { CustomGoal } from '@/hooks/use-gamification';
+import { CustomGoal } from '@/features/gamification';
 
 interface GoalCardProps {
   goal: CustomGoal;

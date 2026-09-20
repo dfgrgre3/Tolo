@@ -8,8 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchPaymentByOrderRaw } from "@/features/payments/api/payments-gateway";
 import { formatEGP } from "@/lib/payments";
 
 export default function PaymentSuccessPage() {
@@ -56,7 +55,7 @@ function PaymentSuccessContent() {
       setVerifyState("verifying");
       setVerifyError(null);
       try {
-        const data = await apiClient.get<PaymentData>(apiRoutes.payments.byOrder(orderId));
+        const data = await fetchPaymentByOrderRaw<PaymentData>(orderId);
         if (cancelled) return;
         setPaymentData(data);
         const status = (data.status || "").toUpperCase();
@@ -84,7 +83,7 @@ function PaymentSuccessContent() {
     try {
       const data =
         paymentData ??
-        (await apiClient.get<PaymentData>(apiRoutes.payments.byOrder(orderId)));
+        (await fetchPaymentByOrderRaw<PaymentData>(orderId));
       setPaymentData(data);
       setVerifyState("verified");
       setTimeout(() => {

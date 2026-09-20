@@ -21,8 +21,12 @@ import { toast } from "sonner";
 import { levelMap } from "./constants";
 import { formatPrice, formatHours } from "./utils";
 import type { CourseSummary } from "./types";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  addCartItemRaw,
+  addWishlistItemRaw,
+  removeWishlistItemRaw,
+} from "@/features/courses/api/courses-gateway";
 
 export function CourseCard({
   course,
@@ -44,9 +48,9 @@ export function CourseCard({
     setWishlistBusy(true);
     try {
       if (isWishlisted) {
-        await apiClient.delete(apiRoutes.courses.wishlist(course.id));
+        await removeWishlistItemRaw(course.id);
       } else {
-        await apiClient.postJson(apiRoutes.courses.wishlist(course.id), {});
+        await addWishlistItemRaw(course.id);
       }
       setIsWishlisted((prev) => !prev);
       toast.success(isWishlisted ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة");
@@ -67,7 +71,7 @@ export function CourseCard({
     if (cartBusy || inCart) return;
     setCartBusy(true);
     try {
-      await apiClient.postJson(apiRoutes.cart.items, { subjectId: course.id });
+      await addCartItemRaw(course.id);
       setInCart(true);
       toast.success("تمت الإضافة للسلة");
     } catch (error) {

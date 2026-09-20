@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
+import { getRedisClientAsync } from '@/lib/redis/client';
 
 // CSP reports are small (<2 KB in practice). Anything bigger is abuse or
 // a misuse of the endpoint — reject before parsing so attackers can't
@@ -10,7 +11,12 @@ const MAX_CSP_BODY_BYTES = 16 * 1024; // 16 KB hard cap
 // Per-IP token bucket. CSP reports are POST-only and browser-driven,
 // so a real user triggers <1/min. Sustained traffic from one IP is
 // either a misconfigured extension or an attacker spamming the route.
+//
+// The bucket lives in Redis (shared across serverless instances) with the
+// in-memory map below as fallback when Redis is disabled/unreachable —
+// so a Redis outage degrades to per-instance limiting, never to open abuse.
 const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_S = 60;
 const RATE_LIMIT_MAX = 10;
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -18,6 +24,17 @@ const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 // the same offender is always either fully sampled or never sampled —
 // avoiding partial visibility that hides an active attack.
 const SAMPLE_RATE_PROD = 0.1;
+
+// Deterministic FNV-1a hash mapped to [0, 1) — stable per key so the
+// sampling decision below is reproducible for the same offender.
+function hashToUnitInterval(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 0xffffffff;
+}
 
 function clientIp(request: NextRequest): string | null {
   return resolveTrustedClientIp(request) || null;
@@ -33,6 +50,32 @@ function rateLimit(ip: string): boolean {
   bucket.count += 1;
   if (bucket.count > RATE_LIMIT_MAX) return false;
   return true;
+}
+
+/**
+ * Distributed variant of the token bucket: INCR + first-hit EXPIRE keeps
+ * the 10/minute budget global across instances. Any Redis failure (or a
+ * disabled/missing REDIS_URL) returns null so the caller falls back to the
+ * process-local bucket above instead of failing the request.
+ */
+async function rateLimitDistributed(ip: string): Promise<boolean | null> {
+  let redis: Awaited<ReturnType<typeof getRedisClientAsync>>;
+  try {
+    redis = await getRedisClientAsync();
+  } catch {
+    return null;
+  }
+  if (!redis) return null;
+  const key = `csp:rl:${ip}`;
+  try {
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.expire(key, RATE_LIMIT_WINDOW_S);
+    }
+    return count <= RATE_LIMIT_MAX;
+  } catch {
+    return null;
+  }
 }
 
 // Bound the in-memory map: cap at 10k entries and evict the oldest
@@ -85,12 +128,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 2. Rate-limit per IP.
+  // 2. Rate-limit per IP — distributed (Redis) first, process-local fallback.
   const ip = clientIp(request);
   // There is no trustworthy per-client identity when neither a configured
   // proxy chain nor a platform IP header is available. Do not put all such
   // clients in a shared bucket; fail closed for this observability endpoint.
-  if (!ip || !rateLimit(ip)) {
+  if (!ip) {
+    return NextResponse.json({ success: false }, { status: 429 });
+  }
+  const distributed = await rateLimitDistributed(ip);
+  const allowed = distributed ?? rateLimit(ip);
+  if (!allowed) {
     maybeEvict();
     return NextResponse.json({ success: false }, { status: 429 });
   }
@@ -111,9 +159,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 4. Sample in production. Dev keeps 100% so the developer sees their
-  //    own violations immediately.
-  if (process.env.NODE_ENV === 'production' && Math.random() > SAMPLE_RATE_PROD) {
-    return new NextResponse(null, { status: 204 });
+  //    own violations immediately. The sample key includes the violated
+  //    directive so one noisy rule cannot starve every other signal from
+  //    the same IP.
+  if (process.env.NODE_ENV === 'production') {
+    const sampleKey = `${ip}:${record['violated-directive'] ?? ''}`;
+    if (hashToUnitInterval(sampleKey) > SAMPLE_RATE_PROD) {
+      return new NextResponse(null, { status: 204 });
+    }
   }
 
   // 5. Structured log — only the trimmed record, no raw JSON to stdout.

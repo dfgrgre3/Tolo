@@ -9,8 +9,12 @@ import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/use-auth";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchChatConversationsRaw,
+  fetchChatMessagesRaw,
+  fetchCommunityUserRaw,
+  sendChatMessageRaw,
+} from "@/features/community/api/community-gateway";
 
 type User = {
   id: string;
@@ -293,7 +297,7 @@ export default function ChatPage() {
       try {
         // Session-scoped: the caller's identity comes from the JWT, so no
         // userId path segment is sent (IDOR/BOLA hardening).
-        const payload = await apiClient.get<unknown>(apiRoutes.community.chat.conversations);
+        const payload = await fetchChatConversationsRaw();
         const data = unwrap<Conversation[]>(payload);
         setConversations(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -310,12 +314,12 @@ export default function ChatPage() {
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const userPayload = await apiClient.get<unknown>(apiRoutes.community.userById(chatUserId));
+        const userPayload = await fetchCommunityUserRaw(chatUserId);
         setSelectedUser(unwrap<User>(userPayload));
 
         // Only the counterpart user id is a parameter — the sender is the
         // JWT session user.
-        const messagesPayload = await apiClient.get<unknown>(apiRoutes.community.chat.messages(chatUserId));
+        const messagesPayload = await fetchChatMessagesRaw(chatUserId);
         const messagesData = unwrap<Message[]>(messagesPayload);
         setMessages(Array.isArray(messagesData) ? messagesData : []);
       } catch (error) {
@@ -338,7 +342,7 @@ export default function ChatPage() {
 
     setSending(true);
     try {
-      const payload = await apiClient.postJson<unknown>(apiRoutes.community.chat.sendMessage, {
+      const payload = await sendChatMessageRaw({
         receiverId: chatUserId,
         content: newMessage.trim()
       });

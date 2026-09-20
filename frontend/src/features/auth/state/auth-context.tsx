@@ -21,7 +21,7 @@ import React, {
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import apiClient, { ApiError } from "@/lib/api/api-client";
+import { ApiError } from "@/lib/api/api-client";
 import { fetchAuthMe, logoutUser } from "@/services/auth/auth-api-service";
 import { requestCache } from "@/lib/api/request-cache";
 import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
@@ -321,9 +321,7 @@ export function AuthProvider({
 
     const fetchUser = async () => {
       try {
-        const data = await apiClient.get<AuthMeResponse>(getMeUrl(), {
-          signal: controller.signal,
-        });
+        const data = await fetchAuthMe<AuthMeResponse>(getMeUrl(), controller.signal);
         if (!isCurrentRequest()) return;
 
         // A 200 with no user object means the backend contract broke; treating

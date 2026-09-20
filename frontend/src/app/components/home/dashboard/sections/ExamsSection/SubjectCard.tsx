@@ -16,7 +16,7 @@ export const SubjectCard = memo(({ emoji, name, onClick }: SubjectCardProps) => 
     className={`${DASH_CARD.inner} group flex w-full flex-col items-center justify-center gap-2.5 p-5 text-center transition-colors hover:border-primary`}
     aria-label={`امتحانات مادة ${name}`}
   >
-    <div className="text-4xl transition-transform group-hover:scale-110" role="img" aria-hidden="true">
+    <div className="text-4xl" role="img" aria-hidden="true">
       {emoji}
     </div>
     <div className="text-sm font-black text-foreground group-hover:text-primary-strong transition-colors line-clamp-1">

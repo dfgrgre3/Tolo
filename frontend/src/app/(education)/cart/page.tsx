@@ -8,8 +8,13 @@ import { m } from "framer-motion";
 import { Loader2, ShoppingCart, Trash2, Tag, ArrowLeft, CheckCircle2, XCircle, Wallet, CreditCard, Smartphone, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  checkoutCartRaw,
+  fetchCartRaw,
+  fetchWalletBalanceRaw,
+  removeCartItemRaw,
+} from "@/features/courses/api/courses-gateway";
 import {
   getFawryCode,
   resolvePaymentAction,
@@ -72,7 +77,7 @@ export default function CartPage() {
   const fetchCart = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await apiClient.get<{ items?: CartItem[] }>(apiRoutes.cart.get);
+      const data = await fetchCartRaw<{ items?: CartItem[] }>();
       setItems(data.items || []);
     } catch {
       if (!silent) toast.error("تعذر تحميل السلة — تحقق من الاتصال");
@@ -84,8 +89,7 @@ export default function CartPage() {
   useEffect(() => {
     fetchCart();
     // رصيد المحفظة للتحقق المسبق قبل الدفع الداخلي (أفضل جهد — يبقى صامتاً عند الفشل)
-    apiClient
-      .get<{ balance?: unknown }>(apiRoutes.billing.wallet)
+    fetchWalletBalanceRaw<{ balance?: unknown }>()
       .then((w) => {
         const b = typeof w?.balance === "number" ? w.balance : Number(w?.balance);
         if (Number.isFinite(b) && (b as number) >= 0) setWalletBalance(b as number);
@@ -96,7 +100,7 @@ export default function CartPage() {
   const handleRemove = async (subjectId: string) => {
     setRemoving((prev) => ({ ...prev, [subjectId]: true }));
     try {
-      await apiClient.delete(apiRoutes.cart.item(subjectId));
+      await removeCartItemRaw(subjectId);
       setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
       toast.success("تم الحذف من السلة");
     } catch {
@@ -152,7 +156,7 @@ export default function CartPage() {
     }
     setCheckingOutMethod(paymentMethod);
     try {
-      const payload = await apiClient.postJson<{
+      const payload = await checkoutCartRaw<{
         success?: boolean;
         redirectUrl?: string;
         paymentKey?: string;
@@ -160,8 +164,8 @@ export default function CartPage() {
         fawryCode?: string;
         billReference?: string;
       }>(
-        apiRoutes.cart.checkout,
-        { paymentMethod, couponCode: coupon?.code || undefined }
+        paymentMethod,
+        coupon?.code || undefined
       );
       const action = resolvePaymentAction(paymentMethod, payload);
       switch (action.kind) {

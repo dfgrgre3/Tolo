@@ -7,8 +7,7 @@ import { usePathname } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { BookOpen, Clock, Award } from "lucide-react";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchProgressSummaryRaw } from "@/features/gamification/api/gamification-gateway";
 import { logger } from "@/lib/logger";
 
 interface ProgressData {
@@ -43,7 +42,7 @@ function ProgressIndicator() {
 
     const doFetch = async () => {
       try {
-        const summary = await apiClient.get<ProgressSummary>(apiRoutes.progress.summary);
+        const summary = await fetchProgressSummaryRaw<ProgressSummary>();
         const hours = Math.round((summary.totalMinutes || 0) / 60);
         const data: ProgressData[] = [
           {

@@ -19,8 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/contexts/auth-context";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { updateUserProfile } from "@/features/auth/api";
 import { useProfileData, type UserProfileData } from "./useProfileData";
 import InlineErrorState from "./InlineErrorState";
 import { buildProfilePatch, type ProfileFormState } from "./profile-patch";
@@ -174,7 +174,7 @@ export default function AccountSettingsForm() {
     setError(null);
     setIsSaving(true);
     try {
-      await apiClient.patch(apiRoutes.users.profile, patch);
+      await updateUserProfile(patch);
       // `refreshUser()` re-syncs identity shown elsewhere (header, name);
       // `refetch()` re-syncs the extended fields this form itself reads —
       // `/auth/me` doesn't return them, `/api/users/profile` does.

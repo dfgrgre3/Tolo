@@ -65,7 +65,7 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
             <p className="text-sm text-[#64748B] dark:text-slate-400 font-bold">
               لا توجد كورسات مجانية متاحة حالياً
             </p>
-            <p className="text-xs text-[#94A3B8] dark:text-slate-500 mt-2">
+            <p className="text-xs text-[#64748B] dark:text-slate-400 mt-2">
               تحقق لاحقاً للحصول على كورسات مجانية جديدة
             </p>
           </div>
@@ -94,52 +94,6 @@ export function FreeResourcesSection({ courses, loading }: FreeResourcesSectionP
             })}
           </div>
         )}
-
-        {/* Benefits Row */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-white dark:bg-slate-800 rounded-[12px] border border-[#E2E8F0] dark:border-slate-700">
-          <div className="text-center">
-            <div className="text-2xl mb-2">🎓</div>
-            <p className="text-sm font-bold text-[#1E293B] dark:text-white">شهادات معتمدة</p>
-            <p className="text-xs text-[#64748B] dark:text-slate-400 mt-1">احصل على شهادة عند الإنهاء</p>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl mb-2">🎯</div>
-            <p className="text-sm font-bold text-[#1E293B] dark:text-white">محتوى عملي</p>
-            <p className="text-xs text-[#64748B] dark:text-slate-400 mt-1">مشاريع وتطبيقات حقيقية</p>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl mb-2">⏰</div>
-            <p className="text-sm font-bold text-[#1E293B] dark:text-white">تعلم بوقتك</p>
-            <p className="text-xs text-[#64748B] dark:text-slate-400 mt-1">بدون التزامات زمنية</p>
-          </div>
-        </div>
-
-        {/* Call to Action */}
-        <div className="mt-5 text-center">
-          <p className="text-sm text-[#1E293B] dark:text-white mb-4">
-            هل تريد المزيد من الموارد المجانية؟
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Link
-              href="/blog"
-              className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors"
-            >
-              📝 المدونة التعليمية
-            </Link>
-            <Link
-              href="/tutorials"
-              className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors"
-            >
-              🎥 الفيديوهات التعليمية
-            </Link>
-            <Link
-              href="/resources"
-              className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors"
-            >
-              📚 قاعدة الموارد
-            </Link>
-          </div>
-        </div>
       </div>
     </section>
   );

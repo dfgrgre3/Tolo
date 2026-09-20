@@ -159,6 +159,54 @@ describe("login", () => {
 
     expect(result).toMatchObject({ success: false, rateLimited: false, retryAfterMs: null });
   });
+
+  it("translates ACCOUNT_LOCKED with a wait suffix into a friendly message and retryAfterMs", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiError("ACCOUNT_LOCKED:895", 423));
+
+    const result = await login({ email: "a@b.com", password: "x" });
+
+    expect(result.success).toBe(false);
+    expect(result.retryAfterMs).toBe(895000);
+    expect(result.error).toContain("تم إغلاق الحساب مؤقتًا");
+    expect(result.error).toContain("بعد");
+  });
+
+  it("handles ACCOUNT_LOCKED without a suffix", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiError("ACCOUNT_LOCKED", 423));
+
+    const result = await login({ email: "a@b.com", password: "x" });
+
+    expect(result.success).toBe(false);
+    expect(result.retryAfterMs).toBeNull();
+    expect(result.error).toContain("تم إغلاق الحساب مؤقتًا");
+  });
+
+  it("flags unverified-email rejections with needsVerification", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiError("EMAIL_NOT_VERIFIED", 403));
+
+    const result = await login({ email: "a@b.com", password: "x" });
+
+    expect(result.success).toBe(false);
+    expect(result.needsVerification).toBe(true);
+    expect(result.error).toContain("غير مفعّل");
+  });
+
+  it("flags Arabic unverified-account messages too", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiError("الحساب غير مفعّل", 403));
+
+    const result = await login({ email: "a@b.com", password: "x" });
+
+    expect(result.needsVerification).toBe(true);
+  });
+
+  it("does not flag generic invalid-credentials as unverified", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiError("invalid email or password", 401));
+
+    const result = await login({ email: "a@b.com", password: "x" });
+
+    expect(result.needsVerification).not.toBe(true);
+    expect(result.error).toBe("invalid email or password");
+  });
 });
 describe("verifyMfa", () => {
   beforeEach(() => {

@@ -15,9 +15,26 @@ import type {
 } from "@/types/domain/canonical-course";
 
 /**
+ * Untrusted backend payload record. Values stay `unknown` until narrowed at
+ * each use site — never `any`, so a backend shape change surfaces as a
+ * compile error instead of silent runtime drift.
+ */
+type RawRecord = Record<string, unknown>;
+
+/** String-or-null coercion for optional text fields (rejects non-strings). */
+function rawText(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+/** String-or-undefined coercion for optional text fields. */
+function rawTextOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+/**
  * Normalizes any course-like object from the backend/API into a CanonicalCourse.
  */
-export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
+export function toCanonicalCourse(raw: RawRecord): CanonicalCourse {
   if (!raw || typeof raw !== "object") {
     throw new Error("Invalid course payload: expected object");
   }
@@ -36,7 +53,7 @@ export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
   const price = Number.isFinite(rawPrice) && rawPrice >= 0 ? rawPrice : 0;
 
   // Sections may arrive as `sections`, `chapters`, `topics`, or `curriculum`
-  const rawSections: any[] = Array.isArray(raw.sections)
+  const rawSections: RawRecord[] = Array.isArray(raw.sections)
     ? raw.sections
     : Array.isArray(raw.chapters)
     ? raw.chapters
@@ -47,7 +64,7 @@ export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
     : [];
 
   const sections: CanonicalSection[] = rawSections.map((sec, secIdx) => {
-    const rawLessons: any[] = Array.isArray(sec.lessons)
+    const rawLessons: RawRecord[] = Array.isArray(sec.lessons)
       ? sec.lessons
       : Array.isArray(sec.subTopics)
       ? sec.subTopics
@@ -56,7 +73,7 @@ export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
     const lessons: CanonicalLesson[] = rawLessons.map((les, lesIdx) => {
       const rawDuration = Number(les.durationMinutes ?? les.duration ?? 0);
       const durationMinutes = Number.isFinite(rawDuration) && rawDuration >= 0 ? rawDuration : 0;
-      const rawAttachments: any[] = Array.isArray(les.attachments) ? les.attachments : [];
+      const rawAttachments: RawRecord[] = Array.isArray(les.attachments) ? les.attachments : [];
 
       const attachments: CanonicalAttachment[] = rawAttachments.map((att) => ({
         id: String(att.id ?? ""),
@@ -74,11 +91,11 @@ export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
         order: typeof les.order === "number" ? les.order : lesIdx + 1,
         durationMinutes,
         isPreview: Boolean(les.isFree ?? les.isPreview ?? false),
-        videoUrl: les.videoUrl ?? null,
-        content: les.content ?? null,
-        description: les.description ?? null,
+        videoUrl: rawText(les.videoUrl),
+        content: rawText(les.content),
+        description: rawText(les.description),
         attachments,
-        examId: les.examId ?? null,
+        examId: rawText(les.examId),
       };
     });
 
@@ -87,7 +104,7 @@ export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
       courseId: id,
       title: String(sec.title ?? sec.name ?? ""),
       order: typeof sec.order === "number" ? sec.order : secIdx + 1,
-      description: sec.description ?? null,
+      description: rawText(sec.description),
       lessons,
     };
   });
@@ -98,8 +115,8 @@ export function toCanonicalCourse(raw: Record<string, any>): CanonicalCourse {
     slug: raw.slug ? String(raw.slug) : undefined,
     description: raw.description ? String(raw.description) : undefined,
     shortDescription: raw.shortDescription ? String(raw.shortDescription) : undefined,
-    thumbnailUrl: raw.thumbnailUrl ?? raw.thumbnail ?? undefined,
-    trailerUrl: raw.trailerUrl ?? undefined,
+    thumbnailUrl: rawTextOrUndefined(raw.thumbnailUrl) ?? rawTextOrUndefined(raw.thumbnail),
+    trailerUrl: rawTextOrUndefined(raw.trailerUrl),
     status,
     level,
     language: raw.language ? String(raw.language) : "ar",

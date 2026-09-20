@@ -9,8 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Repeat, Plus, Trash2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import { createTaskRaw } from '@/features/tasks/api/tasks-gateway';
 import { logger } from '@/lib/logger';
 import type { Task } from '../types';
 import { buildTaskPayload, mergeServerTask } from './_components/task-utils';
@@ -103,7 +102,7 @@ export default function RecurringTasks({ subjects, onTaskCreate }: Props) {
       status: 'PENDING',
     };
     try {
-      const saved = await apiClient.postJson<Task>(apiRoutes.tasks.create, buildTaskPayload(local));
+      const saved = await createTaskRaw<Task>(buildTaskPayload(local));
       onTaskCreate?.(mergeServerTask(local, saved));
       return true;
     } catch (e) {

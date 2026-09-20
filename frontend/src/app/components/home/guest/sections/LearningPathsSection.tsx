@@ -78,12 +78,12 @@ const SAMPLE_PATHS: LearningPath[] = [
  */
 function LearningPathCard({ path }: { path: LearningPath }) {
   return (
-    <Link href={`/learning-paths/${path.id}`} className={`${RAIL.item} w-80`}>
+    <Link href={`/pathways/${path.id}`} className={`${RAIL.item} w-80`}>
       <div className="group h-full flex flex-col bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden hover:shadow-lg dark:hover:shadow-orange-500/20 transition-all duration-150">
 
         {/* Header with Icon */}
         <div className="p-4 bg-gradient-to-br from-emerald-50 dark:from-orange-500/20 to-emerald-100/50 dark:to-orange-600/20">
-          <div className="h-11 w-11 rounded-xl bg-white dark:bg-slate-700 text-[#0F766E] dark:text-orange-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+          <div className="h-11 w-11 rounded-xl bg-white dark:bg-slate-700 text-[#0F766E] dark:text-orange-500 flex items-center justify-center mb-3">
             {path.icon}
           </div>
           <h3 className="text-base font-bold text-[#1E293B] dark:text-white mb-1.5 group-hover:text-[#0F766E] dark:group-hover:text-orange-500 transition-colors">
@@ -141,7 +141,7 @@ export function LearningPathsSection() {
             </p>
           </div>
           <Link
-            href="/learning-paths"
+            href="/pathways"
             className={SECTION_HEADER.viewAllButton}
           >
             عرض جميع المسارات <ChevronLeft className="h-4 w-4" />

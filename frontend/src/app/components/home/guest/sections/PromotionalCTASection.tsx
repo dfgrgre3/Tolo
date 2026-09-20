@@ -14,7 +14,7 @@ import { CONTAINER, SECTION } from '../design-system';
  */
 export function PromotionalCTASection() {
   return (
-    <section className={`${SECTION.padding} bg-gradient-to-r from-[#0F766E] to-emerald-700 dark:from-orange-600 dark:to-orange-700 text-white overflow-hidden relative`}>
+    <section data-keep-bg className={`keep-bg ${SECTION.padding} bg-gradient-to-r from-[#0F766E] to-emerald-700 dark:from-orange-600 dark:to-orange-700 text-white overflow-hidden relative`}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
@@ -27,7 +27,7 @@ export function PromotionalCTASection() {
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-3 leading-tight">
             ابدأ رحلة التعلم اليوم
           </h2>
-          <p className="text-base sm:text-lg text-white/90 mb-6 max-w-xl leading-relaxed font-medium">
+          <p className="text-base sm:text-lg text-white mb-6 max-w-xl leading-relaxed font-medium">
             انضم إلى آلاف المتعلمين الذين غيّروا حياتهم من خلال تعليم عملي وعالي الجودة.
           </p>
 
@@ -39,7 +39,7 @@ export function PromotionalCTASection() {
               </div>
               <div>
                 <p className="font-bold text-sm">تعلم سريع</p>
-                <p className="text-xs text-white/70">محاضرات مركزة وفعالة</p>
+                <p className="text-xs text-white">محاضرات مركزة وفعالة</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -48,7 +48,7 @@ export function PromotionalCTASection() {
               </div>
               <div>
                 <p className="font-bold text-sm">شهادات معتمدة</p>
-                <p className="text-xs text-white/70">شهادات قابلة للمشاركة</p>
+                <p className="text-xs text-white">شهادات قابلة للمشاركة</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -57,7 +57,7 @@ export function PromotionalCTASection() {
               </div>
               <div>
                 <p className="font-bold text-sm">تعلم بوقتك</p>
-                <p className="text-xs text-white/70">درس متى تشاء</p>
+                <p className="text-xs text-white">درس متى تشاء</p>
               </div>
             </div>
           </div>
@@ -78,7 +78,7 @@ export function PromotionalCTASection() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <Link
-              href="/instructors"
+              href="/teachers"
               className="
                 inline-flex items-center gap-2
                 px-6 py-3 bg-white/20 hover:bg-white/30

@@ -80,7 +80,7 @@ function PartnerLogo({ partner }: { partner: Partner }) {
       <div className="h-full flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] hover:border-[#0F766E] dark:hover:border-orange-500 hover:shadow-md dark:hover:shadow-orange-500/20 transition-all duration-150 group cursor-pointer">
 
         {/* Logo */}
-        <div className="text-4xl mb-2.5 group-hover:scale-110 transition-transform">
+        <div className="text-4xl mb-2.5">
           {partner.logo}
         </div>
 

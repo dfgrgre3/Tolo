@@ -7,7 +7,7 @@ import { MegaMenuContent } from "./MegaMenuContent";
 import { HeaderMenuTrigger } from "@/components/navigation";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
-import { apiClient } from "@/lib/api/api-client";
+import { trackMegaMenuRaw } from "@/features/discovery/api/discovery-gateway";
 import { repairMojibake } from "@/lib/i18n/repair-mojibake";
 
 // ==========================================
@@ -64,10 +64,10 @@ function trackMegaMenuEvent(eventType: "open" | "close", label: string, metadata
     const body = new Blob([payload], { type: "application/json" });
     const sent = navigator.sendBeacon("/api/analytics/mega-menu", body);
     if (!sent) {
-      void apiClient.postJson<unknown>("/analytics/mega-menu", JSON.parse(payload), { timeout: 1500, retries: 0 }).catch((e) => logger.debug("MegaMenu fallback track failed:", e));
+      void trackMegaMenuRaw(JSON.parse(payload), { timeout: 1500, retries: 0 }).catch((e) => logger.debug("MegaMenu fallback track failed:", e));
     }
   } else {
-    void apiClient.postJson<unknown>("/analytics/mega-menu", JSON.parse(payload), { timeout: 1500, retries: 0 }).catch((e) => logger.debug("MegaMenu fallback track failed:", e));
+    void trackMegaMenuRaw(JSON.parse(payload), { timeout: 1500, retries: 0 }).catch((e) => logger.debug("MegaMenu fallback track failed:", e));
   }
 }
 

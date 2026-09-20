@@ -146,7 +146,7 @@ function SpecializationCard({ track }: { track: SpecializationTrack }) {
           </div>
 
           {/* CTA Button */}
-          <button className="w-full px-4 py-2 bg-gradient-to-r from-[#0F766E] to-[#115E59] dark:from-orange-600 dark:to-orange-700 text-white font-bold text-sm rounded-[8px] hover:shadow-lg transition-all group-hover:scale-105">
+          <button className="w-full px-4 py-2 bg-gradient-to-r from-[#0F766E] to-[#115E59] dark:from-orange-600 dark:to-orange-700 text-white font-bold text-sm rounded-[8px]">
             ابدأ التتبع
           </button>
         </div>

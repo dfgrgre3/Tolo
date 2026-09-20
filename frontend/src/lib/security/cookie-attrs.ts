@@ -37,6 +37,23 @@ function isDevelopment(): boolean {
 }
 
 /**
+ * Whether a missing SameSite attribute must be treated as a violation.
+ *
+ * Read on every call (not module-load) so tests can flip it per case, same
+ * as `isDevelopment()`.
+ *
+ * Background (B-10): the Go backend's actual Set-Cookie attributes are NOT
+ * visible from this repo, so flipping the default to "missing = violation"
+ * unconditionally could drop every auth cookie in production (login outage)
+ * if the backend omits SameSite and relies on the browser Lax default.
+ * Instead the operator opts into strictness explicitly after confirming the
+ * backend sets SameSite: `REQUIRE_EXPLICIT_SAMESITE=true`.
+ */
+function isExplicitSameSiteRequired(): boolean {
+  return process.env.REQUIRE_EXPLICIT_SAMESITE === 'true';
+}
+
+/**
  * Extracts the Set-Cookie array from a backend response's headers.
  *
  * Prefers `Headers.getSetCookie()` (RFC 6265 compliant, Node 19+)
@@ -145,20 +162,23 @@ function getSameSiteAttribute(cookie: string): string | null {
  * Contract:
  *   - HttpOnly: required (blocks JS access to the token)
  *   - Secure:   required in production (forces HTTPS)
- *   - SameSite: required to be `Lax` or `Strict` (`None` would let
- *               a cross-site request carry the token and is a CSRF
- *               regression; missing is allowed only as a soft
- *               warning, since `Lax` is the browser default)
- *
- * `allowMissingSameSite` defaults to `true` because `Lax` is the
- * browser default and the backend may legitimately omit it. Tighten
- * this to `false` if the backend is expected to set it explicitly.
+ *   - SameSite: must be `Lax` or `Strict` when present. `None` is always a
+ *               violation for auth cookies (CSRF regression); a garbage
+ *               value (typo / injection) is always a violation too, since no
+ *               backend emits one intentionally and browsers fall back in
+ *               inconsistent ways. A MISSING value is a violation only when
+ *               the caller passes `allowMissingSameSite: false` or the
+ *               operator sets `REQUIRE_EXPLICIT_SAMESITE=true` (B-10) — the
+ *               default stays lenient because the Go backend's attributes are
+ *               not visible from this repo and `Lax` is the browser default.
  */
 export function validateAuthCookieAttributes(
   cookie: string,
   options: { allowMissingSameSite?: boolean; cookieName?: string } = {},
 ): string[] {
-  const { allowMissingSameSite = true, cookieName } = options;
+  const { cookieName } = options;
+  const allowMissingSameSite =
+    options.allowMissingSameSite ?? !isExplicitSameSiteRequired();
   const violations: string[] = [];
   const { name } = parseCookieAttributes(cookie);
   const label = cookieName ?? name;
@@ -174,8 +194,16 @@ export function validateAuthCookieAttributes(
     violations.push(
       `'${label}' has SameSite=None which is unsafe for auth cookies`,
     );
-  } else if (!sameSite && !allowMissingSameSite) {
-    violations.push(`'${label}' is missing SameSite attribute`);
+  } else if (sameSite === "lax" || sameSite === "strict") {
+    // Explicit, recognized policy — the hardened state. Nothing to report.
+  } else if (!sameSite) {
+    if (!allowMissingSameSite) {
+      violations.push(`'${label}' is missing SameSite attribute`);
+    }
+  } else {
+    violations.push(
+      `'${label}' has an unrecognized SameSite value '${sameSite}'`,
+    );
   }
 
   return violations;
@@ -198,6 +226,8 @@ export function validateCsrfCookieAttributes(cookie: string): string[] {
   const sameSite = getSameSiteAttribute(cookie)?.toLowerCase() ?? null;
   if (sameSite === "none") {
     violations.push(`'${name}' has SameSite=None which is unsafe for CSRF cookies`);
+  } else if (sameSite !== null && sameSite !== "lax" && sameSite !== "strict") {
+    violations.push(`'${name}' has an unrecognized SameSite value '${sameSite}'`);
   }
   return violations;
 }

@@ -1,0 +1,20 @@
+/* Homepage rhythm: flat sections sit directly on the page background,
+   with alternating subtle tints so the long page reads as calm bands
+   instead of one endless white sheet. Colored banners (.keep-bg) keep
+   their own backgrounds. Cards keep their borders/backgrounds.
+   Motion is disabled globally via .motion-off in globals.css. */
+
+.homepage-flat > section:not(.keep-bg) {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Alternating tint bands (light + class-based dark). */
+.homepage-flat > section:not(.keep-bg):nth-of-type(even) {
+  background-color: #f6f8fb !important;
+}
+.dark .homepage-flat > section:not(.keep-bg):nth-of-type(even) {
+  background-color: #0b1220 !important;
+}

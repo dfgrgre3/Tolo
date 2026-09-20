@@ -34,7 +34,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
             </p>
           </div>
           <button
-            onClick={() => router.push('/instructors')}
+            onClick={() => router.push('/teachers')}
             className={SECTION_HEADER.viewAllButton}
           >
             عرض الكل <ChevronLeft className="h-4 w-4" />
@@ -64,7 +64,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
               return (
                 <button
                   key={ins.id}
-                  onClick={() => router.push(`/instructors/${ins.id}`)}
+                  onClick={() => router.push(`/teachers/${ins.id}`)}
                   className={`${RAIL.item} w-40 bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#0F766E] p-4 rounded-[12px] text-center flex flex-col items-center hover:shadow-md group transition-all duration-150`}
                 >
                   <div className="relative h-16 w-16 rounded-full overflow-hidden mb-2.5 ring-2 ring-[#E2E8F0] group-hover:ring-[#0F766E]">

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from 'react';
-import { CustomGoal } from '@/hooks/use-gamification';
+import { CustomGoal } from '@/features/gamification';
 
 interface CreateGoalModalProps {
   isOpen: boolean;

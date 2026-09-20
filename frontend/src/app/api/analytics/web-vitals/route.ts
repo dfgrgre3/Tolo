@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getRedisClientAsync } from '@/lib/redis';
 import { resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
+import { logger } from '@/lib/logger';
 
 // Hard limits — the endpoint is unauthenticated by design (the metric
 // beacons fire from every visitor), so we MUST defend against both
@@ -174,23 +175,19 @@ export async function POST(request: NextRequest) {
   }
 
   // Structured log so an external collector (Datadog, Loki, etc.) can
-  // index by metric name without parsing a free-form string. The
-  // `console.log` from the previous implementation was both noisy and
-  // unstructured.
+  // index by metric name without parsing a free-form string.
   for (const metric of sanitizedMetrics) {
-    console.info(
-      JSON.stringify({
-        source: 'web-vitals',
-        name: metric.name,
-        value: metric.value,
-        id: metric.id,
-        rating: metric.rating ?? null,
-        delta: metric.delta ?? null,
-        navigationType: metric.navigationType ?? null,
-        url: metric.url ?? null,
-        receivedAt: Date.now(),
-      }),
-    );
+    logger.info('web-vitals', {
+      source: 'web-vitals',
+      name: metric.name,
+      value: metric.value,
+      id: metric.id,
+      rating: metric.rating ?? null,
+      delta: metric.delta ?? null,
+      navigationType: metric.navigationType ?? null,
+      url: metric.url ?? null,
+      receivedAt: Date.now(),
+    });
   }
 
   return NextResponse.json({ status: 'success' }, { status: 200 });

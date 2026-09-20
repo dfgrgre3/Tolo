@@ -17,8 +17,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 import { logger } from "@/lib/logger";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchReferralStatsRaw } from "@/features/payments/api/payments-gateway";
 import {
   BillingPageHeader,
   BillingStatCard,
@@ -117,7 +116,7 @@ export default function ReferralsPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const data = await apiClient.get<ReferralStats>(apiRoutes.users.referrals);
+        const data = await fetchReferralStatsRaw<ReferralStats>();
         setStats(normalizeReferralStats(data));
       } catch (err) {
         logger.error("Error: " + (err instanceof Error ? err.message : String(err)));

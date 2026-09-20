@@ -4,7 +4,7 @@ import {
   mainNavItemsWithMegaMenu,
   headerNavItems,
 } from '@/components/mega-menu/navData';
-import { apiClient } from '@/lib/api/api-client';
+import { fetchCatalogPageRaw } from '@/features/courses/api/courses-gateway';
 import { readCatalogPayload } from '@/app/(education)/courses/catalog-data';
 
 // Google caps a single sitemap file at 50,000 URLs. generateSitemaps splits the
@@ -28,7 +28,7 @@ async function fetchPublishedCourses(): Promise<CatalogItem[]> {
   for (let page = 1; page <= MAX_CATALOG_PAGES; page++) {
     let payload: unknown;
     try {
-      payload = await apiClient.get<unknown>(`/courses?limit=${CATALOG_PAGE_SIZE}&page=${page}`);
+      payload = await fetchCatalogPageRaw(CATALOG_PAGE_SIZE, page);
     } catch {
       break;
     }
@@ -127,8 +127,8 @@ export default async function sitemap({
   const baseRoutes = [...staticRoutes(baseUrl), ...megaMenuRoutes(baseUrl)];
 
   // De-duplicate in case a URL appears both as a static route and inside a
-  // mega-menu category.
-  const seen = new Set(baseRoutes.map((route) => route.url));
+  // mega-menu category. First occurrence wins.
+  const seen = new Set<string>();
   const uniqueBaseRoutes = baseRoutes.filter((route) => {
     if (seen.has(route.url)) return false;
     seen.add(route.url);
@@ -139,7 +139,12 @@ export default async function sitemap({
   const courseRoutes = published
     .slice(0, SITEMAP_URL_CAP)
     .map((course) => toCourseUrl(baseUrl, course))
-    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .filter((entry) => {
+      if (seen.has(entry.url)) return false;
+      seen.add(entry.url);
+      return true;
+    });
 
   return [...uniqueBaseRoutes, ...courseRoutes];
 }

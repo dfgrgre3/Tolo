@@ -24,9 +24,10 @@ interface DashSectionProps {
 }
 
 /**
- * The single visual container for every dashboard section: a flat bordered
- * panel with a compact right-aligned header. Keeps the Noon-style rhythm
- * identical everywhere without each section re-declaring it.
+ * The single visual wrapper for every dashboard section: an open section
+ * directly on the page background (no outer card/border/shadow). Keeps the
+ * Noon-style rhythm identical everywhere without each section re-declaring it.
+ * Inner content cards are untouched — only the outer container is flat.
  */
 export function DashSection({
   title,

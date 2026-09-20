@@ -6,8 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Chrome, Apple, Link2, Link2Off, Loader2 } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  fetchLinkedSocialAccounts,
+  unlinkSocialProvider,
+} from "@/features/auth/api";
 import { getSocialLinkUrl } from "@/services/auth/login-service";
 
 // Only google/apple: the backend's OAuth redirect-URL generator
@@ -41,8 +44,7 @@ export default function SocialAccountsCard() {
 
   useEffect(() => {
     const controller = new AbortController();
-    apiClient
-      .get<LinkedAccount[] | { accounts?: LinkedAccount[] }>(apiRoutes.auth.social.accounts, {
+    fetchLinkedSocialAccounts<LinkedAccount[] | { accounts?: LinkedAccount[] }>({
         signal: controller.signal,
       })
       .then((payload) => {
@@ -80,7 +82,7 @@ export default function SocialAccountsCard() {
   async function handleDisconnect(provider: Provider) {
     setPendingProvider(provider);
     try {
-      await apiClient.post(apiRoutes.auth.social.unlink, { provider });
+      await unlinkSocialProvider(provider);
       setAccounts((prev) => (Array.isArray(prev) ? prev.filter((a) => a.provider !== provider) : []));
       toast.success("تم فصل الحساب بنجاح");
     } catch (err) {

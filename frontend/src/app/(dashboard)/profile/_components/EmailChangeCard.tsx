@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Mail } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  requestEmailChange,
+  verifyEmailChange,
+} from "@/features/auth/api";
 import { useAuthContext } from "@/contexts/auth-context";
 
 export default function EmailChangeCard() {
@@ -22,7 +25,7 @@ export default function EmailChangeCard() {
   async function requestChange() {
     setPending(true);
     try {
-      await apiClient.post(apiRoutes.auth.emailChange.request, { newEmail: email.trim(), password });
+      await requestEmailChange(email, password);
       setSent(true);
       setPassword("");
       toast.success("تم إرسال رمز التحقق إلى البريد الجديد");
@@ -34,7 +37,7 @@ export default function EmailChangeCard() {
   async function verifyChange() {
     setPending(true);
     try {
-      await apiClient.post(apiRoutes.auth.emailChange.verify, { code: code.trim() });
+      await verifyEmailChange(code);
       await refreshUser();
       setSent(false); setCode(""); setEmail("");
       toast.success("تم تغيير البريد الإلكتروني وتوثيقه");

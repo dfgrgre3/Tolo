@@ -4,8 +4,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { getSessionPresence } from '@/lib/api/redirect-loop-guard';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import {
+  createStudySessionRaw,
+  fetchTaskActualTimeRaw,
+  putTaskRaw,
+} from '@/features/tasks/api/tasks-gateway';
+import { logger } from '@/lib/logger';
 
 export type PomodoroState = 'work' | 'shortBreak' | 'longBreak';
 
@@ -167,25 +171,25 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           // If a session exists (per the auth provider), sync to the database.
           // The server resolves the user from the JWT — no userId is sent.
           if (getSessionPresence() === 'present') {
-            apiClient.postJson(apiRoutes.studySessions.create, {
+            createStudySessionRaw({
               durationMin: durationVal,
               startTime: startTimeVal,
               endTime: endTimeVal,
               focusScore: 100, // Default full focus
               subjectId: activeCourseId || undefined,
-            }).catch((err) => console.warn('Failed to sync study session to database:', err));
+            }).catch((err) => logger.warn('Failed to sync study session to database:', err));
 
             // Sync the actual time to the active task
             if (activeTaskId) {
-              apiClient.get<{ actualTime?: number }>(apiRoutes.tasks.update(activeTaskId))
+              fetchTaskActualTimeRaw<{ actualTime?: number }>(activeTaskId)
                 .then((task) => {
                   const updatedTask = {
                     ...task,
                     actualTime: (task.actualTime || 0) + durationVal,
                   };
-                  return apiClient.put(apiRoutes.tasks.update(activeTaskId), updatedTask);
+                  return putTaskRaw(activeTaskId, updatedTask);
                 })
-                .catch((err) => console.warn('Failed to update task actual time:', err));
+                .catch((err) => logger.warn('Failed to update task actual time:', err));
             }
           }
 

@@ -14,7 +14,7 @@ import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { registerServiceWorker } from "@/lib/service-worker";
 import { useEfficiency } from "@/hooks/use-efficiency";
 import { logger } from "@/lib/logger";
-import { apiClient } from "@/lib/api/api-client";
+import { searchDirectoryRaw } from "@/features/discovery/api/discovery-gateway";
 
 export type { SearchResult, SearchScope } from "./_components/search-types";
 import type { SearchResult, SearchScope } from "./_components/search-types";
@@ -224,8 +224,8 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 					exams: "resource"
 				};
 				const mappedScope = scopeMap[scope as SearchScope] || "all";
-				const data = await apiClient.get<{ results: SearchResult[]; total: number }>(
-					`/search?q=${encodeURIComponent(query)}&type=${mappedScope}&limit=8`
+				const data = await searchDirectoryRaw<{ results: SearchResult[]; total: number }>(
+					`?q=${encodeURIComponent(query)}&type=${mappedScope}&limit=8`
 				);
 
 				const results: SearchResult[] = data?.results || [];

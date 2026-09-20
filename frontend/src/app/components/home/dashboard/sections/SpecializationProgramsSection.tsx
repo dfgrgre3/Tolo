@@ -74,7 +74,7 @@ function SpecializationProgramsSectionBase({
                 role="img"
                 aria-label={program.title}
               >
-                <span className="transition-transform group-hover:scale-110">{program.icon || '🎯'}</span>
+                <span>{program.icon || '🎯'}</span>
               </div>
 
               {/* Content */}

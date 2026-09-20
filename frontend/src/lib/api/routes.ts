@@ -338,6 +338,8 @@ export const apiRoutes = {
     deleteConversation: (id: string) => `/api/ai/conversation/${id}`,
     explainMistake: '/api/ai/explain-mistake',
     studyPlanner: '/api/ai/study-planner',
+    studyPlannerStatusBase: '/api/ai/study-planner/status',
+    studyPlannerStatus: (jobId: string) => `/api/ai/study-planner/status/${jobId}`,
     summarize: '/api/ai/summarize',
     summarizeStatusBase: '/api/ai/summarize/status',
     summarizeStatus: (jobId: string) => `/api/ai/summarize/status/${jobId}`,

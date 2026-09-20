@@ -9,6 +9,7 @@
 import type { Subject, Topic, SubTopic, LessonAttachment, InteractiveQuestion, Enrollment, Progress } from './course';
 import { LessonType } from '@thanawy/shared/types/enums';
 import type { CompletionEligibility, CourseProgressSnapshot, LessonProgressMutationResponse } from '@thanawy/shared/types/enums';
+import { logger } from '@/lib/logger';
 export type { CompletionEligibility, CourseProgressSnapshot, LessonProgressMutationResponse };
 
 export type InvalidLessonType = 'INVALID';
@@ -207,9 +208,7 @@ export interface CourseCatalogView {
 }
 
 function reportInvalidLessonType(type?: string | null): 'INVALID' {
-  if (typeof console !== 'undefined') {
-    console.warn('[LessonMapper] rejected unknown lesson type', { type: type ?? null });
-  }
+  logger.warn('[LessonMapper] rejected unknown lesson type', { type: type ?? null });
   return 'INVALID';
 }
 

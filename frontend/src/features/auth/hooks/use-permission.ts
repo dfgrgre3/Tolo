@@ -8,7 +8,8 @@ import {
 } from "@/lib/auth/roles";
 
 // Re-exported so existing `import type { UserRole } from
-// "@/hooks/use-permission"` call sites keep working; the canonical
+// "@/features/auth/hooks/use-permission"` call sites keep working (the legacy
+// `@/hooks/use-permission` facade was removed in B-11); the canonical
 // definition lives in `@/lib/auth/roles` (shared enum, backend-synced).
 export type { UserRole } from "@/lib/auth/roles";
 

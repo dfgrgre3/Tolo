@@ -3,7 +3,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { type Notification } from '@/types/notification';
 import { logger } from '@/lib/logger';
-import { apiClient } from '@/lib/api/api-client';
+import {
+  fetchAppNotificationsRaw,
+  markAppNotificationReadRaw,
+} from '@/features/notifications/api/notifications-gateway';
 
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/websocket-context';
@@ -117,7 +120,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         offset: currentOffset.toString()
       });
 
-      const response = await apiClient.get<Notification[]>(`/notifications?${params}`);
+      const response = await fetchAppNotificationsRaw<Notification[]>(params.toString());
       
       const { nextNotifications, nextUnreadCount, nextHasMore } = parseNotificationsResponse(response, limit);
 
@@ -152,14 +155,14 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       // one call per id, not the single first-id-only call this used to send
       // (which silently left the rest unread server-side).
       if (all || !notificationIds) {
-        await apiClient.post<MarkReadResponse>('/notifications/mark-read', { id: '' });
+        await markAppNotificationReadRaw<MarkReadResponse>('');
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         setUnreadCount(0);
         return;
       }
 
       await Promise.all(
-        notificationIds.map((id) => apiClient.post<MarkReadResponse>('/notifications/mark-read', { id }))
+        notificationIds.map((id) => markAppNotificationReadRaw<MarkReadResponse>(id))
       );
       setNotifications((prev) =>
         prev.map((n) => (notificationIds.includes(n.id) ? { ...n, isRead: true } : n))

@@ -25,7 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
+import {
+  createTeacherLessonRaw,
+  fetchTeacherLessonsRaw,
+  fetchTeacherScheduleRaw,
+  fetchTeachersRaw,
+  updateTeacherScheduleRaw,
+} from "@/features/courses/api/courses-gateway";
 
 export type Teacher = {id: string;name: string;subject: string;onlineUrl?: string | null;};
 type Lesson = {id: string;title: string;location: string;startTime: string;endTime: string;teacherId: string;teacher?: Teacher | null;};
@@ -98,7 +104,7 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
       setIsLoading(true);
          setLoadError("");
       try {
-        const ts = await apiClient.get<Teacher[]>("/teachers");
+        const ts = await fetchTeachersRaw<Teacher[]>();
             setTeachers(Array.isArray(ts) ? ts : []);
       } catch (err) {
         logger.error("Failed to fetch teachers:", err);
@@ -115,9 +121,9 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
       try {
         // Session-scoped: the backend resolves the caller from the JWT, so
         // no ?userId= is appended (IDOR/BOLA hardening).
-        const ls = await apiClient.get<Lesson[]>(`/lessons`);
+        const ls = await fetchTeacherLessonsRaw<Lesson[]>();
         setLessons(ls);
-        const sch = await apiClient.get<Schedule>(`/schedule`);
+        const sch = await fetchTeacherScheduleRaw<Schedule>();
         setSchedule(sch);
       } catch (err) {
         logger.error("Failed to fetch user data:", err);
@@ -143,7 +149,7 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
       }
       setIsSubmitting(true);
     try {
-         const newLesson = await apiClient.post<Lesson>("/lessons", {
+         const newLesson = await createTeacherLessonRaw<Lesson>({
             teacherId,
                   title: title.trim(),
                   location: location.trim(),
@@ -166,7 +172,7 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
       // Backend expects `planJson` as a required JSON-encoded string
       // (see UpdateSchedule in activity_handler.go); the user is resolved
       // server-side from the session.
-      const s = await apiClient.post<Schedule>("/schedule", {
+      const s = await updateTeacherScheduleRaw<Schedule>({
         planJson: JSON.stringify(plan)
       });
       setSchedule(s);

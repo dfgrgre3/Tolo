@@ -13,6 +13,7 @@ import {
 import { cookies, headers } from 'next/headers';
 import Script from 'next/script';
 import { SITE } from '@thanawy/shared/site-config';
+import { toSafeJsonLd } from '@/lib/security/json-ld';
 
 import Header from '@/components/header/Header';
 import Footer from '@/components/Footer';
@@ -110,13 +111,13 @@ export default async function RootLayout({
           type="application/ld+json"
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: toSafeJsonLd({
               '@context': 'https://schema.org',
               '@type': 'EducationalOrganization',
               name: SITE.name,
               description: SITE.description,
               url: SITE.url,
-              logo: `${SITE.url}/logo.png`,
+              logo: `${SITE.url}${SITE.logo}`,
               sameAs: [],
               offers: {
                 '@type': 'Offer',

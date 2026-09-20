@@ -10,3 +10,5 @@ export {
   type ContractCourseListResponse,
   type ContractCourseDetailResponse,
 } from "@/services/api/contracts-courses-service";
+
+export * from "./courses-gateway";

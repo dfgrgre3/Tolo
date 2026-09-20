@@ -1,16 +1,25 @@
+﻿"use client";
 
-"use client";
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import { Search, User, Star, BookOpen, Zap, ExternalLink, Loader2, Youtube, RotateCcw } from "lucide-react";
 
-import React, { useState } from 'react';
-import Image from 'next/image';
-import { m } from 'framer-motion';
-import { Search, User, Star, BookOpen, Zap, ExternalLink, Loader2, Youtube } from 'lucide-react';
-
-import { logger } from '@/lib/logger';
-import { useAIWorkspace } from '../context/AIWorkspaceContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logger } from "@/lib/logger";
+import { useAIWorkspace } from "../context/AIWorkspaceContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  AISectionShell,
+  AIError,
+  AIEmptyState,
+  HistoryBar,
+  FieldLabel,
+  loadLocal,
+  saveLocal,
+} from "./ai-shared";
 
 interface Teacher {
   name: string;
@@ -27,74 +36,71 @@ interface TeacherSearchProps {
   className?: string;
 }
 
-function validateAndFormatTeachers(data: unknown) {
-  if (!data || typeof data !== 'object') {
-    throw new Error('بيانات غير صالحة من الخادم');
-  }
+type TeacherResults = { localTeachers: Teacher[]; aiTeachers: Teacher[]; youtubeResults: Teacher[] };
+
+const HISTORY_KEY = "thanawy:ai:teacher-history";
+
+function validateAndFormatTeachers(data: unknown): TeacherResults {
+  if (!data || typeof data !== "object") throw new Error("بيانات غير صالحة من الخادم");
   const record = data as Record<string, unknown>;
-
   return {
-    localTeachers: Array.isArray(record.localTeachers) ? record.localTeachers : [],
-    aiTeachers: Array.isArray(record.aiTeachers) ? record.aiTeachers : [],
-    youtubeResults: Array.isArray(record.youtubeResults) ? record.youtubeResults : [],
+    localTeachers: Array.isArray(record.localTeachers) ? (record.localTeachers as Teacher[]) : [],
+    aiTeachers: Array.isArray(record.aiTeachers) ? (record.aiTeachers as Teacher[]) : [],
+    youtubeResults: Array.isArray(record.youtubeResults) ? (record.youtubeResults as Teacher[]) : [],
   };
-}
-
-function handleSearchError(err: unknown): string {
-  logger.error('Error searching teachers:', err);
-  let errorMessage = 'حدث خطأ غير معروف';
-
-  if (err instanceof Error) {
-    errorMessage = err.message;
-    if (errorMessage.includes('API key') || errorMessage.includes('مفتاح API')) {
-      return 'مفتاح API لخدمة الذكاء الاصطناعي غير مهيأ. يرجى التواصل مع فريق الدعم لحل هذه المشكلة.';
-    }
-    if (errorMessage.includes('fetch')) {
-      return 'فشل الاتصال بخدمة الذكاء الاصطناعي. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-    }
-  }
-
-  return errorMessage;
 }
 
 export default function TeacherSearch({
   subjects,
-  platforms = ['يوتيوب', 'منصة دروس', 'منصة مدرستي', 'أخرى'],
-  className = ""
+  platforms = ["يوتيوب", "منصة دروس", "منصة مدرستي", "أخرى"],
+  className = "",
 }: TeacherSearchProps) {
-  const { teachers: searchTeachers } = useAIWorkspace();
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [keywords, setKeywords] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState('');
+  const { teachers: searchTeachers, context, setContext } = useAIWorkspace();
+  const [selectedSubject, setSelectedSubject] = useState(context.subject ?? "");
+  const [keywords, setKeywords] = useState("");
+  const [selectedPlatform, setSelectedPlatform] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [teachers, setTeachers] = useState<{
-    localTeachers: Teacher[];
-    aiTeachers: Teacher[];
-    youtubeResults: Teacher[];
-  } | null>(null);
-  const [error, setError] = useState('');
+  const [teachers, setTeachers] = useState<TeacherResults | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    setHistory(loadLocal<string[]>(HISTORY_KEY, []));
+  }, []);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!selectedSubject) {
-      setError('الرجاء اختيار المادة');
+      setError("الرجاء اختيار المادة أولاً");
       return;
     }
-
     setIsSearching(true);
-    setError('');
+    setError(null);
     setTeachers(null);
-
     try {
+      setContext({ subject: selectedSubject });
       const rawData = await searchTeachers<unknown>({
         subject: selectedSubject,
         keywords: keywords || undefined,
         platform: selectedPlatform || undefined,
       });
-
       setTeachers(validateAndFormatTeachers(rawData));
+      const label = `${selectedSubject}${keywords ? ` • ${keywords}` : ""}`;
+      setHistory((prev) => {
+        const next = [label, ...prev.filter((h) => h !== label)].slice(0, 8);
+        saveLocal(HISTORY_KEY, next);
+        return next;
+      });
     } catch (err) {
-      setError(handleSearchError(err));
+      logger.error("Error searching teachers:", err);
+      const msg = err instanceof Error ? err.message : "حدث خطأ غير معروف";
+      if (msg.includes("API key") || msg.includes("مفتاح API")) {
+        setError("خدمة البحث غير مهيأة حالياً. تواصل مع الدعم.");
+      } else if (msg.includes("fetch")) {
+        setError("تعذّر الاتصال. تحقق من الإنترنت وحاول مجدداً.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -102,244 +108,179 @@ export default function TeacherSearch({
 
   const renderStars = (rating?: number) => {
     if (!rating) return null;
-
     return (
       <div className="flex items-center gap-1">
         {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`h-4 w-4 ${
-              i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'
-            }`}
-          />
+          <Star key={i} className={`h-3.5 w-3.5 ${i < Math.floor(rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`} />
         ))}
-        <span className="text-sm text-gray-400 me-1">{rating.toFixed(1)}</span>
+        <span className="ms-1 text-xs text-muted-foreground">{rating.toFixed(1)}</span>
       </div>
     );
   };
 
   const renderTeacherCard = (teacher: Teacher, source: string) => (
-    <div
-      key={`${teacher.name}-${source}`}
-      className="border border-white/10 rounded-xl p-5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
-    >
+    <Card key={`${teacher.name}-${source}-${teacher.url ?? ""}`} className="rounded-2xl p-5 transition hover:border-primary/40">
       <div className="flex items-start gap-4">
         {teacher.thumbnail ? (
-          <Image
-            src={teacher.thumbnail}
-            alt={teacher.name}
-            width={64}
-            height={64}
-            unoptimized
-            className="w-16 h-16 rounded-xl object-cover border border-white/10"
-          />
+          <Image src={teacher.thumbnail} alt={teacher.name} width={64} height={64} unoptimized className="h-16 w-16 shrink-0 rounded-2xl border border-border object-cover" />
         ) : (
-          <div className="w-16 h-16 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-            <User className="h-8 w-8 text-blue-400" />
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+            <User className="h-7 w-7" />
           </div>
         )}
-
-        <div className="flex-1">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-bold text-white text-lg">{teacher.name}</h3>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold rounded-full border border-blue-500/30">
-                  <BookOpen className="h-3 w-3" />
-                  {teacher.subject}
-                </span>
-                {source === 'youtube' && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-full border border-red-500/30">
-                    <Youtube className="h-3 w-3" />
-                    يوتيوب
-                  </span>
-                )}
-                {source === 'ai' && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/30">
-                    <Zap className="h-3 w-3" />
-                    AI
-                  </span>
-                )}
-              </div>
-            </div>
-
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="truncate font-bold text-foreground">{teacher.name}</h3>
             {teacher.url && (
-              <a
-                href={teacher.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-500/20 rounded-lg transition-all"
-              >
-                <ExternalLink className="h-5 w-5" />
+              <a href={teacher.url} target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-primary hover:bg-primary/10" aria-label={`فتح ${teacher.name}`}>
+                <ExternalLink className="h-4 w-4" />
               </a>
             )}
           </div>
-
-          {teacher.description && (
-            <p className="text-gray-400 text-sm mt-3 line-clamp-2">{teacher.description}</p>
-          )}
-
-          <div className="mt-3">
-            {renderStars(teacher.rating)}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <Badge variant="secondary" className="rounded-full text-[11px]">
+              <BookOpen className="h-3 w-3 me-1" /> {teacher.subject}
+            </Badge>
+            {source === "youtube" && (
+              <Badge className="rounded-full border-red-500/30 bg-red-500/10 text-red-500 text-[11px]">
+                <Youtube className="h-3 w-3 me-1" /> يوتيوب
+              </Badge>
+            )}
+            {source === "ai" && (
+              <Badge className="rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px]">
+                <Zap className="h-3 w-3 me-1" /> ترشيح ذكي
+              </Badge>
+            )}
           </div>
+          {teacher.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{teacher.description}</p>}
+          <div className="mt-2">{renderStars(teacher.rating)}</div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 
+  const totalCount = (teachers?.localTeachers.length ?? 0) + (teachers?.aiTeachers.length ?? 0) + (teachers?.youtubeResults.length ?? 0);
+
   return (
-    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden ${className}`}>
-      <div className="p-8 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-purple-500/30 blur-lg rounded-full" />
-            <div className="relative p-3 bg-purple-500/20 rounded-xl border border-purple-500/30">
-              <Search className="h-6 w-6 text-purple-400" />
-            </div>
+    <AISectionShell
+      badge="Teacher Finder"
+      title="البحث عن المعلمين"
+      description="اعثر على أفضل المعلمين وقنوات الشرح حسب مادتك — من منصتنا ومن ترشيحات الذكاء الاصطناعي ويوتيوب."
+      icon={<Search className="h-6 w-6" />}
+    >
+      <div className={className}>
+        <HistoryBar
+          items={history}
+          onClear={() => {
+            setHistory([]);
+            saveLocal(HISTORY_KEY, []);
+          }}
+          onSelect={(h) => {
+            const [subj] = h.split(" • ");
+            if (subj) setSelectedSubject(subj);
+          }}
+          renderLabel={(h) => h}
+        />
+
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <FieldLabel required>المادة</FieldLabel>
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <SelectTrigger className="h-12 rounded-xl">
+                <SelectValue placeholder="اختر المادة" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white">البحث عن مدرسين</h2>
-            <p className="text-gray-400 text-sm mt-1">اعثر على أفضل المعلمين وقنوات يوتيوب</p>
+            <FieldLabel>كلمات مفتاحية</FieldLabel>
+            <Input value={keywords} onChange={(e) => setKeywords(e.target.value.slice(0, 100))} placeholder="مثال: مراجعة نهائية، ثانوية عامة..." className="h-12 rounded-xl" />
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
-          <Zap className="h-3 w-3" />
-          <span>المساعد الذكي الموحد</span>
-        </div>
-      </div>
-
-      <div className="p-8">
-        {!teachers ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  المادة <span className="text-red-400">*</span>
-                </label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-purple-500/50">
-                    <SelectValue placeholder="اختر المادة" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  كلمات مفتاحية
-                </label>
-                <Input
-                  type="text"
-                  value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
-                  placeholder="مثال: ثانوي، إعدادي..."
-                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-purple-500/50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  المنصة
-                </label>
-                <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-                  <SelectTrigger className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-purple-500/50">
-                    <SelectValue placeholder="الكل" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    {platforms.map((platform) => (
-                      <SelectItem key={platform} value={platform}>{platform}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl">
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={isSearching}
-              className="w-full md:w-auto px-12 h-14 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-2xl shadow-xl shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
+          <div>
+            <FieldLabel>المنصة</FieldLabel>
+            <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
+              <SelectTrigger className="h-12 rounded-xl">
+                <SelectValue placeholder="الكل" />
+              </SelectTrigger>
+              <SelectContent>
+                {platforms.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-wrap gap-3 md:col-span-3">
+            <Button type="submit" disabled={isSearching || !selectedSubject} className="h-12 rounded-xl px-10 font-bold">
               {isSearching ? (
                 <>
-                  <Loader2 className="h-5 w-5 me-3 animate-spin" />
-                  جاري البحث...
+                  <Loader2 className="h-5 w-5 me-2 animate-spin" /> جاري البحث...
                 </>
               ) : (
                 <>
-                  <Search className="h-5 w-5 me-3" />
-                  بحث عن مدرسين
+                  <Search className="h-5 w-5 me-2" /> بحث عن معلمين
                 </>
               )}
             </Button>
-          </form>
-        ) : (
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-lg">نتائج البحث</h3>
-              <Button
-                onClick={() => {
-                  setTeachers(null);
-                  setError('');
-                }}
-                variant="outline"
-                className="h-10 rounded-xl border-white/10 text-gray-400 hover:bg-white/10"
-              >
-                بحث جديد
+            {selectedPlatform && (
+              <Button type="button" variant="ghost" className="h-12 rounded-xl" onClick={() => setSelectedPlatform("")}>
+                مسح فلتر المنصة
               </Button>
-            </div>
-
-            {teachers.localTeachers.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider">المدرسين المحفوظين ({teachers.localTeachers.length})</h4>
-                <div className="space-y-3">
-                  {teachers.localTeachers.map((teacher) => renderTeacherCard(teacher, 'local'))}
-                </div>
-              </div>
             )}
+          </div>
+        </form>
 
-            {teachers.aiTeachers.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider">مدرسين موصى بهم ({teachers.aiTeachers.length})</h4>
-                <div className="space-y-3">
-                  {teachers.aiTeachers.map((teacher) => renderTeacherCard(teacher, 'ai'))}
-                </div>
+        <div className="mt-4">
+          <AIError message={error} onRetry={() => handleSubmit()} />
+        </div>
+
+        <div className="mt-6">
+          {!teachers ? (
+            !isSearching && (
+              <AIEmptyState icon={<Search className="h-6 w-6" />} title="ابدأ البحث" description="اختر المادة واضغط بحث لعرض معلمي المنصة والترشيحات الذكية وقنوات يوتيوب في مكان واحد." />
+            )
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-foreground">نتائج البحث ({totalCount})</h3>
+                <Button onClick={() => { setTeachers(null); setError(null); }} variant="outline" size="sm" className="rounded-xl">
+                  <RotateCcw className="h-3.5 w-3.5 me-1.5" /> بحث جديد
+                </Button>
               </div>
-            )}
-
-            {teachers.youtubeResults.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider">قنوات يوتيوب ({teachers.youtubeResults.length})</h4>
-                <div className="space-y-3">
-                  {teachers.youtubeResults.map((teacher) => renderTeacherCard(teacher, 'youtube'))}
-                </div>
-              </div>
-            )}
-
-            {teachers.localTeachers.length === 0 &&
-              teachers.aiTeachers.length === 0 &&
-              teachers.youtubeResults.length === 0 && (
-                <div className="text-center py-12">
-                  <User className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-                  <p className="text-gray-500">لم يتم العثور على أي مدرسين. يرجى المحاولة مرة أخرى بكلمات مفتاحية مختلفة.</p>
-                </div>
+              {teachers.localTeachers.length > 0 && (
+                <section>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">معلمو المنصة ({teachers.localTeachers.length})</h4>
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    {teachers.localTeachers.map((t) => renderTeacherCard(t, "local"))}
+                  </div>
+                </section>
               )}
-          </m.div>
-        )}
+              {teachers.aiTeachers.length > 0 && (
+                <section>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">ترشيحات ذكية ({teachers.aiTeachers.length})</h4>
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    {teachers.aiTeachers.map((t) => renderTeacherCard(t, "ai"))}
+                  </div>
+                </section>
+              )}
+              {teachers.youtubeResults.length > 0 && (
+                <section>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">قنوات يوتيوب ({teachers.youtubeResults.length})</h4>
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    {teachers.youtubeResults.map((t) => renderTeacherCard(t, "youtube"))}
+                  </div>
+                </section>
+              )}
+              {totalCount === 0 && (
+                <AIEmptyState icon={<User className="h-6 w-6" />} title="لا توجد نتائج" description="جرّب كلمات مفتاحية مختلفة أو أزل فلتر المنصة." />
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </AISectionShell>
   );
 }

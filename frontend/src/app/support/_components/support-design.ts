@@ -30,9 +30,9 @@ export const S = {
     viewAll:
         'flex items-center gap-1 text-sm font-bold text-[#0F766E] hover:text-[#115E59] dark:text-orange-500 dark:hover:text-orange-400 whitespace-nowrap shrink-0',
 
-    card: 'bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-[12px]',
-    cardHover: 'hover:border-[#0F766E] dark:hover:border-orange-500 hover:shadow-md',
-    cardPad: 'p-5',
+    card: 'bg-transparent border-0 border-t border-[#E2E8F0] dark:border-slate-800',
+    cardHover: 'hover:bg-black/[0.02] dark:hover:bg-white/[0.03]',
+    cardPad: 'py-6 px-0 sm:px-2',
 
     btnPrimary:
         'px-6 py-3 bg-[#0F766E] hover:bg-[#115E59] text-white font-bold text-sm rounded-[8px] shadow-sm dark:bg-orange-500 dark:hover:bg-orange-600 disabled:opacity-50',
@@ -60,10 +60,10 @@ export const S = {
         'rounded-full border px-4 py-2 text-xs font-bold border-[#E2E8F0] dark:border-slate-700 text-[#64748B] dark:text-slate-400 hover:border-[#0F766E] dark:hover:border-orange-500 bg-white dark:bg-slate-900',
 
     faqItem:
-        'border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] overflow-hidden bg-white dark:bg-slate-800 hover:border-[#0F766E] dark:hover:border-orange-500',
+        'border-0 border-t border-[#E2E8F0] dark:border-slate-700 bg-transparent',
     faqQuestion:
-        'w-full p-4 flex items-start justify-between bg-white dark:bg-slate-800 hover:bg-[#F8FAFC] dark:hover:bg-slate-700 text-right cursor-pointer list-none',
-    faqAnswer: 'px-4 pb-5 text-sm leading-relaxed text-[#64748B] dark:text-slate-400',
+        'w-full py-4 flex items-start justify-between bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.03] text-right cursor-pointer list-none',
+    faqAnswer: 'pb-5 text-sm leading-relaxed text-[#64748B] dark:text-slate-400',
 
     alertError:
         'rounded-[12px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/5 dark:text-red-400',
@@ -72,7 +72,7 @@ export const S = {
     alertWarn:
         'rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-400',
 
-    emptyWrap: 'text-center py-12 bg-white dark:bg-slate-900 rounded-[12px] border border-[#E2E8F0] dark:border-slate-800',
+    emptyWrap: 'text-center py-12 bg-transparent border-0 border-t border-[#E2E8F0] dark:border-slate-800',
     skeleton: 'bg-[#E2E8F0] dark:bg-slate-800 rounded-[12px]',
 
     tag: 'rounded-full border border-[#E2E8F0] dark:border-slate-700 px-3 py-1 text-xs text-[#64748B] dark:text-slate-400',

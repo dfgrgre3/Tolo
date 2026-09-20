@@ -19,8 +19,7 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchResourcesRaw } from "@/features/courses/api/courses-gateway";
 
 export type Resource = {
   id: string;
@@ -66,7 +65,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
         }
       })
       .catch((err) => {
-        console.debug("Failed to fetch resource file size:", err);
+        logger.debug("Failed to fetch resource file size:", err);
       })
       .finally(() => {
         if (active) setLoadingSize(false);
@@ -196,7 +195,7 @@ export default function ResourcesClient({
     queueMicrotask(() => {
       setIsLoading(true);
       setError(null);
-      apiClient.get<unknown>(apiRoutes.resources.list)
+      fetchResourcesRaw()
         .then((data) => {
           // Backend wraps every response as `{ success, data }`
           // (see response.Success in response.go) — never a bare array.

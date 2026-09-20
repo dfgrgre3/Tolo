@@ -22,8 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchForumCategoriesRaw,
+  fetchForumPostsRaw,
+} from "@/features/community/api/community-gateway";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -69,8 +71,8 @@ export default function ForumPage() {
       setLoading(true);
       try {
         const [catData, postData] = await Promise.all([
-          apiClient.get<unknown>(apiRoutes.forum.categories),
-          apiClient.get<unknown>(apiRoutes.forum.posts)
+          fetchForumCategoriesRaw(),
+          fetchForumPostsRaw()
         ]);
         setCategories(Array.isArray(catData) ? catData : []);
         setPosts(Array.isArray(postData) ? postData : []);

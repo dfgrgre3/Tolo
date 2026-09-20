@@ -908,8 +908,24 @@ function CourseVideoPlayerInner({
     lg: "22px",
     xl: "26px"
   };
-  const cueFontSize = subtitleSizeMap[store.subtitleSize || "md"];
-  const cueBgColor = `rgba(0, 0, 0, ${store.subtitleBgOpacity ?? 0.75})`;
+  // Harden the <style> interpolation below: both values round-trip through
+  // localStorage (PLAYER_PREFERENCES_KEY) with no read-time validation, so a
+  // tampered/migrated payload could otherwise inject arbitrary CSS. Unknown
+  // sizes fall back to "md"; opacity is coerced to a finite 0..1 number.
+  const cueFontSize =
+    subtitleSizeMap[
+      (["sm", "md", "lg", "xl"] as const).includes(
+        store.subtitleSize as "sm" | "md" | "lg" | "xl",
+      )
+        ? (store.subtitleSize as "sm" | "md" | "lg" | "xl")
+        : "md"
+    ];
+  const rawOpacity = Number(store.subtitleBgOpacity);
+  const cueBgOpacity =
+    Number.isFinite(rawOpacity)
+      ? Math.min(1, Math.max(0, rawOpacity))
+      : 0.75;
+  const cueBgColor = `rgba(0, 0, 0, ${cueBgOpacity})`;
   const playbackRates = provider === "youtube" && youtubePlaybackRates.length > 0
     ? [...new Set([...youtubePlaybackRates, ...PLAYBACK_RATES])].sort((a, b) => a - b)
     : PLAYBACK_RATES;

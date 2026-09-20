@@ -1,32 +1,68 @@
-"use client";
+﻿"use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   FileText,
   Brain,
   Loader2,
-  CheckCircle,
-  Zap,
+  CheckCircle2,
   AlertCircle,
   Save,
-  X,
   RefreshCw,
   BookOpen,
   Calendar,
   ExternalLink,
+  Eye,
+  EyeOff,
+  Printer,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useExamGenerator } from "../hooks/useExamGenerator";
+import {
+  AISectionShell,
+  AIError,
+  AIResultHeader,
+  AIEmptyState,
+  HistoryBar,
+  FieldLabel,
+  useCopyText,
+  downloadTextFile,
+  loadLocal,
+  saveLocal,
+} from "./ai-shared";
 
 interface ExamGeneratorProps {
   subjects: string[];
   years: number[];
   className?: string;
+}
+
+const HISTORY_KEY = "thanawy:ai:exam-history";
+interface ExamHistoryEntry {
+  subject: string;
+  year: string;
+  lesson: string;
+  count: number;
+  at: string;
+}
+
+function examToText(subject: string, lesson: string, questions: { question: string; correctAnswer: string; explanation: string; options?: string[] }[]): string {
+  // Builds a plain-text export of the generated exam (copy/download/print).
+  const lines = [`امتحان ${subject} — درس: ${lesson}`, `عدد الأسئلة: ${questions.length}`, ""];
+  questions.forEach((q, i) => {
+    lines.push((i + 1) + ") " + q.question);
+    if (q.options) q.options.forEach((o, j) => lines.push("   " + (["أ", "ب", "ج", "د"][j] ?? "-") + ": " + o));
+    lines.push("   الإجابة: " + q.correctAnswer);
+    if (q.explanation) lines.push("   الشرح: " + q.explanation);
+    lines.push("");
+  });
+  return lines.join("\n");
 }
 
 export default function ExamGenerator({ subjects, years, className = "" }: ExamGeneratorProps) {
@@ -54,45 +90,98 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
     resetGenerator,
   } = useExamGenerator({ subjects, years });
 
-  return (
-    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden ${className}`}>
-      <div className="p-8 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-blue-500/30 blur-lg rounded-full" />
-            <div className="relative p-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
-              <FileText className="h-6 w-6 text-blue-400" />
-            </div>
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-white">منشئ الامتحانات الذكي</h2>
-            <p className="text-gray-400 text-sm mt-1">أنشئ امتحانات مخصصة بالذكاء الاصطناعي</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
-          <Zap className="h-3 w-3" />
-          <span>المساعد الذكي الموحد</span>
-        </div>
-      </div>
+  const [history, setHistory] = useState<ExamHistoryEntry[]>([]);
+  const [showAnswers, setShowAnswers] = useState(true);
+  const [practiceMode, setPracticeMode] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [score, setScore] = useState<number | null>(null);
+  const { copied, copy } = useCopyText();
 
-      <div className="p-8">
+  useEffect(() => {
+    setHistory(loadLocal<ExamHistoryEntry[]>(HISTORY_KEY, []));
+  }, []);
+
+  useEffect(() => {
+    if (examData?.questions?.length) {
+      const entry: ExamHistoryEntry = {
+        subject: selectedSubject,
+        year: selectedYear,
+        lesson,
+        count: examData.questions.length,
+        at: new Date().toISOString(),
+      };
+      setHistory((prev) => {
+        if (prev[0]?.lesson === entry.lesson && prev[0]?.subject === entry.subject) return prev;
+        const next = [entry, ...prev].slice(0, 8);
+        saveLocal(HISTORY_KEY, next);
+        return next;
+      });
+      setAnswers({});
+      setScore(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examData]);
+
+  const questions = examData?.questions ?? [];
+  const fullText = questions.length ? examToText(selectedSubject, lesson, questions) : "";
+
+  const gradePractice = () => {
+    let correct = 0;
+    questions.forEach((q, i) => {
+      if ((answers[i] ?? "").trim() === q.correctAnswer.trim()) correct += 1;
+    });
+    setScore(correct);
+  };
+
+  return (
+    <AISectionShell
+      badge="Smart Exam Builder"
+      title="منشئ الامتحانات الذكي"
+      description="أنشئ امتحاناً مخصصاً حسب المادة والدرس ومستوى الصعوبة — مع وضع تدريب تفاعلي وحفظ في اختباراتك."
+      icon={<FileText className="h-6 w-6" />}
+      actions={
+        questions.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setShowAnswers((s) => !s)}>
+              {showAnswers ? <EyeOff className="h-3.5 w-3.5 me-1.5" /> : <Eye className="h-3.5 w-3.5 me-1.5" />}
+              {showAnswers ? "إخفاء الإجابات" : "إظهار الإجابات"}
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => window.print()}>
+              <Printer className="h-3.5 w-3.5 me-1.5" />
+              طباعة
+            </Button>
+          </div>
+        ) : undefined
+      }
+    >
+      <div className={className}>
+        <HistoryBar
+          items={history}
+          onClear={() => {
+            setHistory([]);
+            saveLocal(HISTORY_KEY, []);
+          }}
+          onSelect={(h) => {
+            setSelectedSubject(h.subject);
+            setSelectedYear(h.year);
+            setLesson(h.lesson);
+            setQuestionCount(h.count);
+          }}
+          renderLabel={(h) => `${h.subject} • ${h.lesson.slice(0, 30)}`}
+        />
+
         {!examData ? (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="selectedSubject" className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  المادة <span className="text-red-400">*</span>
-                </Label>
+                <FieldLabel required>المادة</FieldLabel>
                 <div className="relative">
-                  <BookOpen className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+                  <BookOpen className="absolute start-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Select value={selectedSubject} onValueChange={setSelectedSubject} required>
-                    <SelectTrigger
-                      className="ps-10 bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
-                      id="selectedSubject"
-                    >
+                    <SelectTrigger id="selectedSubject" className="h-12 rounded-xl ps-10">
                       <SelectValue placeholder="اختر المادة" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/10 text-white">
+                    <SelectContent>
                       {subjects.map((subject) => (
                         <SelectItem key={subject} value={subject}>
                           {subject}
@@ -104,22 +193,17 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="selectedYear" className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  السنة الدراسية <span className="text-red-400">*</span>
-                </Label>
+                <FieldLabel required>السنة الدراسية</FieldLabel>
                 <div className="relative">
-                  <Calendar className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 z-10" />
+                  <Calendar className="absolute start-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Select value={selectedYear} onValueChange={setSelectedYear} required>
-                    <SelectTrigger
-                      className="ps-10 bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
-                      id="selectedYear"
-                    >
+                    <SelectTrigger id="selectedYear" className="h-12 rounded-xl ps-10">
                       <SelectValue placeholder="اختر السنة الدراسية" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-white/10 text-white">
+                    <SelectContent>
                       {years.map((year) => (
                         <SelectItem key={year} value={String(year)}>
-                          الصف {year}
+                          الصف {year === 1 ? "الأول" : year === 2 ? "الثاني" : "الثالث"} الثانوي
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -128,237 +212,278 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lesson" className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  الدرس <span className="text-red-400">*</span>
-                </Label>
+                <FieldLabel required>الدرس ({lesson.trim().length}/3 أحرف على الأقل)</FieldLabel>
                 <Input
                   id="lesson"
                   type="text"
                   value={lesson}
-                  onChange={(e) => setLesson(e.target.value)}
-                  placeholder="أدخل اسم الدرس"
+                  onChange={(e) => setLesson(e.target.value.slice(0, 200))}
+                  placeholder="مثال: قانون أوم — الدائرة الكهربية"
                   required
                   minLength={3}
                   maxLength={200}
-                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
+                  className="h-12 rounded-xl"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="difficulty" className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  مستوى الصعوبة
-                </Label>
-                <Select value={difficulty} onValueChange={setDifficulty}>
-                  <SelectTrigger
-                    className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
-                    id="difficulty"
-                  >
-                    <SelectValue placeholder="اختر مستوى الصعوبة" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/10 text-white">
-                    <SelectItem value="none">اختر مستوى الصعوبة</SelectItem>
-                    <SelectItem value="سهل">سهل</SelectItem>
-                    <SelectItem value="متوسط">متوسط</SelectItem>
-                    <SelectItem value="صعب">صعب</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="mb-1.5 block text-xs font-bold text-muted-foreground">مستوى الصعوبة</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { v: "سهل", label: "سهل 🟢" },
+                    { v: "متوسط", label: "متوسط 🟡" },
+                    { v: "صعب", label: "صعب 🔴" },
+                  ].map((d) => (
+                    <button
+                      key={d.v}
+                      type="button"
+                      onClick={() => setDifficulty(d.v)}
+                      className={`h-12 rounded-xl border text-sm font-bold transition ${
+                        difficulty === d.v
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="questionCount" className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                  عدد الأسئلة
-                </Label>
-                <Input
-                  id="questionCount"
-                  type="number"
-                  min="1"
-                  max="50"
+              <div className="space-y-2 md:col-span-2">
+                <FieldLabel>عدد الأسئلة: {questionCount}</FieldLabel>
+                <input
+                  type="range"
+                  min={1}
+                  max={50}
                   value={questionCount}
-                  onChange={(e) => setQuestionCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 10)))}
-                  className="bg-white/5 border-white/10 rounded-2xl h-14 text-white focus:ring-blue-500/50"
+                  onChange={(e) => setQuestionCount(Number(e.target.value))}
+                  className="w-full accent-primary"
+                  aria-label="عدد الأسئلة"
                 />
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>1</span>
+                  <span>تدريب سريع: 5–10</span>
+                  <span>شامل: 20+</span>
+                  <span>50</span>
+                </div>
               </div>
             </div>
 
-            {error && (
-              <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-400 flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <AlertDescription>{error}</AlertDescription>
-                  {(error.includes("network") ||
-                    error.includes("timeout") ||
-                    error.includes("انتهت صلاحية") ||
-                    error.includes("استغرق")) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRetryEnqueue}
-                      className="mt-2 border-red-500/30 text-red-400 hover:bg-red-500/20"
-                    >
-                      <RefreshCw className="h-4 w-4 me-2" />
-                      إعادة المحاولة
-                    </Button>
-                  )}
-                </div>
-              </Alert>
-            )}
+            <AIError message={error || null} onRetry={handleRetryEnqueue} />
 
             {isGenerating && (
-              <div className="text-xs text-blue-300/80 text-center" aria-live="polite">
-                جاري إنشاء الامتحان في الخلفية{pollSeconds > 0 ? ` (${pollSeconds} ثانية)` : "..."} — يمكنك متابعة استخدام الموقع.
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm font-bold text-primary" aria-live="polite">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                جاري إنشاء الامتحان في الخلفية{pollSeconds > 0 ? ` (${pollSeconds} ث)` : "..."} — يمكنك متابعة التصفح.
               </div>
             )}
 
-            <Button
-              type="submit"
-              disabled={isGenerating}
-              className="w-full md:w-auto px-12 h-14 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-5 w-5 me-3 animate-spin" />
-                  جاري إنشاء الامتحان...
-                </>
-              ) : (
-                <>
-                  <Brain className="h-5 w-5 me-3" />
-                  إنشاء الامتحان
-                </>
-              )}
-            </Button>
-          </form>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 text-emerald-400">
-              <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <span className="font-bold text-lg">تم إنشاء الامتحان بنجاح!</span>
-            </div>
-
-            <div className="border border-white/10 rounded-2xl p-6 bg-white/5">
-              <h3 className="font-bold text-white mb-4">الأسئلة ({examData.questions?.length || 0})</h3>
-              <div className="space-y-4 max-h-96 overflow-y-auto pe-2">
-                {examData.questions?.map((question, index) => (
-                  <div key={index} className="border border-white/10 rounded-xl p-5 bg-black/20">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-white mb-3">{question.question}</p>
-
-                        {question.type === "multiple_choice" && question.options && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            {question.options.map((option, i) => (
-                              <div
-                                key={i}
-                                className={`p-3 rounded-xl border transition-all ${
-                                  option === question.correctAnswer
-                                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                                    : "border-white/10 bg-white/5 text-gray-300"
-                                }`}
-                              >
-                                {option}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {question.type === "true_false" && (
-                          <div className="flex gap-3 mb-4">
-                            <div
-                              className={`p-3 rounded-xl border flex-1 text-center ${
-                                question.correctAnswer === "صح"
-                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                                  : "border-white/10 bg-white/5 text-gray-300"
-                              }`}
-                            >
-                              صح
-                            </div>
-                            <div
-                              className={`p-3 rounded-xl border flex-1 text-center ${
-                                question.correctAnswer === "خطأ"
-                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                                  : "border-white/10 bg-white/5 text-gray-300"
-                              }`}
-                            >
-                              خطأ
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">
-                          <p className="text-sm font-bold text-blue-400 mb-2">الإجابة الصحيحة:</p>
-                          <p className="text-blue-300">{question.correctAnswer}</p>
-                          {question.explanation && (
-                            <>
-                              <p className="text-sm font-bold text-blue-400 mt-3 mb-2">الشرح:</p>
-                              <p className="text-blue-300">{question.explanation}</p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {saveSuccess && (
-              <Alert className="bg-emerald-500/10 border-emerald-500/30 text-emerald-400 flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                <div className="flex-1">
-                  <AlertDescription>تم حفظ الامتحان في قائمة اختباراتك.</AlertDescription>
-                </div>
-                <a
-                  href="/exams?mine=1"
-                  className="flex items-center gap-1.5 text-xs font-black text-emerald-400 hover:text-emerald-300 whitespace-nowrap"
-                >
-                  عرض امتحاناتي
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </Alert>
-            )}
-
-            {saveError && (
-              <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-400 flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                <AlertDescription>{saveError}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex gap-3">
-              <Button
-                onClick={resetGenerator}
-                variant="outline"
-                className="flex-1 h-14 rounded-2xl border-white/10 text-gray-400 hover:bg-white/10"
-                disabled={isSaving}
-              >
-                <X className="h-4 w-4 me-2" />
-                إنشاء امتحان جديد
-              </Button>
-              <Button
-                onClick={handleSaveExam}
-                className="flex-1 h-14 bg-primary hover:bg-primary/90 text-black font-black rounded-2xl shadow-xl shadow-primary/20"
-                disabled={isSaving || !examData?.questions || examData.questions.length === 0}
-              >
-                {isSaving ? (
+            <div className="flex flex-wrap gap-3">
+              <Button type="submit" disabled={isGenerating} className="h-12 rounded-xl px-10 font-bold">
+                {isGenerating ? (
                   <>
-                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                    جاري الحفظ...
+                    <Loader2 className="h-5 w-5 me-2 animate-spin" />
+                    جاري إنشاء الامتحان...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 me-2" />
-                    حفظ الامتحان
+                    <Brain className="h-5 w-5 me-2" />
+                    إنشاء الامتحان
                   </>
                 )}
               </Button>
+              {isGenerating && (
+                <Button type="button" variant="outline" className="h-12 rounded-xl" onClick={() => resetGenerator()}>
+                  إلغاء
+                </Button>
+              )}
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
+                تم إنشاء الامتحان بنجاح ({questions.length} سؤال)
+              </div>
+              <div className="ms-auto flex flex-wrap gap-2">
+                <Badge variant="secondary" className="rounded-full">{selectedSubject}</Badge>
+                <Badge variant="secondary" className="rounded-full">{lesson.slice(0, 40)}</Badge>
+                {difficulty !== "none" && <Badge className="rounded-full bg-primary/10 text-primary">{difficulty}</Badge>}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-muted/40 p-3">
+              <span className="px-2 text-xs font-bold text-muted-foreground">وضع العرض:</span>
+              <button
+                onClick={() => setPracticeMode(false)}
+                className={`rounded-xl px-4 py-2 text-xs font-bold transition ${!practiceMode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                مراجعة + إجابات
+              </button>
+              <button
+                onClick={() => setPracticeMode(true)}
+                className={`rounded-xl px-4 py-2 text-xs font-bold transition ${practiceMode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                تدريب تفاعلي (اختبر نفسك)
+              </button>
+            </div>
+
+            <AIResultHeader
+              title={practiceMode ? "اختبر نفسك ثم اعرض النتيجة" : "الأسئلة"}
+              copied={copied}
+              onCopy={() => copy(fullText)}
+              onDownload={() => downloadTextFile(`exam-${lesson.slice(0, 20) || "exam"}.txt`, fullText)}
+              onReset={resetGenerator}
+            />
+
+            <div className="max-h-[480px] space-y-4 overflow-y-auto pe-1">
+              {questions.map((question, index) => (
+                <Card key={index} className="rounded-2xl border-border p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-black text-primary ring-1 ring-primary/20">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold leading-relaxed text-foreground">{question.question}</p>
+
+                      {practiceMode && (question.type === "multiple_choice" || question.type === "true_false") ? (
+                        <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                          {(question.type === "multiple_choice" ? question.options ?? [] : ["صح", "خطأ"]).map((opt) => {
+                            const selected = answers[index] === opt;
+                            const revealed = score !== null;
+                            const isCorrect = opt === question.correctAnswer;
+                            return (
+                              <button
+                                key={opt}
+                                disabled={revealed}
+                                onClick={() => setAnswers((a) => ({ ...a, [index]: opt }))}
+                                className={`rounded-xl border p-3 text-start text-sm transition ${
+                                  revealed && isCorrect
+                                    ? "border-emerald-500/50 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                                    : revealed && selected
+                                      ? "border-destructive/50 bg-destructive/10 text-destructive"
+                                      : selected
+                                        ? "border-primary bg-primary/10 font-bold text-primary"
+                                        : "border-border bg-muted/40 hover:border-primary/40"
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <>
+                          {question.type === "multiple_choice" && question.options && (
+                            <div className="mb-3 mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                              {question.options.map((option, i) => (
+                                <div
+                                  key={i}
+                                  className={`rounded-xl border p-3 text-sm transition ${
+                                    showAnswers && option === question.correctAnswer
+                                      ? "border-emerald-500/50 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                                      : "border-border bg-muted/40 text-foreground"
+                                  }`}
+                                >
+                                  {option}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {question.type === "true_false" && showAnswers && (
+                            <div className="mb-3 mt-3 flex gap-2">
+                              {["صح", "خطأ"].map((v) => (
+                                <div
+                                  key={v}
+                                  className={`flex-1 rounded-xl border p-3 text-center text-sm ${
+                                    v === question.correctAnswer
+                                      ? "border-emerald-500/50 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400"
+                                      : "border-border bg-muted/40"
+                                  }`}
+                                >
+                                  {v}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {showAnswers && (
+                            <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                              <p className="text-sm font-bold text-primary">الإجابة: {question.correctAnswer}</p>
+                              {question.explanation && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{question.explanation}</p>}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {practiceMode && (
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-muted/40 p-4">
+                <Button onClick={gradePractice} className="h-11 rounded-xl px-8 font-bold">
+                  احسب نتيجتي ({Object.keys(answers).length}/{questions.length})
+                </Button>
+                {score !== null && (
+                  <div className="text-sm font-black">
+                    نتيجتك: {score}/{questions.length} — {Math.round((score / Math.max(1, questions.length)) * 100)}%
+                    {score === questions.length ? " 🎉 ممتاز!" : score >= questions.length / 2 ? " 💪 جيد، راجع الأخطاء" : " 📚 تحتاج مراجعة الدرس"}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {saveSuccess ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
+                تم حفظ الامتحان في قائمة اختباراتك.
+                <a href="/exams?mine=1" className="ms-auto flex items-center gap-1 underline underline-offset-4">
+                  عرض امتحاناتي <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            ) : (
+              saveError && (
+                <div className="flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  <AlertCircle className="h-5 w-5 shrink-0" /> {saveError}
+                </div>
+              )
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button onClick={resetGenerator} variant="outline" className="h-12 flex-1 rounded-2xl" disabled={isSaving}>
+                <RefreshCw className="h-4 w-4 me-2" />
+                إنشاء امتحان جديد
+              </Button>
+              {!saveSuccess && (
+                <Button onClick={handleSaveExam} className="h-12 flex-1 rounded-2xl font-black" disabled={isSaving || questions.length === 0}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 me-2 animate-spin" /> جاري الحفظ...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 me-2" /> حفظ الامتحان
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         )}
+
+        {!examData && history.length === 0 && !isGenerating && (
+          <div className="mt-6">
+            <AIEmptyState
+              icon={<FileText className="h-6 w-6" />}
+              title="لم تنشئ أي امتحان بعد"
+              description="اختر المادة والدرس وعدد الأسئلة، وسنولّد لك امتحاناً كاملاً بالإجابات والشرح — مع إمكانية التدرب عليه تفاعلياً."
+            />
+          </div>
+        )}
       </div>
-    </div>
+    </AISectionShell>
   );
 }

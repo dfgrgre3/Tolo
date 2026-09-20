@@ -1,8 +1,12 @@
 'use client';
 
 import { PageContainer } from "@/components/ui/page-container";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchAnalyticsPerformanceRaw,
+  fetchAnalyticsPredictionsRaw,
+  fetchAnalyticsWeeklyRaw,
+  fetchProgressSummaryRaw,
+} from "@/features/gamification/api/gamification-gateway";
 import { Button } from "@/components/ui/button";
 import { BarChart3, RefreshCw, Download } from "lucide-react";
 import { logger } from "@/lib/logger";
@@ -43,9 +47,9 @@ export default function AnalyticsPage() {
   }, []);
 
   const loadAnalyticsData = useCallback(async () => {
-    const fetchJson = async <T,>(url: string, name: string): Promise<T | null> => {
+    const fetchJson = async <T,>(loader: () => Promise<T>, name: string): Promise<T | null> => {
       try {
-        return await apiClient.get<T>(url);
+        return await loader();
       } catch (e) {
         logger.error(`Error fetching ${name} data:`, e);
         return null;
@@ -55,14 +59,14 @@ export default function AnalyticsPage() {
     // Session-scoped: the backend resolves the user from the JWT, so no
     // ?userId= is appended (IDOR/BOLA hardening).
     const [summary, weekly, predictionsResp, performance] = await Promise.all([
-      fetchJson<SummaryData>(apiRoutes.progress.summary, "summary"),
-      fetchJson<WeeklyData>(apiRoutes.analytics.weekly, "weekly"),
-      fetchJson<{ success: boolean; predictions: PredictionsData[] }>(
-        apiRoutes.analytics.predictions,
+      fetchJson(() => fetchProgressSummaryRaw<SummaryData>(), "summary"),
+      fetchJson(() => fetchAnalyticsWeeklyRaw<WeeklyData>(), "weekly"),
+      fetchJson(
+        () => fetchAnalyticsPredictionsRaw<{ success: boolean; predictions: PredictionsData[] }>(),
         "predictions"
       ),
-      fetchJson<Record<string, unknown>>(
-        `${apiRoutes.analytics.performance}?hours=168`,
+      fetchJson(
+        () => fetchAnalyticsPerformanceRaw<Record<string, unknown>>("?hours=168"),
         "performance"
       ),
     ]);

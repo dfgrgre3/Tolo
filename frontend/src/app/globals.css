@@ -43,6 +43,31 @@ html body[data-scroll-locked] {
   transform: none !important;
 }
 
+/* Homepage (guest + dashboard) is static by design: no animations,
+   no transitions. Loading skeletons (animate-pulse) and spinners
+   (animate-spin) are exempt so progress feedback keeps working. */
+.motion-off,
+.motion-off *,
+.motion-off *::before,
+.motion-off *::after {
+  animation: none !important;
+  transition: none !important;
+}
+.motion-off .animate-pulse {
+  animation: var(--animate-pulse) !important;
+}
+.motion-off .animate-spin {
+  animation: var(--animate-spin) !important;
+}
+.motion-off a:hover,
+.motion-off button:hover,
+.motion-off [role="button"]:hover {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+
 @layer base {
   :root {
     /* Tolo Logo Brand Identity — Navy Blue + Orange */

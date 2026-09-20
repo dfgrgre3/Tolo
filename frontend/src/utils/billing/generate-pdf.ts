@@ -1,10 +1,11 @@
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
-// استيراد مباشر بدل التحميل الكسول: الـ chunks الكسولة لحزم خارج جذر
-// Turbopack تتعطل في بيئة التطوير (module factory is not available).
-// التكلفة محصورة في صفحات الفواتير فقط (code-split حسب المسار).
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
+// NOTE (B-08): jspdf + html2canvas (~400kB) MUST stay out of the static graph —
+// they load lazily inside generateInvoicePDF on the first download click, the
+// same dynamic-import pattern ProductivityReport already uses successfully.
+// Do NOT add a static import here: subscription/page.tsx (906 lines, high
+// traffic) would force every visitor to download the PDF stack just to view
+// plans.
 
 export const generateInvoicePDF = async (elementId: string, filename: string) => {
   const element = document.getElementById(elementId);
@@ -25,6 +26,13 @@ export const generateInvoicePDF = async (elementId: string, filename: string) =>
 
   const toastId = toast.loading("جاري تجهيز الفاتورة PDF...");
   try {
+    // Lazy-load the PDF stack on demand: keeps it out of the subscription
+    // pages' initial bundle. Loaded once, then cached by the module loader
+    // for subsequent downloads in the same session.
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import(/* webpackChunkName: "invoice-pdf-canvas" */ "html2canvas"),
+      import(/* webpackChunkName: "invoice-pdf-doc" */ "jspdf"),
+    ]);
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,

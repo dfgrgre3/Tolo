@@ -52,11 +52,17 @@ export function reconcileCourseProgress(
   if (progress.lessonId) {
     queryClient.setQueryData(
       courseProgressKeys.lessonProgress(progress.lessonId),
-      (prev: any) => ({
-        ...prev,
-        progress: progress.lessonProgress ?? prev?.progress ?? (progress.isCompleted ? 100 : 0),
-        completed: progress.isCompleted ?? prev?.completed ?? false,
-      })
+      (prev: unknown) => {
+        const base =
+          typeof prev === "object" && prev !== null
+            ? (prev as { progress?: number; completed?: boolean })
+            : {};
+        return {
+          ...base,
+          progress: progress.lessonProgress ?? base.progress ?? (progress.isCompleted ? 100 : 0),
+          completed: progress.isCompleted ?? base.completed ?? false,
+        };
+      }
     );
   }
 
@@ -64,16 +70,20 @@ export function reconcileCourseProgress(
   if (typeof progress.courseProgress === "number" || progress.isCourseComplete !== undefined) {
     queryClient.setQueriesData(
       { queryKey: courseProgressKeys.detail(courseId) },
-      (oldCourse: any) => {
-        if (!oldCourse) return oldCourse;
+      (oldCourse: unknown) => {
+        if (typeof oldCourse !== "object" || oldCourse === null) return oldCourse;
+        const base = oldCourse as {
+          progress?: unknown;
+          completion?: { progress?: unknown; isComplete?: unknown; certificateEligible?: unknown } | null;
+        };
         return {
-          ...oldCourse,
-          progress: progress.courseProgress ?? oldCourse.progress,
+          ...base,
+          progress: progress.courseProgress ?? base.progress,
           completion: {
-            ...oldCourse.completion,
-            progress: progress.courseProgress ?? oldCourse.completion?.progress,
-            isComplete: progress.isCourseComplete ?? oldCourse.completion?.isComplete,
-            certificateEligible: progress.certificateEligible ?? oldCourse.completion?.certificateEligible,
+            ...base.completion,
+            progress: progress.courseProgress ?? base.completion?.progress,
+            isComplete: progress.isCourseComplete ?? base.completion?.isComplete,
+            certificateEligible: progress.certificateEligible ?? base.completion?.certificateEligible,
           },
         };
       }
@@ -82,15 +92,18 @@ export function reconcileCourseProgress(
     // Also update any active learning-hub query cache
     queryClient.setQueriesData(
       { queryKey: courseProgressKeys.learningHub(courseId) },
-      (oldHub: any) => {
-        if (!oldHub) return oldHub;
+      (oldHub: unknown) => {
+        if (typeof oldHub !== "object" || oldHub === null) return oldHub;
+        const base = oldHub as {
+          completion?: { progress?: unknown; isComplete?: unknown; certificateEligible?: unknown } | null;
+        };
         return {
-          ...oldHub,
+          ...base,
           completion: {
-            ...oldHub.completion,
-            progress: progress.courseProgress ?? oldHub.completion?.progress,
-            isComplete: progress.isCourseComplete ?? oldHub.completion?.isComplete,
-            certificateEligible: progress.certificateEligible ?? oldHub.completion?.certificateEligible,
+            ...base.completion,
+            progress: progress.courseProgress ?? base.completion?.progress,
+            isComplete: progress.isCourseComplete ?? base.completion?.isComplete,
+            certificateEligible: progress.certificateEligible ?? base.completion?.certificateEligible,
           },
         };
       }

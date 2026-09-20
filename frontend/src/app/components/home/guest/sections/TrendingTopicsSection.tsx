@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { TrendingUp, ChevronLeft, Flame } from 'lucide-react';
+import { ChevronLeft, Flame } from 'lucide-react';
 import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION, RAIL } from '../design-system';
 
 interface TrendingTopic {
@@ -154,7 +154,7 @@ export function TrendingTopicsSection() {
             </p>
           </div>
           <Link
-            href="/trending"
+            href="/blog"
             className={SECTION_HEADER.viewAllButton}
           >
             عرض الكل <ChevronLeft className="h-4 w-4" />
@@ -166,19 +166,6 @@ export function TrendingTopicsSection() {
           {TRENDING_TOPICS.map((topic) => (
             <TrendingTopicCard key={topic.id} topic={topic} />
           ))}
-        </div>
-
-        {/* Info Bar */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 rounded-[12px]">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-900 dark:text-blue-200">
-              <p className="font-bold mb-1">💡 المواضيع الشائعة تتغير بناءً على طلب السوق</p>
-              <p className="text-xs opacity-90">
-                اختر من المواضيع الشائعة لتبقى على اطلاع بأحدث الاتجاهات التقنية والمهارات المطلوبة
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export const ACCESS_TOKEN_COOKIE = 'access_token';
 export const REFRESH_TOKEN_COOKIE = 'refresh_token';
@@ -50,7 +51,7 @@ function parseTrustedProxyCount(raw: string | undefined): number {
 
   const parsed = Number(raw);
   if (!Number.isInteger(parsed) || parsed < 0) {
-    console.error(
+    logger.error(
       `[auth-policy] TRUSTED_PROXY_COUNT="${raw}" is not a valid non-negative integer. ` +
       'Falling back to 0 (trust no proxy hop) — IP-based security features will fail ' +
       'closed instead of trusting a spoofable header. Fix TRUSTED_PROXY_COUNT in your environment.'
@@ -122,7 +123,7 @@ export function validateTrustedProxyCount(): boolean {
     process.env.TRUSTED_PROXY_COUNT === undefined &&
     process.env.VERCEL !== '1'
   ) {
-    console.error(
+    logger.error(
       '[auth-policy] TRUSTED_PROXY_COUNT is NOT SET in production and this is not Vercel. ' +
       'resolveTrustedClientIp() will return \'\' for every request, so IP-based rate limiting, ' +
       'audit logging, and abuse protection are DISABLED. ' +
@@ -137,7 +138,7 @@ export function validateTrustedProxyCount(): boolean {
     !process.env.TRUSTED_PROXY_COUNT &&
     process.env.VERCEL !== '1'
   ) {
-    console.warn(
+    logger.warn(
       '[auth-policy] TRUSTED_PROXY_COUNT not set in production. ' +
       'If using a CDN or reverse proxy, this will cause IP-based security ' +
       'features (rate limiting, audit logging, abuse protection) to fail. ' +

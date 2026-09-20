@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Review, ReviewStats } from "./types";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  createCourseReviewRaw,
+  deleteReviewCommentRaw,
+  fetchCourseReviewsRaw,
+  postReviewCommentRaw,
+} from "@/features/courses/api/courses-gateway";
 import { useAuth } from "@/hooks/use-auth";
 
 export function ReviewsTab({
@@ -43,7 +47,7 @@ export function ReviewsTab({
       setReviewsLoading(true);
       setReviewsError(null);
       try {
-        const reviewData = await apiClient.get<Review[]>(apiRoutes.courses.reviews(courseId));
+        const reviewData = await fetchCourseReviewsRaw<Review[]>(courseId);
         setReviews(reviewData);
         setReviewStats(null);
       } catch (error) {
@@ -61,7 +65,7 @@ export function ReviewsTab({
     }
     setSubmittingReview(true);
     try {
-      const data = await apiClient.postJson<{ xpAwarded?: number }>(apiRoutes.courses.createReview(courseId), {
+      const data = await createCourseReviewRaw<{ xpAwarded?: number }>(courseId, {
         rating: userRating,
         comment: userComment || undefined
       });
@@ -69,7 +73,7 @@ export function ReviewsTab({
       setUserRating(0);
       setUserComment("");
       // Refresh reviews
-      const refreshData = await apiClient.get<{ reviews?: Review[]; stats?: ReviewStats }>(apiRoutes.courses.reviews(courseId));
+      const refreshData = await fetchCourseReviewsRaw<{ reviews?: Review[]; stats?: ReviewStats }>(courseId);
       setReviews(refreshData.reviews || []);
       setReviewStats(refreshData.stats || null);
     } catch {
@@ -88,11 +92,11 @@ export function ReviewsTab({
 
     setSubmittingReplies(prev => ({ ...prev, [reviewId]: true }));
     try {
-      await apiClient.postJson(apiRoutes.courses.reviewComments(reviewId), { comment });
+      await postReviewCommentRaw(reviewId, comment);
       toast.success("تم إرسال ردك");
       setReplyInputs(prev => ({ ...prev, [reviewId]: "" }));
       // Refresh reviews
-      const refreshData = await apiClient.get<{ reviews?: Review[] }>(apiRoutes.courses.reviews(courseId));
+      const refreshData = await fetchCourseReviewsRaw<{ reviews?: Review[] }>(courseId);
       setReviews(refreshData.reviews || []);
     } catch {
       toast.error("حدث خطأ أثناء إرسال الرد");
@@ -103,10 +107,10 @@ export function ReviewsTab({
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      await apiClient.delete(apiRoutes.courses.reviewComment(commentId));
+      await deleteReviewCommentRaw(commentId);
       toast.success("تم حذف الرد");
       // Refresh reviews
-      const refreshData = await apiClient.get<{ reviews?: Review[] }>(apiRoutes.courses.reviews(courseId));
+      const refreshData = await fetchCourseReviewsRaw<{ reviews?: Review[] }>(courseId);
       setReviews(refreshData.reviews || []);
     } catch {
       toast.error("حدث خطأ أثناء حذف الرد");

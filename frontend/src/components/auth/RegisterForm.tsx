@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UserPlus } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { registerUserRaw } from "@/features/auth/api";
 import RegisterFormFields, { RegisterFormValues } from "./RegisterFormFields";
 import { getPasswordPolicyError } from "@/lib/auth/password-policy";
+import { normalizePhoneToE164 } from "@/lib/phone";
 
 function toErrorMessage(err: unknown, fallback: string): string {
   return err instanceof ApiError || err instanceof Error ? err.message : fallback;
@@ -79,19 +80,31 @@ export default function RegisterForm() {
       return;
     }
 
+    // Backend requires E.164 (e.g. +201012345678) while users type local
+    // numbers (01xxxxxxxxx) — normalize here so registration never fails
+    // on format, and show a clear message for truly invalid input.
+    const normalizedPhone = normalizePhoneToE164(phone);
+    if (!normalizedPhone) {
+      setError("رقم الهاتف غير صالح — أدخل رقمًا مصريًا مثل 01xxxxxxxxx أو بالصيغة الدولية +201xxxxxxxxx");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // apiClient routes /api/auth/register → Next.js proxy → Go backend.
-      // It also attaches CSRF + idempotency headers and unwraps the envelope.
-      await apiClient.post(apiRoutes.auth.register, {
+      // Routes /api/auth/register → Next.js proxy → Go backend.
+      // CSRF + idempotency headers and envelope unwrapping live in transport.
+      const normalizedEmail = email.trim().toLowerCase();
+      await registerUserRaw({
         firstName,
         lastName,
-        email,
+        // Same normalization as login: email is case-insensitive, so a
+        // differently-cased login attempt must still match this account.
+        email: normalizedEmail,
         password,
         username,
-        phone,
+        phone: normalizedPhone,
         // Public registration can only create the least-privileged account.
         // Parent/teacher onboarding must be approved separately by the backend.
         role: "STUDENT",
@@ -105,6 +118,13 @@ export default function RegisterForm() {
         },
       });
 
+      // Remember which email still needs verification so the verify-email
+      // page can resend the OTP without requiring a session first.
+      try {
+        window.localStorage.setItem("thanawy:pending-verification-email", normalizedEmail);
+      } catch {
+        // Convenience only — never fail registration over it.
+      }
       router.push("/login?registered=true");
     } catch (err: unknown) {
       setError(toErrorMessage(err, "حدث خطأ غير متوقع أثناء إنشاء الحساب"));

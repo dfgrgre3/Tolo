@@ -126,7 +126,7 @@ export default function PathwaysPage() {
           ].map((stat, i) => (
             <div
               key={i}
-              className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 text-center"
+              className="py-6 border-t border-border text-center"
             >
               <div className="flex justify-center mb-3">{stat.icon}</div>
               <p className="text-3xl font-black">{stat.value}</p>
@@ -141,7 +141,7 @@ export default function PathwaysPage() {
             <Link
               key={path.id}
               href={`/courses?subject=${path.id}`}
-              className="group relative overflow-hidden rounded-3xl border border-border bg-card/40 p-8 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10 block"
+              className="group relative block py-8 border-t border-border"
             >
               {/* Icon */}
               <div className={`inline-flex p-4 rounded-2xl border ${path.bg} ${path.color} mb-6 group-hover:scale-110 transition-transform duration-300`}>
@@ -185,7 +185,7 @@ export default function PathwaysPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-20 text-center relative overflow-hidden rounded-3xl border border-border bg-card/40 p-16">
+        <div className="mt-20 py-16 border-t border-border text-center relative">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
           <div className="relative z-10 space-y-6">
             <Map className="w-12 h-12 text-primary mx-auto" />

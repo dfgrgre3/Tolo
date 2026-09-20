@@ -7,8 +7,10 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  createForumPostRaw,
+  fetchForumCategoriesRaw,
+} from "@/features/community/api/community-gateway";
 
 type ForumCategory = {
   id: string;
@@ -32,10 +34,11 @@ export default function NewPostPage() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await apiClient.get<ForumCategory[]>(apiRoutes.forum.categories);
-      setCategories(Array.isArray(data) ? data : []);
-      if (Array.isArray(data) && data.length > 0 && data[0]) {
-        setCategoryId(data[0].id);
+      const data = await fetchForumCategoriesRaw();
+      const list = Array.isArray(data) ? (data as ForumCategory[]) : [];
+      setCategories(list);
+      if (list.length > 0 && list[0]) {
+        setCategoryId(list[0].id);
       }
     };
 
@@ -48,7 +51,7 @@ export default function NewPostPage() {
 
     setIsSubmitting(true);
     try {
-      const newPost = await apiClient.postJson<{ id: string }>(apiRoutes.forum.createPost, {
+      const newPost = await createForumPostRaw({
         userId,
         title,
         content,

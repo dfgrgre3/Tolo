@@ -14,25 +14,28 @@ export const DASH_CONTAINER = {
   /** The only page-level width wrapper. Sections must not add their own. */
   page: "w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6",
   /** Vertical rhythm between top-level blocks. */
-  stack: "space-y-4 sm:space-y-5",
+  stack: "space-y-6 sm:space-y-8",
 } as const;
 
 // ============================================================================
-// SECTION WRAPPER — a section is a flat bordered white panel
+// SECTION WRAPPER — an open section directly on the page background.
+// No outer card: no border, no rounded corners, no shadow, no card background.
+// Only vertical rhythm so sections stay connected and breathe.
 // ============================================================================
 export const DASH_SECTION = {
   /**
-   * Bordered panel that every dashboard section renders as.
-   * content-visibility lets the browser skip layout/paint for panels scrolled
-   * out of view — the long homepage stays cheap to render end to end.
+   * Open section wrapper that every dashboard section renders as.
+   * Transparent — the section sits directly on the page background.
+   * Keeps vertical padding so content never looks crowded or glued,
+   * plus content-visibility so the long homepage stays cheap to render.
    */
   panel:
-    "bg-card border border-border rounded-xl p-4 sm:p-5 [content-visibility:auto] [contain-intrinsic-size:auto_360px]",
-  /** Panel variant for rails: keeps horizontal padding usable for overflow. */
+    "bg-transparent py-5 sm:py-6 [content-visibility:auto] [contain-intrinsic-size:auto_360px]",
+  /** Open variant for rails: same as panel, no card, no clipping of inner shadows. */
   panelRail:
-    "bg-card border border-border rounded-xl p-4 sm:p-5 overflow-hidden [content-visibility:auto] [contain-intrinsic-size:auto_360px]",
+    "bg-transparent py-5 sm:py-6 [content-visibility:auto] [contain-intrinsic-size:auto_360px]",
   /** Kept for sections that only need the vertical rhythm. */
-  padding: "py-4",
+  padding: "py-5",
 } as const;
 
 // ============================================================================
@@ -49,7 +52,7 @@ export const DASH_SECTION_HEADER = {
   /** Optional small icon rendered inline before the title text. */
   icon: "h-4 w-4 text-primary-strong shrink-0",
   viewAllButton:
-    "inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-primary-strong hover:bg-primary/10 px-2.5 py-1.5 rounded-md transition-colors whitespace-nowrap shrink-0",
+    "inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-primary-strong hover:bg-primary/10 px-2.5 py-1.5 rounded-md whitespace-nowrap shrink-0",
 } as const;
 
 // ============================================================================
@@ -57,7 +60,7 @@ export const DASH_SECTION_HEADER = {
 // ============================================================================
 export const DASH_RAIL = {
   container:
-    "flex overflow-x-auto snap-x snap-mandatory gap-3 pb-1 -mx-4 px-4 sm:-mx-5 sm:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+    "flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
   item: "snap-start shrink-0",
 } as const;
 
@@ -75,7 +78,7 @@ export const DASH_GRID = {
 // CARDS
 // ============================================================================
 export const DASH_CARD = {
-  base: "bg-card border border-border rounded-xl transition-colors duration-150 hover:border-primary",
+  base: "bg-card border border-border rounded-xl hover:border-primary",
   /** Nested card sitting inside a section panel — muted so it separates. */
   inner: "bg-muted/40 border border-border rounded-lg",
   /** Compact metric tile. */
@@ -100,16 +103,16 @@ export const DASH_BADGE = {
 // ============================================================================
 export const DASH_BUTTON = {
   primary:
-    "inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-bold px-4 py-2 hover:opacity-90 transition-opacity",
+    "inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground text-sm font-bold px-4 py-2 hover:opacity-90",
   outline:
-    "inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-card text-foreground text-sm font-bold px-4 py-2 hover:border-primary transition-colors",
+    "inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-card text-foreground text-sm font-bold px-4 py-2 hover:border-primary",
   /** Circular icon-only control (refresh, etc.). */
-  icon: "inline-flex items-center justify-center h-8 w-8 rounded-md border border-border text-muted-foreground hover:text-primary-strong hover:border-primary transition-colors disabled:opacity-50",
+  icon: "inline-flex items-center justify-center h-8 w-8 rounded-md border border-border text-muted-foreground hover:text-primary-strong hover:border-primary disabled:opacity-50",
 } as const;
 
 export const DASH_TABS = {
   list: "inline-flex items-center gap-1 bg-muted border border-border p-1 rounded-full w-fit",
-  tab: "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors whitespace-nowrap",
+  tab: "px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap",
   tabActive: "bg-card text-primary-strong shadow-sm",
   tabIdle: "text-muted-foreground hover:text-foreground",
 } as const;
@@ -119,7 +122,7 @@ export const DASH_TABS = {
 // ============================================================================
 export const DASH_PROGRESS = {
   track: "relative h-2 w-full overflow-hidden rounded-full bg-muted",
-  bar: "h-full rounded-full bg-primary transition-all duration-300",
+  bar: "h-full rounded-full bg-primary",
 } as const;
 
 // ============================================================================

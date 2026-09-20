@@ -6,6 +6,7 @@ import { forwardSetCookies } from '@/lib/security/cookie-attrs';
 import { decodeStorageSegments, isPublicStorageBucket, FORWARDED_COOKIE_NAMES } from '@/lib/security/policy/storage-policy';
 import { getUpstreamAuthorization, resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
 import { isSameOriginRequest } from '@/lib/security/origin-check';
+import { logger } from '@/lib/logging/unified-logger';
 
 // =============================================================================
 // Configuration
@@ -34,18 +35,81 @@ export const maxDuration = 60;
 
 const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-// Hard timeout for requests before failing fast to avoid blocking serverless threads.
-// Set to 25s so it remains below the client-side API_TIMEOUT (30s) and allows
-// proper error propagation back to the browser. The previous 12s value was too
-// aggressive for cold-start routes where the Go backend needed 15-20s to warm
-// up its DB pool on the very first request after a serverless cold start.
+// Hard timeout defaults: fail fast to avoid blocking serverless threads.
+// The default 25s stays below the client-side API_TIMEOUT (30s) so errors
+// propagate cleanly to the browser. Known-slow endpoints (first-request
+// catalog/analytics compilation, backend pool warm-up, exports) get a
+// longer 45s budget — still inside the 60s maxDuration above.
 const FETCH_TIMEOUT_MS = 25_000;
+const FETCH_TIMEOUT_LONG_MS = 45_000;
+
+// Prefixes (without the leading /api/) that legitimately need the long
+// budget. Keep this list short and evidence-backed: every entry here holds
+// a serverless thread ~2x longer, so add only measured-slow routes.
+const LONG_TIMEOUT_PREFIXES = [
+  'analytics/',
+  'reports/',
+  'billing/export',
+  'admin/export',
+] as const;
+
+function timeoutForPath(path: string): number {
+  const normalized = path.replace(/^\/+/, '');
+  if (
+    LONG_TIMEOUT_PREFIXES.some(
+      (prefix) => normalized === prefix.replace(/\/$/, '') || normalized.startsWith(prefix),
+    )
+  ) {
+    return FETCH_TIMEOUT_LONG_MS;
+  }
+  return FETCH_TIMEOUT_MS;
+}
 
 // Maximum allowed request body size forwarded through the proxy.
 // Requests advertising a larger Content-Length are rejected immediately (413)
 // before any upstream connection is made, preventing memory exhaustion and
 // keeping serverless billing low.
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Raised inside the request-body stream when more than MAX_BODY_BYTES flow
+ * through it. Distinguishes "client sent too much" from genuine upstream
+ * network failures so the catch block can answer 413 instead of 502.
+ */
+class BodyTooLargeError extends Error {
+  constructor(maxBytes: number) {
+    super(`Request body exceeds ${maxBytes} bytes`);
+    this.name = 'BodyTooLargeError';
+  }
+}
+
+/**
+ * Wraps an incoming request body so the size cap is enforced on ACTUAL
+ * bytes, not on the Content-Length header. Headers lie (or are absent with
+ * chunked encoding); the stream does not. Excess bytes error the stream,
+ * which tears down both the client upload and the upstream connection —
+ * the proxy never buffers the body, so memory stays flat.
+ */
+function limitRequestBodySize(
+  body: ReadableStream<Uint8Array>,
+  maxBytes: number,
+  onExceeded: () => void,
+): ReadableStream<Uint8Array> {
+  let seen = 0;
+  return body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        seen += chunk.byteLength;
+        if (seen > maxBytes) {
+          onExceeded();
+          controller.error(new BodyTooLargeError(maxBytes));
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+}
 
 // =============================================================================
 // Backend URL resolution
@@ -174,10 +238,11 @@ function upstreamHeaders(request: NextRequest): Record<string, string> {
  */
 async function fetchWithTimeout(
   url: string,
-  init: RequestInit
+  init: RequestInit,
+  timeoutMs: number = FETCH_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       ...init,
@@ -344,9 +409,9 @@ async function handleProxy(
     }
     const bucket = remaining[0];
     if (!isPublicStorageBucket(bucket)) {
-      console.warn(
-        `[API Proxy] Refused storage bypass for bucket=${bucket || '(none)'} path=/api/${path}. ` +
-        `Only public buckets may be redirected; private content must be served via a signed URL route.`
+      logger.warn(
+        '[API Proxy] Refused storage bypass — only public buckets may be redirected.',
+        { bucket: bucket || '(none)', path: `/api/${path}` },
       );
       return NextResponse.json(
         { error: 'Not found' },
@@ -355,21 +420,60 @@ async function handleProxy(
     }
 
     const configuredSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    if (!configuredSupabaseUrl) {
-      console.error('[API Proxy] Storage redirect requested without NEXT_PUBLIC_SUPABASE_URL');
+    let supabaseOrigin: string;
+    try {
+      const parsed = new URL(configuredSupabaseUrl ?? '');
+      if (
+        parsed.protocol !== 'https:' &&
+        !(process.env.NODE_ENV !== 'production' && parsed.protocol === 'http:')
+      ) {
+        throw new Error('non-https Supabase URL');
+      }
+      supabaseOrigin = parsed.origin;
+    } catch {
+      logger.error('[API Proxy] Storage redirect requested with invalid NEXT_PUBLIC_SUPABASE_URL');
       return NextResponse.json(
         { error: 'Storage service unavailable' },
         { status: 503 },
       );
     }
-    const supabaseUrl = configuredSupabaseUrl.replace(/\/+$/, '');
-    const { search } = new URL(request.url);
     const objectPath = remaining.slice(1).map(encodeURIComponent).join('/');
     const encodedBucket = encodeURIComponent(bucket);
-    const redirectUrl = objectPath
-      ? `${supabaseUrl}/storage/${encodedBucket}/${objectPath}${search}`
-      : `${supabaseUrl}/storage/${encodedBucket}${search}`;
-    console.log(`[API Proxy] Media redirect (public bucket): /api/${path} -> ${redirectUrl}`);
+    // Canonical Supabase public-object URL — the same form the SDK's
+    // `getPublicUrl()` emits and `resources-client` validates. (The old code
+    // built `/storage/<bucket>/...`, which Supabase does not serve.)
+    const objectBase = objectPath
+      ? `${supabaseOrigin}/storage/v1/object/public/${encodedBucket}/${objectPath}`
+      : `${supabaseOrigin}/storage/v1/object/public/${encodedBucket}`;
+    // Query allowlist: Supabase image-transform params only, strictly
+    // validated (see ImageTransformOptions in lib/storage/types.ts). The old
+    // code forwarded `search` verbatim, letting callers smuggle `token`
+    // (signed-URL confusion), `download` filenames, or junk that Supabase
+    // honors and we get billed for. Everything else is dropped.
+    const incoming = new URL(request.url).searchParams;
+    const forwarded = new URLSearchParams();
+    const intParam = (name: string, min: number, max: number) => {
+      const raw = incoming.get(name);
+      if (raw === null) return;
+      if (!/^\d{1,4}$/.test(raw)) return;
+      const n = Number(raw);
+      if (n >= min && n <= max) forwarded.set(name, String(n));
+    };
+    intParam('width', 1, 2000);
+    intParam('height', 1, 2000);
+    intParam('quality', 1, 100);
+    const format = incoming.get('format');
+    if (format === 'origin' || format === 'webp' || format === 'avif') {
+      forwarded.set('format', format);
+    }
+    const resize = incoming.get('resize');
+    if (resize === 'cover' || resize === 'contain' || resize === 'fill') {
+      forwarded.set('resize', resize);
+    }
+    const query = forwarded.size > 0 ? `?${forwarded.toString()}` : '';
+    const redirectUrl = `${objectBase}${query}`;
+    // Never log the query string: dropped params may carry tokens.
+    logger.debug('[API Proxy] Media redirect (public bucket)', { path: `/api/${path}`, target: objectBase });
     return NextResponse.redirect(redirectUrl, { status: 307 });
   }
 
@@ -396,9 +500,9 @@ async function handleProxy(
     // getBackendUrl() throws in production when neither INTERNAL_API_URL
     // nor NEXT_PUBLIC_API_URL is configured. Surface that as a structured
     // 503 with a remediation hint rather than letting fetch fail opaquely.
-    console.error(
+    logger.error(
       `[API Proxy] Refusing ${request.method} /api/${path} - no backend URL configured.`,
-      err
+      err,
     );
     return NextResponse.json(
       {
@@ -417,24 +521,57 @@ async function handleProxy(
   const targetUrl = `${getBackendApiUrl(`/${path}`)}${search}`;
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`[API Proxy] ${request.method} /api/${path} -> ${targetUrl}`);
+    logger.debug('[API Proxy] Forwarding request', { method: request.method, path: `/api/${path}`, target: targetUrl });
   }
 
   const hasBody = METHODS_WITH_BODY.has(request.method);
   let body: RequestInit['body'] = undefined;
   let duplex: 'half' | undefined = undefined;
+  // Set when the streaming limiter trips: the upstream fetch then fails with
+  // BodyTooLargeError and the catch block below must answer 413 (not 502).
+  let requestBodyTooLarge = false;
 
   if (hasBody && request.body) {
     // Guard: reject oversized requests before opening an upstream connection.
-    // We check the Content-Length header only — chunked-encoded requests without
-    // a declared length are allowed through (the backend enforces its own limit).
+    //
+    // Three layers (the old code had only the first):
+    //   1. CL+TE ambiguity → 400. A request carrying BOTH Content-Length and
+    //      Transfer-Encoding is a classic request-smuggling shape; refuse it
+    //      instead of guessing which framing the backend will honor.
+    //   2. Declared Content-Length → validated strictly (non-numeric or
+    //      negative values are rejected, not ignored) and capped at 413.
+    //   3. Actual streamed bytes → capped by limitRequestBodySize(). This is
+    //      the real guard: it covers chunked uploads with no declared length
+    //      AND lying Content-Length headers, without buffering.
+    const transferEncoding = request.headers.get('transfer-encoding');
     const contentLength = request.headers.get('content-length');
+    if (transferEncoding && contentLength) {
+      logger.warn(
+        `[API Proxy] Rejected ${request.method} /api/${path} - ambiguous framing (Content-Length + Transfer-Encoding present)`,
+        { method: request.method, path: `/api/${path}` },
+      );
+      return NextResponse.json(
+        { error: 'Ambiguous request framing' },
+        { status: 400 }
+      );
+    }
     if (contentLength) {
-      const bodyBytes = parseInt(contentLength, 10);
-      if (!isNaN(bodyBytes) && bodyBytes > MAX_BODY_BYTES) {
-        console.warn(
-          `[API Proxy] Rejected ${request.method} /api/${path} - ` +
-          `Content-Length ${bodyBytes} exceeds MAX_BODY_BYTES ${MAX_BODY_BYTES}`
+      const trimmed = contentLength.trim();
+      const bodyBytes = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : NaN;
+      if (!Number.isSafeInteger(bodyBytes) || bodyBytes < 0) {
+        logger.warn(
+          `[API Proxy] Rejected ${request.method} /api/${path} - malformed Content-Length`,
+          { method: request.method, path: `/api/${path}`, contentLength },
+        );
+        return NextResponse.json(
+          { error: 'Invalid Content-Length' },
+          { status: 400 }
+        );
+      }
+      if (bodyBytes > MAX_BODY_BYTES) {
+        logger.warn(
+          `[API Proxy] Rejected ${request.method} /api/${path} - Content-Length exceeds limit`,
+          { method: request.method, path: `/api/${path}`, bodyBytes, maxBytes: MAX_BODY_BYTES },
         );
         return NextResponse.json(
           { error: 'Request entity too large', maxBytes: MAX_BODY_BYTES },
@@ -442,7 +579,13 @@ async function handleProxy(
         );
       }
     }
-    body = request.body;
+    body = limitRequestBodySize(
+      request.body as ReadableStream<Uint8Array>,
+      MAX_BODY_BYTES,
+      () => {
+        requestBodyTooLarge = true;
+      },
+    );
     duplex = 'half';
   }
 
@@ -456,11 +599,15 @@ async function handleProxy(
       fetchOptions.duplex = duplex;
     }
 
-    const response = await fetchWithTimeout(targetUrl, fetchOptions);
+    const response = await fetchWithTimeout(targetUrl, fetchOptions, timeoutForPath(path));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[API Proxy] Backend (${response.status}) for ${path}:`, errorText.substring(0, 200));
+      logger.error(`[API Proxy] Backend (${response.status}) error`, undefined, {
+        path: `/api/${path}`,
+        status: response.status,
+        excerpt: errorText.substring(0, 200),
+      });
 
       return handleErrorResponse(response, errorText);
     }
@@ -477,13 +624,31 @@ async function handleProxy(
 
     return nextResponse;
   } catch (error: unknown) {
+    // The streaming body limiter tripped: answer 413 so the client learns
+    // the request was too large (a 502 here would trigger blind retries of
+    // an upload that will never be accepted).
+    if (
+      requestBodyTooLarge ||
+      error instanceof BodyTooLargeError ||
+      (error instanceof Error && error.cause instanceof BodyTooLargeError)
+    ) {
+      logger.warn(
+        `[API Proxy] Rejected ${request.method} /api/${path} - streamed body exceeds limit`,
+        { method: request.method, path: `/api/${path}`, maxBytes: MAX_BODY_BYTES },
+      );
+      return NextResponse.json(
+        { error: 'Request entity too large', maxBytes: MAX_BODY_BYTES },
+        { status: 413 }
+      );
+    }
     const errObj = error as Record<string, unknown> | null;
     const errName = (errObj && typeof errObj.name === 'string') ? errObj.name : '';
     const errMsg = (errObj && typeof errObj.message === 'string') ? errObj.message : String(error);
     const isTimeout = errName === 'AbortError' || errMsg.toLowerCase().includes('aborted');
-    console.error(
-      `[API Proxy] ${isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'} for ${request.method} /api/${path} ` +
-      `target=${targetUrl} error=${errMsg}`
+    logger.error(
+      `[API Proxy] ${isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR'} for ${request.method} /api/${path}`,
+      undefined,
+      { method: request.method, path: `/api/${path}`, target: targetUrl, error: errMsg },
     );
 
     // SECURITY: In production we must NOT expose the internal backend URL
@@ -499,7 +664,7 @@ async function handleProxy(
           details: errMsg,
           target: targetUrl,
           attempts: 1,
-          timeoutMs: FETCH_TIMEOUT_MS,
+          timeoutMs: timeoutForPath(path),
           hint: isTimeout
             ? 'The Vercel Function may be hitting its maxDuration limit (10s on Hobby, 30s on Pro). ' +
               'Also possible: cold start on the Go backend or Vercel-to-Vercel egress flakiness.'

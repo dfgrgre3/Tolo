@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Mail, Send, CheckCircle2 } from 'lucide-react';
-import { apiClient } from '@/lib/api/api-client';
+import { subscribeNewsletterRaw } from '@/features/discovery/api/discovery-gateway';
 import { TYPOGRAPHY, SECTION } from '../design-system';
 
 type SubscribeStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -19,7 +19,7 @@ export function NewsletterSection() {
     if (!email || !email.includes('@')) return;
     setStatus('loading');
     try {
-      await apiClient.post('/newsletter/subscribe', { email });
+      await subscribeNewsletterRaw(email);
       setStatus('success');
       setEmail('');
     } catch {
@@ -74,7 +74,7 @@ export function NewsletterSection() {
           </p>
         )}
 
-        <p className="text-[10px] text-[#94A3B8]">
+        <p className="text-[10px] text-[#64748B]">
           بالاشتراك، أنت توافق على سياسة الخصوصية. يمكنك إلغاء الاشتراك في أي وقت.
         </p>
       </div>

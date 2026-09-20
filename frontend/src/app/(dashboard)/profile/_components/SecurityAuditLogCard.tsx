@@ -13,8 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { fetchSecurityEvents } from "@/features/auth/api";
 import InlineErrorState from "./InlineErrorState";
 
 interface SecurityEvent {
@@ -114,7 +114,7 @@ export default function SecurityAuditLogCard() {
 
   async function load(cursor?: string) {
     const query = cursor ? `?limit=${PAGE_LIMIT}&cursor=${encodeURIComponent(cursor)}` : `?limit=${PAGE_LIMIT}`;
-    const data = await apiClient.get<SecurityEventsPage>(`${apiRoutes.auth.securityEvents}${query}`);
+    const data = await fetchSecurityEvents<SecurityEventsPage>(query);
     setEvents((current) => cursor ? [...current, ...data.events] : data.events);
     setNextCursor(data.nextCursor || null);
   }

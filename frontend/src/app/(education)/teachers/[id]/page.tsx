@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import { SITE } from "@thanawy/shared/site-config";
 import { ApiError } from "@/lib/api/api-client";
+import { logger } from "@/lib/logger";
+import { toSafeJsonLd } from "@/lib/security/json-ld";
 import {
   getTeacherPublicProfile,
   getTeacherPublicCourses,
@@ -92,7 +94,7 @@ async function TeacherProfileLoader({ teacherId }: { teacherId: string }) {
     }
   } catch (error) {
     if (!(error instanceof ApiError && error.status === 404)) {
-      console.error("Error loading teacher profile:", error);
+      logger.error("Error loading teacher profile:", error);
     }
   }
 
@@ -140,7 +142,7 @@ async function TeacherProfileLoader({ teacherId }: { teacherId: string }) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: toSafeJsonLd(schema) }}
       />
       <TeacherProfileClient
         profile={profile}

@@ -118,6 +118,64 @@ export async function fetchPaymentByOrder(
   );
 }
 
+// ─── مرايا النقل الخام (حد ترحيل الواجهات F-018) ─────────────────────
+// Transport-only 1:1 mirrors of pre-existing UI call sites. Same route,
+// method and payload; raw payload returned so UI envelope parsing stays
+// untouched. Zero behavior change by construction.
+type RawPayload = Record<string, unknown>;
+
+export function fetchWalletSummaryRaw<T>(): Promise<T> {
+  return apiClient.get<T>(apiRoutes.billing.wallet);
+}
+
+export function topupWalletRaw<T>(amount: number, method: PaymentMethod): Promise<T> {
+  return apiClient.post<T>(apiRoutes.billing.topup, {
+    amount,
+    method,
+    paymentMethod: method,
+  });
+}
+
+export function fetchSubscriptionPlansRaw<T>(): Promise<T> {
+  return apiClient.get<T>(apiRoutes.subscriptions.plans);
+}
+
+export function fetchCurrentSubscriptionRaw(): Promise<unknown> {
+  return apiClient.get<unknown>(apiRoutes.subscriptions.current);
+}
+
+export function fetchBillingSummaryRaw<T>(): Promise<T> {
+  return apiClient.get<T>(apiRoutes.users.billingSummary);
+}
+
+export function checkoutSubscriptionRaw<T>(payload: RawPayload): Promise<T> {
+  return apiClient.post<T>(apiRoutes.subscriptions.checkout, payload);
+}
+
+export function renewSubscriptionRaw(): Promise<unknown> {
+  return apiClient.post(apiRoutes.subscriptions.renew, {});
+}
+
+export function fetchSubscriptionAddonsRaw(): Promise<unknown> {
+  return apiClient.get<unknown>(apiRoutes.subscriptions.addons);
+}
+
+export function purchaseAddonRaw(addonId: string): Promise<unknown> {
+  return apiClient.post(apiRoutes.subscriptions.addons, { addonId });
+}
+
+export function fetchPaymentHistoryRaw(): Promise<unknown> {
+  return apiClient.get<unknown>(apiRoutes.payments.history);
+}
+
+export function fetchPaymentByOrderRaw<T>(orderId: string): Promise<T> {
+  return apiClient.get<T>(apiRoutes.payments.byOrder(orderId));
+}
+
+export function fetchReferralStatsRaw<T>(): Promise<T> {
+  return apiClient.get<T>(apiRoutes.users.referrals);
+}
+
 // ─── الكوبونات (Coupons) ──────────────────────────────────────────
 
 /**

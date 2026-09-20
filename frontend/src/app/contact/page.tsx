@@ -93,7 +93,7 @@ export default function ContactPage() {
             <a
               key={i}
               href={method.action}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-card/40 p-8 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 block"
+              className="group relative block py-8 border-t border-border"
             >
               <div className={`inline-flex p-4 rounded-2xl border ${method.bg} ${method.color} mb-6 group-hover:scale-110 transition-transform duration-300`}>
                 {method.icon}
@@ -112,7 +112,7 @@ export default function ContactPage() {
         {/* Contact Form + Info */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-16">
           {/* Form */}
-          <div className="lg:col-span-3 relative overflow-hidden rounded-2xl border border-border bg-card/40 p-8">
+          <div className="lg:col-span-3 py-8 border-t border-border">
             <h2 className="text-2xl font-black mb-8 flex items-center gap-3">
               <Send className="w-6 h-6 text-primary" />
               أرسل لنا رسالة
@@ -123,7 +123,7 @@ export default function ContactPage() {
           {/* Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Response Time */}
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6">
+            <div className="py-6 border-t border-border">
               <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400">
                   <Zap className="w-5 h-5" />
@@ -145,7 +145,7 @@ export default function ContactPage() {
             </div>
 
             {/* Hours */}
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6">
+            <div className="py-6 border-t border-border">
               <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary">
                   <Clock className="w-5 h-5" />
@@ -160,7 +160,7 @@ export default function ContactPage() {
             </div>
 
             {/* Security */}
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6">
+            <div className="py-6 border-t border-border">
               <div className="flex items-center gap-4 mb-4">
                 <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
                   <Shield className="w-5 h-5" />
@@ -183,7 +183,7 @@ export default function ContactPage() {
             {faqs.map((faq, i) => (
               <div
                 key={i}
-                className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-7"
+                className="py-7 border-t border-border"
               >
                 <h3 className="font-black text-base mb-3 flex items-start gap-3">
                   <span className="text-primary font-black text-lg shrink-0">س.</span>

@@ -75,7 +75,7 @@ export default function AboutPage() {
         </div>
 
         {/* Story */}
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-card/40 p-10 md:p-16 mb-20">
+        <div className="py-10 md:py-16 mb-20 border-t border-b border-border">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
@@ -99,7 +99,7 @@ export default function AboutPage() {
               {stats.map((stat, i) => (
                 <div
                   key={i}
-                  className="relative overflow-hidden rounded-2xl border border-border bg-background/50 p-6 text-center"
+                  className="py-6 border-t border-border text-center"
                 >
                   <p className="text-3xl font-black text-primary">{stat.value}</p>
                   <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">{stat.label}</p>
@@ -119,7 +119,7 @@ export default function AboutPage() {
             {values.map((val, i) => (
               <div
                 key={i}
-                className="relative overflow-hidden rounded-2xl border border-border bg-card/40 p-8 hover:border-primary/30 transition-colors group"
+                className="relative py-8 border-t border-border group"
               >
                 <div className={`inline-flex p-3 rounded-xl border ${val.bg} ${val.color} mb-5 group-hover:scale-110 transition-transform`}>
                   {val.icon}
@@ -132,7 +132,7 @@ export default function AboutPage() {
         </div>
 
         {/* Mission */}
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-card/40 p-12 md:p-20 text-center mb-20">
+        <div className="relative py-12 md:py-20 border-t border-b border-border text-center mb-20">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-transparent pointer-events-none" />
           <div className="relative z-10 space-y-6">
             <Target className="w-12 h-12 text-primary mx-auto" />

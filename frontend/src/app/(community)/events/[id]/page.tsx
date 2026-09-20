@@ -8,8 +8,12 @@ import Image from "next/image";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  attendEventRaw,
+  fetchEventAttendeesRaw,
+  fetchEventRaw,
+  leaveEventRaw,
+} from "@/features/community/api/community-gateway";
 
 type Event = {
   id: string;
@@ -56,7 +60,7 @@ export default function EventPage() {
 
     const fetchEvent = async () => {
       try {
-        const eventData = await apiClient.get<Event>(apiRoutes.events.byId(eventId));
+        const eventData = await fetchEventRaw<Event>(eventId);
         setEvent(eventData);
       } catch (error) {
         logger.error("Error fetching event:", error);
@@ -66,7 +70,7 @@ export default function EventPage() {
 
     const fetchAttendees = async () => {
       try {
-        const attendeesData = await apiClient.get<Attendee[]>(apiRoutes.events.attendees(eventId));
+        const attendeesData = await fetchEventAttendeesRaw<Attendee[]>(eventId);
         setAttendees(Array.isArray(attendeesData) ? attendeesData : []);
 
         // Check if current user is attending
@@ -92,7 +96,7 @@ export default function EventPage() {
 
     setActionLoading(true);
     try {
-      await apiClient.postJson(apiRoutes.events.attend(eventId), { userId });
+      await attendEventRaw(eventId, { userId });
 
       setIsAttending(true);
 
@@ -124,7 +128,7 @@ export default function EventPage() {
 
     setActionLoading(true);
     try {
-      await apiClient.delete(apiRoutes.events.attend(eventId), { body: JSON.stringify({ userId }) });
+      await leaveEventRaw(eventId, { userId });
 
       setIsAttending(false);
 

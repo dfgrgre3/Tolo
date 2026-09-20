@@ -23,7 +23,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function readLastEmail(): string {
   try {
     if (typeof window === "undefined") return "";
-    return window.localStorage.getItem(LAST_EMAIL_KEY) ?? "";
+    return (
+      window.localStorage.getItem(LAST_EMAIL_KEY) ??
+      window.localStorage.getItem("thanawy:pending-verification-email") ??
+      ""
+    );
   } catch {
     return "";
   }
@@ -54,11 +58,22 @@ export function useLoginForm() {
   const [mfaCode, setMfaCode] = useState("");
   const [mfaChallenge, setMfaChallenge] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // UX-layer brute-force friction (see attempt-throttle.ts — the backend
   // 429 is the real boundary). Snapshots refresh on every submit outcome.
   const [loginThrottle, setLoginThrottle] = useState<ThrottleSnapshot>(() => getThrottle("login"));
   const [mfaThrottle, setMfaThrottle] = useState<ThrottleSnapshot>(() => getThrottle("mfa"));
+
+  /** Per-account throttle key: each email carries its own failures/lockout. */
+  const accountKey = email.trim().toLowerCase() || undefined;
+
+  // Switching the typed email swaps to that account's own throttle state,
+  // so a lockout on one account never bleeds into another.
+  useEffect(() => {
+    setLoginThrottle(getThrottle("login", accountKey));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountKey]);
 
   const completeLogin = async () => {
     const targetPath = sanitizeRedirectPath(searchParams.get("redirect"));
@@ -95,14 +110,14 @@ export function useLoginForm() {
     e.preventDefault();
     if (isLoading) return;
 
-    const gate = getThrottle("login");
+    const gate = getThrottle("login", accountKey);
     setLoginThrottle(gate);
     if (gate.locked) {
       setError(`تم إيقاف المحاولات مؤقتاً. حاول مجدداً ${formatCooldownAr(gate.remainingMs)}`);
       return;
     }
 
-    const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || !password) {
       setError("يرجى إدخال البريد الإلكتروني وكلمة المرور");
       return;
@@ -114,6 +129,7 @@ export function useLoginForm() {
 
     setIsLoading(true);
     setError(null);
+    setNeedsVerification(false);
 
     const result = await login({
       email: trimmedEmail,
@@ -125,15 +141,16 @@ export function useLoginForm() {
     });
 
     if (result.requiresMfa) {
-      setLoginThrottle(recordSuccess("login"));
+      setLoginThrottle(recordSuccess("login", accountKey));
       setMfaChallenge(result.challengeId ?? "");
       setIsLoading(false);
       return;
     }
 
     if (!result.success) {
-      const next = recordFailure("login", result.retryAfterMs);
+      const next = recordFailure("login", result.retryAfterMs, accountKey);
       setLoginThrottle(next);
+      setNeedsVerification(result.needsVerification === true);
       setError(
         result.rateLimited && result.retryAfterMs
           ? `محاولات كثيرة جداً. حاول مجدداً ${formatCooldownAr(result.retryAfterMs)}`
@@ -145,7 +162,7 @@ export function useLoginForm() {
       return;
     }
 
-    setLoginThrottle(recordSuccess("login"));
+    setLoginThrottle(recordSuccess("login", accountKey));
     try {
       window.localStorage.setItem(LAST_EMAIL_KEY, trimmedEmail);
     } catch {
@@ -163,7 +180,7 @@ export function useLoginForm() {
       return;
     }
 
-    const gate = getThrottle("mfa");
+    const gate = getThrottle("mfa", accountKey);
     setMfaThrottle(gate);
     if (gate.locked) {
       setError(`تم إيقاف المحاولات مؤقتاً. حاول مجدداً ${formatCooldownAr(gate.remainingMs)}`);
@@ -176,7 +193,7 @@ export function useLoginForm() {
     const result = await verifyMfa(mfaChallenge ?? "", mfaCode, rememberMe);
 
     if (!result.success) {
-      const next = recordFailure("mfa", result.retryAfterMs);
+      const next = recordFailure("mfa", result.retryAfterMs, accountKey);
       setMfaThrottle(next);
       setError(
         result.rateLimited && result.retryAfterMs
@@ -189,7 +206,7 @@ export function useLoginForm() {
       return;
     }
 
-    setMfaThrottle(recordSuccess("mfa"));
+    setMfaThrottle(recordSuccess("mfa", accountKey));
     await completeLogin();
     setIsLoading(false);
   };
@@ -225,6 +242,7 @@ export function useLoginForm() {
     setMfaCode,
     mfaChallenge,
     error,
+    needsVerification,
     isLoading,
     loginThrottle,
     mfaThrottle,

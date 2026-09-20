@@ -7,8 +7,8 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { createAnnouncementRaw } from "@/features/community/api/community-gateway";
 
 export default function NewAnnouncementPage() {
   const router = useRouter();
@@ -89,7 +89,7 @@ export default function NewAnnouncementPage() {
 
     setIsSubmitting(true);
     try {
-      const newAnnouncement = await apiClient.postJson<{ id: string }>(apiRoutes.community.createAnnouncement, {
+      const newAnnouncement = await createAnnouncementRaw({
         userId,
         title: title.trim(),
         content: content.trim(),

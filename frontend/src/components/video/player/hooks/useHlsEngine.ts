@@ -4,6 +4,7 @@ import { usePlayerPlayback, usePlayerSettings } from "../stores/player-scope";
 import { isHlsManifestUrl, shouldUseHls } from "../utils";
 import { AUTO_QUALITY_KEY } from "../constants";
 import { mapHlsError, type RichPlayerError } from "../errors";
+import { logger } from "@/lib/logger";
 import type { AudioTrack, PlayerFeedback, QualityOption, VideoProvider } from "../types";
 import type Hls from "hls.js";
 
@@ -301,7 +302,7 @@ export function useHlsEngine({
           setPlaybackState({ isLoading: false });
         });
       } catch (err) {
-        console.error("Failed to load HLS engine dynamically:", err);
+        logger.error("Failed to load HLS engine dynamically:", err);
         video.src = activeVideoUrl;
       }
     };

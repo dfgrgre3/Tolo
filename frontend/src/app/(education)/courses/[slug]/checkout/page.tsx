@@ -22,8 +22,11 @@ import {
   Info } from
 "lucide-react";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  checkoutCourseRaw,
+  fetchCourseByIdRaw,
+  fetchWalletBalanceRaw,
+} from "@/features/courses/api/courses-gateway";
 import {
   resolvePaymentAction,
   type PaymentInitResponse,
@@ -66,8 +69,8 @@ export default function CourseCheckoutPage() {
       setLoadError(null);
       try {
         const [courseData, walletData] = await Promise.all([
-          apiClient.get<CourseDetailResponse>(apiRoutes.courses.byId(courseSlug)),
-          apiClient.get<WalletResponse>(apiRoutes.billing.wallet),
+          fetchCourseByIdRaw<CourseDetailResponse>(courseSlug),
+          fetchWalletBalanceRaw<WalletResponse>(),
         ]);
 
         if (courseData?.subject) {
@@ -106,7 +109,7 @@ export default function CourseCheckoutPage() {
     setProcessing(true);
     setIframeUrl(null);
     try {
-      const data = await apiClient.post<CheckoutResponse>(apiRoutes.courses.checkout(courseSlug), {
+      const data = await checkoutCourseRaw<CheckoutResponse>(courseSlug, {
         paymentMethod,
         couponCode: couponCode || undefined,
       });

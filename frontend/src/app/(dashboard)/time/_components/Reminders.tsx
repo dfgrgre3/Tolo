@@ -20,8 +20,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { differenceInMinutes, addMinutes, addDays } from 'date-fns';
 
 import { logger } from '@/lib/logger';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import {
+  createReminderRaw,
+  deleteReminderRaw,
+  patchReminderRaw,
+} from '@/features/tasks/api/tasks-gateway';
 
 import type { Reminder, ReminderFormData } from './_components/types';
 import { QUICK_TIMES, SNOOZE_OPTIONS, getReminderTypeInfo, REMINDER_TYPES } from './_components/types';
@@ -352,8 +355,8 @@ export default function Reminders({
       };
 
       const savedReminder = reminderToEdit?.id
-        ? await apiClient.patch<Reminder>(apiRoutes.reminders.byId(reminderToEdit.id), reminderData)
-        : await apiClient.postJson<Reminder>(apiRoutes.reminders.create, reminderData);
+        ? await patchReminderRaw<Reminder>(reminderToEdit.id, reminderData)
+        : await createReminderRaw<Reminder>(reminderData);
 
       if (reminderToEdit) {
         setReminders(prev => prev.map(r => r.id === savedReminder.id ? savedReminder : r));
@@ -381,7 +384,7 @@ export default function Reminders({
     if (!reminderId) return;
 
     try {
-      await apiClient.delete(apiRoutes.reminders.byId(reminderId));
+      await deleteReminderRaw(reminderId);
 
       setReminders(prev => prev.filter(r => r.id !== reminderId));
       onReminderDelete?.(reminderId);
@@ -392,7 +395,7 @@ export default function Reminders({
 
   const handleComplete = async (reminderId: string) => {
     try {
-      const updatedReminder = await apiClient.patch<Reminder>(apiRoutes.reminders.byId(reminderId), {
+      const updatedReminder = await patchReminderRaw<Reminder>(reminderId, {
         isCompleted: true,
         completedAt: new Date().toISOString()
       });
@@ -410,7 +413,7 @@ export default function Reminders({
     const snoozeUntil = addMinutes(new Date(), minutes);
 
     try {
-      const updatedReminder = await apiClient.patch<Reminder>(apiRoutes.reminders.byId(reminderId), {
+      const updatedReminder = await patchReminderRaw<Reminder>(reminderId, {
         isSnoozed: true,
         snoozeUntil: snoozeUntil.toISOString()
       });

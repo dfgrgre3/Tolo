@@ -44,6 +44,42 @@ export interface CompletionValidationResult {
 // ─── Session TTL ─────────────────────────────────────────────────────────
 const SESSION_TTL_SECONDS = 3600; // 1 hour
 
+// ─── Input validation (trust boundary) ───────────────────────────────────
+// Every public function in this module takes `uploadId` (and sometimes
+// status names / counters) that will eventually arrive from HTTP callers.
+// Redis keys are binary-safe, but an unconstrained id still causes damage:
+// `{...}` hash-tags steer cluster slots, whitespace/newlines poison logs,
+// and over-long ids bloat every key that embeds them. Constrain the shape
+// once, here, so no caller can smuggle key-namespace syntax through.
+
+const UPLOAD_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+const UPLOAD_STATUSES: readonly UploadSessionStatus[] = [
+  'CREATED',
+  'UPLOADING',
+  'COMPLETING',
+  'COMPLETED',
+  'EXPIRED',
+];
+
+function assertValidUploadId(uploadId: string): void {
+  if (!UPLOAD_ID_PATTERN.test(uploadId)) {
+    throw new Error('Invalid uploadId: must match /^[A-Za-z0-9_-]{1,128}$/');
+  }
+}
+
+function assertValidStatus(status: string): asserts status is UploadSessionStatus {
+  if (!(UPLOAD_STATUSES as readonly string[]).includes(status)) {
+    throw new Error(`Invalid upload status: ${JSON.stringify(status)}`);
+  }
+}
+
+function assertNonNegativeInt(name: string, value: number): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`Invalid ${name}: must be a non-negative safe integer`);
+  }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
 function sessionKey(uploadId: string): string {
@@ -83,6 +119,29 @@ function assertRedis() {
 export async function initiateUpload(
   session: Omit<UploadSessionMeta, 'status'> & { status?: UploadSessionStatus }
 ): Promise<void> {
+  assertValidUploadId(session.uploadId);
+  if (session.status !== undefined) assertValidStatus(session.status);
+  assertNonNegativeInt('fileSize', session.fileSize);
+  assertNonNegativeInt('totalChunks', session.totalChunks);
+  assertNonNegativeInt('chunkSize', session.chunkSize);
+  if (session.totalChunks < 1) {
+    throw new Error('Invalid totalChunks: must be at least 1');
+  }
+  if (session.chunkSize < 1) {
+    throw new Error('Invalid chunkSize: must be at least 1');
+  }
+  // Structural invariant: the declared file size must fit in the declared
+  // chunk grid (last chunk may be partial). A session violating this can
+  // never validate at completion, so reject it at creation.
+  if (
+    session.fileSize > session.totalChunks * session.chunkSize ||
+    session.fileSize <= (session.totalChunks - 1) * session.chunkSize
+  ) {
+    throw new Error('Invalid session: fileSize does not fit totalChunks * chunkSize');
+  }
+  if (session.fileName.length > 512 || session.folder.length > 512 || session.userId.length > 256) {
+    throw new Error('Invalid session: fileName/folder/userId exceeds length limits');
+  }
   const redis = assertRedis();
 
   const pipeline = redis.pipeline();
@@ -135,6 +194,8 @@ export async function updateSessionStatus(
   uploadId: string,
   status: UploadSessionStatus
 ): Promise<void> {
+  assertValidUploadId(uploadId);
+  assertValidStatus(status);
   const redis = assertRedis();
   await redis.hset(sessionKey(uploadId), 'status', status);
 }
@@ -179,18 +240,55 @@ redis.call('HSET', key, 'status', next_status)
 return 1
 `;
 
+/**
+ * Runs the CAS script through ioredis' purpose-built command API.
+ *
+ * SECURITY CONTRACT (Lua-injection ban): the ONLY Lua this module may ever
+ * execute is the frozen `CAS_STATUS_SCRIPT` constant above. Untrusted input
+ * (`uploadId`, statuses) travels exclusively via KEYS/ARGV — never string-
+ * interpolated into script text. `defineCommand` additionally SHA-caches the
+ * script (EVALSHA + NOSCRIPT retry handled by ioredis) instead of shipping
+ * the body on every call. Any future script MUST follow the same shape:
+ * module-level constant + data-only arguments, or it does not ship.
+ */
+type CasCommand = (key: string, expectedFrom: string, nextStatus: string) => Promise<number>;
+
+function getCasCommand(redis: ReturnType<typeof assertRedis>): CasCommand {
+  const client = redis as unknown as {
+    casUploadStatus?: CasCommand;
+    defineCommand?: (name: string, opts: { lua: string; numberOfKeys: number }) => void;
+    eval?: (script: string, keyCount: number, ...args: string[]) => Promise<number>;
+  };
+  if (typeof client.casUploadStatus === 'function') {
+    return client.casUploadStatus.bind(redis);
+  }
+  if (typeof client.defineCommand === 'function') {
+    client.defineCommand('casUploadStatus', {
+      lua: CAS_STATUS_SCRIPT,
+      numberOfKeys: 1,
+    });
+    const defined = (redis as unknown as { casUploadStatus: CasCommand }).casUploadStatus;
+    if (typeof defined === 'function') return defined.bind(redis);
+  }
+  // Minimal clients (tests, Redis shims without scripting commands): fall
+  // back to EVAL with the SAME constant script — still no interpolation.
+  if (typeof client.eval === 'function') {
+    const evalFn = client.eval.bind(redis);
+    return (key, expectedFrom, nextStatus) => evalFn(CAS_STATUS_SCRIPT, 1, key, expectedFrom, nextStatus);
+  }
+  throw new Error('Redis client supports neither defineCommand nor eval; cannot run CAS script');
+}
+
 export async function compareAndSetSessionStatus(
   uploadId: string,
   nextStatus: UploadSessionStatus,
   expectedFrom: UploadSessionStatus | null
 ): Promise<'ok' | 'stale' | 'missing'> {
+  assertValidUploadId(uploadId);
+  assertValidStatus(nextStatus);
+  if (expectedFrom !== null) assertValidStatus(expectedFrom);
   const redis = assertRedis();
-  const evalScript = (redis as unknown as {
-    eval(script: string, keyCount: number, ...args: string[]): Promise<number>;
-  }).eval.bind(redis);
-  const raw = await evalScript(
-    CAS_STATUS_SCRIPT,
-    1,
+  const raw = await getCasCommand(redis)(
     sessionKey(uploadId),
     expectedFrom ?? '',
     nextStatus
@@ -214,6 +312,18 @@ export async function registerChunk(
   storedPath: string,
   checksum?: string,
 ): Promise<{ receivedChunks: number; totalSize: number; isDuplicate?: boolean }> {
+  assertValidUploadId(uploadId);
+  assertNonNegativeInt('chunkIndex', chunkIndex);
+  assertNonNegativeInt('chunkSize', chunkSize);
+  if (chunkSize < 1) {
+    throw new Error('Invalid chunkSize: must be at least 1');
+  }
+  if (storedPath.length === 0 || storedPath.length > 1024) {
+    throw new Error('Invalid storedPath: must be 1..1024 characters');
+  }
+  if (checksum !== undefined && !/^[a-f0-9]{64}$/i.test(checksum)) {
+    throw new Error('Invalid checksum: must be SHA-256 hex');
+  }
   const redis = assertRedis();
 
   // SADD returns 1 if chunkIndex was newly added, 0 if it was already present
@@ -269,10 +379,21 @@ export async function registerChunk(
 export async function getOrderedChunks(
   uploadId: string
 ): Promise<ChunkInfo[]> {
+  assertValidUploadId(uploadId);
   const redis = assertRedis();
 
   const raw = await redis.zrange(chunksKey(uploadId), 0, -1);
-  return raw.map((entry) => JSON.parse(entry) as ChunkInfo);
+  const chunks: ChunkInfo[] = [];
+  for (const entry of raw) {
+    try {
+      chunks.push(JSON.parse(entry) as ChunkInfo);
+    } catch {
+      // A corrupt zset member must not take down completion checks; the
+      // count/index validation below will fail closed on the gap.
+      continue;
+    }
+  }
+  return chunks;
 }
 
 /**
@@ -281,6 +402,7 @@ export async function getOrderedChunks(
 export async function getSessionMeta(
   uploadId: string
 ): Promise<UploadSessionMeta | null> {
+  assertValidUploadId(uploadId);
   const redis = assertRedis();
 
   const data = await redis.hgetall(sessionKey(uploadId));
@@ -387,6 +509,7 @@ export async function validateUploadCompletion(
  * Requires all indices [0 ... totalChunks - 1] to be present.
  */
 export async function isUploadComplete(uploadId: string): Promise<boolean> {
+  assertValidUploadId(uploadId);
   const result = await validateUploadCompletion(uploadId);
   return result.valid;
 }
@@ -397,6 +520,7 @@ export async function isUploadComplete(uploadId: string): Promise<boolean> {
 export async function getUploadProgress(
   uploadId: string
 ): Promise<{ receivedChunks: number; totalChunks: number; totalSize: number; status: UploadSessionStatus } | null> {
+  assertValidUploadId(uploadId);
   const redis = assertRedis();
   const session = await getSessionMeta(uploadId);
   if (!session) return null;
@@ -430,6 +554,7 @@ export async function markUploadCompleted(uploadId: string): Promise<'ok' | 'sta
  * Delete all Redis keys associated with an upload session (cleanup).
  */
 export async function cleanupUpload(uploadId: string): Promise<void> {
+  assertValidUploadId(uploadId);
   const redis = assertRedis();
   const pipeline = redis.pipeline();
   pipeline.del(sessionKey(uploadId));

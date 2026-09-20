@@ -14,8 +14,14 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import type { CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
 import type { Course, Chapter, LessonQuestion, TabKey } from "../types";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  createLessonNoteRaw,
+  fetchCurriculumRaw,
+  fetchLessonNotesRaw,
+  fetchLessonQuestionsRaw,
+  postLessonAiChatRaw,
+  postLessonQuestionRaw,
+} from "@/features/courses/api/courses-gateway";
 import { updateLessonProgress } from "@/lib/course-progress";
 import { useQueryClient } from "@tanstack/react-query";
 import { reconcileCourseProgress } from "@/lib/state/state-ownership";
@@ -163,7 +169,7 @@ export function useLearningHub(options: LearningHubOptions) {
 
         // Session-scoped: the backend resolves the caller from the JWT, so
         // no ?userId= is appended (IDOR/BOLA hardening).
-        const curriculumPayload = await apiClient.get<LearningHubResponse>(apiRoutes.courses.curriculum(courseId));
+        const curriculumPayload = await fetchCurriculumRaw<LearningHubResponse>(courseId);
 
         if (!curriculumPayload?.enrollment || !curriculumPayload.subject) {
           toast.error("يجب التسجيل في الدورة للوصول إلى بيئة التعلم.");
@@ -271,10 +277,10 @@ export function useLearningHub(options: LearningHubOptions) {
     const loadLessonExtras = async () => {
       try {
         if (activeTab === "notes") {
-          const notePayload = await apiClient.get<LessonNotesResponse>(apiRoutes.courses.lessonNotes(activeLessonId));
+          const notePayload = await fetchLessonNotesRaw<LessonNotesResponse>(activeLessonId);
           setNoteContent(notePayload?.content || "");
         } else {
-          const questionsPayload = await apiClient.get<LessonQuestionsResponse>(apiRoutes.courses.lessonQuestions(activeLessonId));
+          const questionsPayload = await fetchLessonQuestionsRaw<LessonQuestionsResponse>(activeLessonId);
           setQuestions(questionsPayload?.questions || []);
         }
       } catch (extrasError) {
@@ -441,7 +447,7 @@ export function useLearningHub(options: LearningHubOptions) {
       // case where an open Notes tab silently discards newer timeline notes.
       let timelineNotes: ReturnType<typeof parseCloudTimelineNotes>["notes"] = [];
       try {
-        const latest = await apiClient.get<LessonNotesResponse>(apiRoutes.courses.lessonNotes(activeLessonId));
+        const latest = await fetchLessonNotesRaw<LessonNotesResponse>(activeLessonId);
         timelineNotes = parseCloudTimelineNotes(latest?.content || "").notes;
       } catch {
         // If the re-read fails, fall back to saving the freeform text as-is.
@@ -450,7 +456,7 @@ export function useLearningHub(options: LearningHubOptions) {
       const { freeformContent } = parseCloudTimelineNotes(noteContent);
       const mergedContent = serializeCloudTimelineNotes(freeformContent, timelineNotes);
 
-      await apiClient.post(apiRoutes.courses.createNote(activeLessonId), { content: mergedContent });
+      await createLessonNoteRaw(activeLessonId, mergedContent);
       toast.success("تم حفظ الملاحظات.");
     } catch (saveError) {
       logger.error("Error saving note", saveError);
@@ -477,9 +483,7 @@ export function useLearningHub(options: LearningHubOptions) {
 
     try {
       setPostingQuestion(true);
-      const data = await apiClient.post<LessonQuestion>(apiRoutes.courses.lessonQuestions(activeLessonId), {
-        content: newQuestion.trim(),
-      });
+      const data = await postLessonQuestionRaw<LessonQuestion>(activeLessonId, newQuestion.trim());
 
       setQuestions((current) => [data, ...current]);
       setNewQuestion("");
@@ -504,10 +508,10 @@ export function useLearningHub(options: LearningHubOptions) {
       try {
         const lessonContext = (activeLesson?.content || "").slice(0, 600);
         const boundedPrompt = prompt.slice(0, 1200);
-        const response = await apiClient.post<{
+        const response = await postLessonAiChatRaw<{
           reply?: string;
           conversationId?: string;
-        }>(apiRoutes.ai.chat, {
+        }>({
           message: `أنت مدرس مساعد داخل درس بعنوان "${activeLesson?.name || "هذا الدرس"}". محتوى مختصر:\n${lessonContext}\nسؤال الطالب: ${boundedPrompt}`,
           conversationId: aiConversationId || undefined,
           subjectId: courseId,

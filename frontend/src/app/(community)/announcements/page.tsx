@@ -24,8 +24,10 @@ import { logger } from '@/lib/logger';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchAnnouncementsRaw,
+  fetchContestsRaw,
+} from "@/features/community/api/community-gateway";
 
 type Announcement = {
   id: string;
@@ -79,8 +81,8 @@ export default function AnnouncementsPage() {
       setLoading(true);
       try {
         const [annJson, conJson] = await Promise.all([
-          apiClient.get<unknown>(apiRoutes.community.announcements),
-          apiClient.get<unknown>(apiRoutes.contests.list)
+          fetchAnnouncementsRaw(),
+          fetchContestsRaw()
         ]);
         const annData = Array.isArray(annJson) ? annJson : (annJson as { data?: unknown })?.data;
         setAnnouncements(Array.isArray(annData) ? annData : []);

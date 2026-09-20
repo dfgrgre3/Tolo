@@ -17,8 +17,12 @@ import {
 import { isPast } from 'date-fns';
 
 import { logger } from '@/lib/logger';
-import { apiClient, ApiContractError } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import { ApiContractError } from '@/lib/api/api-client';
+import {
+  createTaskRaw,
+  deleteTaskRaw,
+  patchTaskRaw,
+} from '@/features/tasks/api/tasks-gateway';
 import { TaskFormDialog } from './_components/TaskFormDialog';
 import { TaskFilters } from './_components/TaskFilters';
 import { TaskStatsPanel } from './_components/TaskStatsPanel';
@@ -163,8 +167,8 @@ export default function TaskManagement({
 
     try {
       const savedTask = taskToEdit
-        ? await apiClient.patch<Task>(apiRoutes.tasks.update(taskToEdit.id), buildTaskPayload(local))
-        : await apiClient.postJson<Task>(apiRoutes.tasks.create, buildTaskPayload(local));
+        ? await patchTaskRaw<Task>(taskToEdit.id, buildTaskPayload(local))
+        : await createTaskRaw<Task>(buildTaskPayload(local));
       const next = mergeServerTask(local, savedTask);
 
       if (taskToEdit) {
@@ -186,7 +190,7 @@ export default function TaskManagement({
     if (!taskId) return;
 
     try {
-      await apiClient.delete(apiRoutes.tasks.delete(taskId));
+      await deleteTaskRaw(taskId);
     } catch (error: unknown) {
       // Backend DELETE returns HTTP 200 with `{success: true}` and NO `data`
       // key — the row IS deleted, only the client's envelope check fails.
@@ -213,7 +217,7 @@ export default function TaskManagement({
         if (timerSeconds > 0) merged.actualTime = Math.round(timerSeconds / 60);
       }
 
-      const saved = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), buildTaskPayload(merged));
+      const saved = await patchTaskRaw<Task>(taskId, buildTaskPayload(merged));
       const next = mergeServerTask(merged, saved);
 
       setTasks(prev => prev.map(t => t.id === taskId ? next : t));
@@ -253,7 +257,7 @@ export default function TaskManagement({
     try {
       // Full-object PATCH: the backend overwrites the whole row.
       const merged = { ...task, [field]: value } as Task;
-      const saved = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), buildTaskPayload(merged));
+      const saved = await patchTaskRaw<Task>(taskId, buildTaskPayload(merged));
       const next = mergeServerTask(merged, saved);
 
       setTasks(prev => prev.map(t => t.id === taskId ? next : t));

@@ -14,7 +14,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { getRecentSearchQueries } from "@/lib/search-history";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchCatalogPageRaw } from "@/features/courses/api/courses-gateway";
 import { logger } from "@/lib/logger";
 
 interface SuggestedCourse {
@@ -66,7 +66,7 @@ export function LearningSuggestions() {
         setRecentSearches(searches);
 
         // Fetch courses and pick suggestions based on recent searches
-        const res = await apiClient.get<{ data?: { items?: RawCourse[] }; items?: RawCourse[] }>("/courses?limit=20");
+        const res = await fetchCatalogPageRaw<{ data?: { items?: RawCourse[] }; items?: RawCourse[] }>(20);
         const payload = res.data ?? res;
         const courses: RawCourse[] = payload.items ?? [];
 

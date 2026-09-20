@@ -25,8 +25,12 @@ import {
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  checkoutSubscriptionRaw,
+  fetchBillingSummaryRaw,
+  fetchCurrentSubscriptionRaw,
+  fetchSubscriptionPlansRaw,
+} from "@/features/payments/api/payments-gateway";
 import {
   getFawryCode,
   resolvePaymentAction,
@@ -216,8 +220,8 @@ export default function SubscriptionPlans() {
     async function fetchPlans() {
       try {
         const [plansRes, currentRes, summaryRes] = await Promise.allSettled([
-          apiClient.get<Plan[] | { plans?: Plan[] }>(apiRoutes.subscriptions.plans),          apiClient.get<unknown>(apiRoutes.subscriptions.current),
-          apiClient.get<unknown>(apiRoutes.users.billingSummary),
+          fetchSubscriptionPlansRaw<Plan[] | { plans?: Plan[] }>(),          fetchCurrentSubscriptionRaw(),
+          fetchBillingSummaryRaw<unknown>(),
         ]);
         if (plansRes.status === "fulfilled") {
           const data = plansRes.value;
@@ -295,14 +299,14 @@ export default function SubscriptionPlans() {
     if (!selectedPlanData) return;
     setProcessing(true);
     try {
-      const data = await apiClient.post<{
+      const data = await checkoutSubscriptionRaw<{
         success?: boolean;
         iframeId?: string;
         paymentKey?: string;
         redirectUrl?: string;
         fawryCode?: string;
         billReference?: string;
-      }>(apiRoutes.subscriptions.checkout, {
+      }>({
         planId: selectedPlanData.id,
         billingCycle,
         paymentMethod,

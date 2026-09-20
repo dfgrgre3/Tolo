@@ -12,6 +12,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { SITE, CONTACT } from "@thanawy/shared/site-config";
+import { toSafeJsonLd } from "@/lib/security/json-ld";
 
 export const metadata: Metadata = {
   title: `الأسئلة الشائعة | ${SITE.name}`,
@@ -147,7 +148,7 @@ export default async function FaqPage() {
       <script
         type="application/ld+json"
         nonce={nonce}
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: toSafeJsonLd(faqSchema) }}
       />
 
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -182,7 +183,7 @@ export default async function FaqPage() {
             <section
               key={group.id}
               id={group.id}
-              className="scroll-mt-24 rounded-2xl border border-border bg-card/40 p-6 sm:p-8"
+              className="scroll-mt-24 py-8 sm:py-10 border-t border-border"
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0">
@@ -195,7 +196,7 @@ export default async function FaqPage() {
                 {group.items.map((item) => (
                   <details
                     key={item.q}
-                    className="group rounded-xl border border-border bg-background/50 open:border-primary/30"
+                    className="group border-t border-border"
                   >
                     <summary className="flex items-center gap-3 cursor-pointer list-none p-4 sm:p-5 font-bold text-sm sm:text-base [&::-webkit-details-marker]:hidden">
                       <ChevronDown className="w-5 h-5 text-primary shrink-0 group-open:rotate-180 transition-transform" />
@@ -212,7 +213,7 @@ export default async function FaqPage() {
         </div>
 
         {/* ========== STILL NEED HELP ========== */}
-        <div className="mt-12 lg:mt-16 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-8 sm:p-10 text-center">
+        <div className="mt-12 lg:mt-16 py-10 sm:py-12 border-t border-border text-center">
           <div className="p-3 rounded-xl bg-primary/20 border border-primary/30 text-primary w-fit mx-auto mb-4">
             <MessageSquare className="w-8 h-8" />
           </div>
@@ -234,7 +235,7 @@ export default async function FaqPage() {
             </Link>
             <Link
               href="/forum"
-              className="inline-flex items-center gap-2 px-8 py-4 border border-border bg-card font-bold rounded-2xl hover:border-primary/30 transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-4 border border-border font-bold rounded-2xl"
             >
               <MessageSquare className="w-4 h-4" />
               اسأل في المنتدى

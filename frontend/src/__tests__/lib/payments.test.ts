@@ -11,11 +11,27 @@ describe("resolvePaymentAction", () => {
   it("يفضل رابط التحويل الصريح مهما كانت الطريقة", () => {
     expect(
       resolvePaymentAction("card", {
+        redirectUrl: "https://egypt.paymob.com/api/acceptance/iframes/123?payment_token=k",
+        paymentKey: "k",
+        iframeId: "123",
+      }),
+    ).toEqual({
+      kind: "redirect",
+      url: "https://egypt.paymob.com/api/acceptance/iframes/123?payment_token=k",
+    });
+  });
+
+  it("يرفض رابط تحويل خارج allowlist ويسقط لبقية المنطق", () => {
+    expect(
+      resolvePaymentAction("card", {
         redirectUrl: "https://pay.example/r/1",
         paymentKey: "k",
         iframeId: "123",
       }),
-    ).toEqual({ kind: "redirect", url: "https://pay.example/r/1" });
+    ).toEqual({
+      kind: "iframe",
+      url: buildCardIframeUrl("123", "k"),
+    });
   });
 
   it("يبني رابط iframe البطاقة من الدومين الموحد", () => {

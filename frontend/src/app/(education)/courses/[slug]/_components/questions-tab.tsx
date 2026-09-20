@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Question } from "./types";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  answerCourseQuestionRaw,
+  createCourseQuestionRaw,
+  fetchCourseQuestionsRaw,
+} from "@/features/courses/api/courses-gateway";
 
 export function QuestionsTab({
   courseId,
@@ -32,7 +35,7 @@ export function QuestionsTab({
     setLoading(true);
     setError(null);
     try {
-      const payload = await apiClient.get<{ questions: Question[] }>(apiRoutes.courses.questions(courseId));
+      const payload = await fetchCourseQuestionsRaw<{ questions: Question[] }>(courseId);
       setQuestions(payload.questions);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "تعذر تحميل الأسئلة");
@@ -53,7 +56,7 @@ export function QuestionsTab({
     }
     setSubmittingQuestion(true);
     try {
-      await apiClient.postJson(apiRoutes.courses.questions(courseId), { title: newTitle, body: newBody || undefined });
+      await createCourseQuestionRaw(courseId, { title: newTitle, body: newBody || undefined });
       toast.success("تم إرسال سؤالك");
       setNewTitle("");
       setNewBody("");
@@ -73,7 +76,7 @@ export function QuestionsTab({
     }
     setSubmittingAnswers((prev) => ({ ...prev, [questionId]: true }));
     try {
-      await apiClient.postJson(apiRoutes.courses.questionAnswers(questionId), { body });
+      await answerCourseQuestionRaw(questionId, body);
       toast.success("تم إرسال ردك");
       setAnswerInputs((prev) => ({ ...prev, [questionId]: "" }));
       fetchQuestions();

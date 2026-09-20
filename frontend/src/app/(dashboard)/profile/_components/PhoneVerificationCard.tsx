@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Phone, ShieldCheck } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  sendPhoneCode,
+  verifyPhoneCode,
+} from "@/features/auth/api";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useProfileData } from "./useProfileData";
 
@@ -27,7 +30,7 @@ export default function PhoneVerificationCard() {
   async function sendCode() {
     setPending(true);
     try {
-      await apiClient.post(apiRoutes.auth.phone.sendCode, { phone: phone.trim() });
+      await sendPhoneCode(phone);
       setSent(true);
       toast.success("تم إرسال رمز التحقق إلى هاتفك");
     } catch (error) {
@@ -38,7 +41,7 @@ export default function PhoneVerificationCard() {
   async function verify() {
     setPending(true);
     try {
-      await apiClient.post(apiRoutes.auth.phone.verify, { code: code.trim() });
+      await verifyPhoneCode(code);
       await refreshUser();
       refetch();
       setSent(false);

@@ -5,8 +5,11 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileJson, Loader2 } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  fetchExportStatus,
+  startDataExport,
+} from "@/features/auth/api";
 
 /**
  * `POST /api/settings/privacy/actions` with `{action:"export-data"}` returns
@@ -25,11 +28,9 @@ export default function DataExportCard() {
   async function handleExport() {
     setIsExporting(true);
     try {
-      const job = await apiClient.post<ExportJobResponse>(apiRoutes.settings.privacyActions, {
-        action: "export-data",
-      });
+      const job = await startDataExport<ExportJobResponse>();
       const poll = async (): Promise<void> => {
-        const status = await apiClient.get<ExportStatusResponse>(apiRoutes.settings.exportJobStatus(job.jobId));
+        const status = await fetchExportStatus<ExportStatusResponse>(job.jobId);
         if (status.status === "COMPLETED") {
           // The one-time download URL is authenticated and expires server-side.
           window.location.assign(job.downloadUrl);

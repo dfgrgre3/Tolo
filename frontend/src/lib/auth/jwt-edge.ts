@@ -1,6 +1,7 @@
 import { jwtVerify, importSPKI } from "jose";
 import type { NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
+import { logger } from "@/lib/logger";
 import { getBackendApiUrl } from "@/lib/api/backend-url";
 import {
   canUseLegacyJwtSecret,
@@ -157,7 +158,7 @@ async function getKey(): Promise<VerifyKey | null> {
         } catch {
           // Fall through to a closed verification result.
         }
-        console.error(
+        logger.error(
           "[jwt-edge] JWT_PUBLIC_KEY is set but could not be imported as RS256. " +
           "Check that the PEM is a valid SubjectPublicKeyInfo."
         );
@@ -177,7 +178,7 @@ async function getKey(): Promise<VerifyKey | null> {
   const secret = allowLegacySecret ? process.env.JWT_SECRET : undefined;
   if (secret) {
     if (IS_PRODUCTION) {
-      console.error(
+      logger.error(
         "[jwt-edge] JWT_SECRET is forbidden in production. Use JWT_PUBLIC_KEY for asymmetric verification."
       );
       return null;
@@ -211,7 +212,7 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
       const message =
         "[jwt-edge] No JWT verification key configured — rejecting every access token (fail-closed). " +
         "Set JWT_PUBLIC_KEY (asymmetric) for edge verification.";
-      console.error(message);
+      logger.error(message);
       Sentry.captureMessage(message, { level: "error", tags: { source: "jwt-edge:config" } });
     }
     return null;
@@ -224,7 +225,7 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
       loggedMissingClaims = true;
       const message =
         "[jwt-edge] JWT_EXPECTED_ISSUER and JWT_EXPECTED_AUDIENCE are required in production.";
-      console.error(message);
+      logger.error(message);
       Sentry.captureMessage(message, { level: "error", tags: { source: "jwt-edge:config" } });
     }
     return null;

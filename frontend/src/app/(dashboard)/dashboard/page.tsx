@@ -1,14 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchMyCoursesRaw } from "@/features/courses/api/courses-gateway";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Sword, Shield, Target, LayoutDashboard, ChevronRight
 } from "lucide-react";
-import dynamic from "next/dynamic";import { useGamification } from "@/hooks/use-gamification";
+import dynamic from "next/dynamic";import { useGamification } from "@/features/gamification";
 import { logger } from '@/lib/logger';
 
 // --- Dynamic Component Imports ---
@@ -51,7 +50,7 @@ export default function DashboardPage() {
       if (!user) return;
       try {
         setIsDataLoading(true);
-        const data = await apiClient.get<{ items?: typeof lastCourse[] }>(`${apiRoutes.subjects.myCourses}?limit=1`);
+        const data = await fetchMyCoursesRaw<{ items?: typeof lastCourse[] }>("?limit=1");
         const courses = data.items || [];
         const [firstCourse] = courses;
         if (firstCourse) setLastCourse(firstCourse);
@@ -78,7 +77,7 @@ export default function DashboardPage() {
     );
   }
 
-  const displayName = user?.name || user?.username || user?.email?.split("@")[0] || "يا بطل";
+  const displayName = user?.name || user?.username || user?.email?.split("@")[0] || "ÙŠØ§ Ø¨Ø·Ù„";
   const userLevel = userProgress?.level || 1;
   const userXP = userProgress?.totalXP || 0;
   const nextLevelXP = userLevel * 1000;
@@ -119,8 +118,8 @@ export default function DashboardPage() {
                   <Shield className="h-8 w-8" />
                 </div>
                 <div className="flex-1 text-center sm:text-start">
-                  <p className="font-black text-2xl tracking-tight">تفعيل البريد الإلكتروني (إجباري)</p>
-                  <p className="text-sm text-amber-500/80 font-medium">أمان حسابك يبدأ من هنا. تفقد بريدك واضغط على الرابط لتفادي حظر الميزات المتقدمة.</p>
+                  <p className="font-black text-2xl tracking-tight">ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ (Ø¥Ø¬Ø¨Ø§Ø±ÙŠ)</p>
+                  <p className="text-sm text-amber-500/80 font-medium">Ø£Ù…Ø§Ù† Ø­Ø³Ø§Ø¨Ùƒ ÙŠØ¨Ø¯Ø£ Ù…Ù† Ù‡Ù†Ø§. ØªÙÙ‚Ø¯ Ø¨Ø±ÙŠØ¯Ùƒ ÙˆØ§Ø¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø§Ø¨Ø· Ù„ØªÙØ§Ø¯ÙŠ Ø­Ø¸Ø± Ø§Ù„Ù…ÙŠØ²Ø§Øª Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø©.</p>
                 </div>
               </div>
             )}
@@ -134,10 +133,10 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-black flex items-center gap-4">
                 <Sword className="text-primary w-8 h-8" />
-                <span>قائمة العمليات</span>
+                <span>Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª</span>
               </h2>
               <Link href="/all-features" className="text-sm text-gray-500 hover:text-primary flex items-center gap-1 font-bold group">
-                عرض كل الميزات
+                Ø¹Ø±Ø¶ ÙƒÙ„ Ø§Ù„Ù…ÙŠØ²Ø§Øª
                 <ChevronRight className="w-4 h-4 rtl:rotate-180 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -148,7 +147,7 @@ export default function DashboardPage() {
             <div className="space-y-6 pt-4">
               <h2 className="text-3xl font-black flex items-center gap-4">
                 <Target className="text-orange-500 w-8 h-8" />
-                <span>المهمة الجارية</span>
+                <span>Ø§Ù„Ù…Ù‡Ù…Ø© Ø§Ù„Ø¬Ø§Ø±ÙŠØ©</span>
               </h2>
               <QuestCard />
             </div>
@@ -162,7 +161,7 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <h2 className="text-2xl font-black flex items-center gap-3">
                 <Shield className="text-primary w-6 h-6" />
-                <span>سجل الميدان</span>
+                <span>Ø³Ø¬Ù„ Ø§Ù„Ù…ÙŠØ¯Ø§Ù†</span>
               </h2>
               <RecentActivitySidebar recentActivities={recentActivities} glassStyle={STYLES.glass} />
             </div>

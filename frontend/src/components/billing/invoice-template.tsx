@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { format } from "date-fns";
 
 import Image from "next/image";
-import { qrcodegen } from "@/lib/qr/qrcodegen";
+import { create as createQrCode } from "qrcode";
 
 interface InvoiceData {
   paymentId: string;
@@ -22,16 +22,18 @@ interface InvoiceData {
   paymentMethod: string;
 }
 
-/* رمز QR للتحقق — يُرسم محلياً بمربعات عادية (بدون أي مكتبة خارجية)
-   حتى يعمل مع Turbopack ويُلتقط بشكل مثالي عند تصدير PDF. */
+/* رمز QR للتحقق — عبر حزمة `qrcode` (B-11: بدل الملف المورّد المحذوف
+   lib/qr/qrcodegen.ts). المصفوفة تُرسم بمربعات عادية كما قبل تمامًا. */
 function InvoiceQr({ value }: { value: string }) {
   const modules = useMemo(() => {
     try {
-      const qr = qrcodegen.QrCode.encodeText(value, qrcodegen.QrCode.Ecc.MEDIUM);
+      // NOTE: BitMatrix.get(row, col) — الصف أولًا، عكس getModule(x,y) القديمة.
+      const qr = createQrCode(value, { errorCorrectionLevel: "M" });
+      const n = qr.modules.size;
       const rows: boolean[][] = [];
-      for (let y = 0; y < qr.size; y++) {
+      for (let y = 0; y < n; y++) {
         const row: boolean[] = [];
-        for (let x = 0; x < qr.size; x++) row.push(qr.getModule(x, y));
+        for (let x = 0; x < n; x++) row.push(qr.modules.get(y, x) === 1);
         rows.push(row);
       }
       return rows;

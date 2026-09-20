@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -12,7 +13,7 @@ interface ErrorProps {
 export default function TeachingError({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Teaching Module Error:", error);
+    logger.error("Teaching Module Error:", error);
   }, [error]);
 
   return (

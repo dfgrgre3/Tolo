@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Camera, Loader2, X } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { useAuthContext } from "@/contexts/auth-context";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  clearAvatar,
+  deleteUploadedFile,
+  setAvatar,
+} from "@/features/auth/api";
 import { useProfileData } from "./useProfileData";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -42,12 +46,12 @@ export default function AvatarUploader() {
     }
 
     try {
-      await apiClient.patch(apiRoutes.users.profile, { avatar: result.publicUrl });
+      await setAvatar(result.publicUrl);
       await Promise.all([refreshUser(), refetchProfile()]);
       toast.success("تم تحديث صورتك الشخصية");
     } catch (err) {
       try {
-        await apiClient.delete(apiRoutes.upload.delete, { body: JSON.stringify({ fileKey: result.path }) });
+        await deleteUploadedFile(result.path);
       } catch {
         // Best-effort cleanup of the staged object.
       }
@@ -61,7 +65,7 @@ export default function AvatarUploader() {
       // The profile PATCH contract uses a pointer field. Sending JSON null is
       // indistinguishable from an omitted field after Go unmarshalling, so an
       // empty string is the explicit "clear avatar" value.
-      await apiClient.patch(apiRoutes.users.profile, { avatar: "" });
+      await clearAvatar();
       await Promise.all([refreshUser(), refetchProfile()]);
       toast.success("تم حذف الصورة الشخصية");
     } catch (err) {

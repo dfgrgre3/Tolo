@@ -1,10 +1,13 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare, BookOpen, Atom, FlaskConical, PenLine } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import {
+  deleteAiConversationRaw,
+  fetchAiConversationRaw,
+  fetchAiConversationsRaw,
+} from '@/lib/ai/ai-client';
 import { SafeMarkdown } from '@/components/SafeMarkdown';
 import type { Components } from 'react-markdown';
 import { useTokenStreamBuffer } from '@/app/(common)/hooks/useTokenStreamBuffer';
@@ -34,10 +37,10 @@ interface AIAssistantProps {
 }
 
 const quickSuggestions = [
-  { icon: '📐', text: 'اشرح لي نظرية فيثاغورس', category: 'رياضيات' },
-  { icon: '🔬', text: 'ما هي قوانين نيوتن الثلاثة؟', category: 'فيزياء' },
-  { icon: '🧪', text: 'اشرح التفاعلات الكيميائية', category: 'كيمياء' },
-  { icon: '📝', text: 'ساعدني في كتابة تعبير', category: 'عربي' },
+  { icon: BookOpen, text: 'اشرح لي نظرية فيثاغورس بأمثلة', category: 'رياضيات' },
+  { icon: Atom, text: 'ما هي قوانين نيوتن الثلاثة؟', category: 'فيزياء' },
+  { icon: FlaskConical, text: 'اشرح التفاعلات الكيميائية ببساطة', category: 'كيمياء' },
+  { icon: PenLine, text: 'ساعدني في كتابة موضوع تعبير', category: 'اللغة العربية' },
 ];
 
 export default function AIAssistant({
@@ -108,7 +111,7 @@ export default function AIAssistant({
   const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
     try {
-      const data = await apiClient.get<{ conversations?: Conversation[] }>(apiRoutes.ai.conversations);
+      const data = await fetchAiConversationsRaw<{ conversations?: Conversation[] }>();
       setConversations(data?.conversations || []);
     } catch (error) {
       logger.error('Failed to load conversations:', error);
@@ -125,7 +128,7 @@ export default function AIAssistant({
 
   const loadConversation = async (convId: string) => {
     try {
-      const payload = await apiClient.get<{ messages?: { role: 'user' | 'assistant'; content: string; createdAt: string; id?: string }[] }>(apiRoutes.ai.conversation(convId));
+      const payload = await fetchAiConversationRaw<{ messages?: { role: 'user' | 'assistant'; content: string; createdAt: string; id?: string }[] }>(convId);
       const loadedMessages: Message[] = payload.messages?.map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -146,7 +149,7 @@ export default function AIAssistant({
     if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟')) return;
 
     try {
-      await apiClient.delete(apiRoutes.ai.deleteConversation(convId));
+      await deleteAiConversationRaw(convId);
       setConversations(conversations.filter(c => c.id !== convId));
       if (conversationId === convId) {
         startNewConversation();
@@ -157,9 +160,46 @@ export default function AIAssistant({
   };
 
   const startNewConversation = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
     setMessages([{ role: 'assistant', content: initialMessage, timestamp: new Date() }]);
     setConversationId(null);
     setShowSidebar(false);
+    setIsLoading(false);
+    setIsStreaming(false);
+  };
+
+  const stopStreaming = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    flush();
+    setIsLoading(false);
+    setIsStreaming(false);
+  };
+
+  const exportChat = () => {
+    const text = messages.map((m) => `${m.role === 'user' ? 'الطالب' : 'المساعد'} [${formatTime(m.timestamp)}]:\n${m.content}`).join('\n\n---\n\n');
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `محادثة-${conversationId ?? 'جديدة'}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const retryLast = async () => {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    if (!lastUser || isLoading || isStreaming) return;
+    setMessages((prev) => {
+      const copy = [...prev];
+      if (copy.length > 0 && copy[copy.length - 1]?.role === 'assistant') copy.pop();
+      return copy;
+    });
+    setInput(lastUser.content);
+    if (textareaRef.current) textareaRef.current.focus();
   };
 
   const handleStreamPayload = (data: string) => {
@@ -318,13 +358,13 @@ export default function AIAssistant({
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
 
   return (
-    <div className={`bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl flex h-full overflow-hidden ${className}`}>
+    <div className={`overflow-hidden rounded-3xl border border-border bg-card shadow-sm flex h-[720px] max-h-[80vh] min-h-[540px] ${className}`}>
       {showSidebar && (
-        <div className="w-72 border-l border-white/10 flex flex-col bg-black/80 backdrop-blur-xl">
-          <div className="p-4 border-b border-white/10">
+        <div className="w-72 shrink-0 border-l border-border flex flex-col bg-muted/40">
+          <div className="border-b border-border p-4">
             <button
               onClick={startNewConversation}
-              className="w-full flex items-center justify-center gap-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary rounded-xl px-4 py-3 transition-all font-bold"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 font-bold text-primary transition-all hover:bg-primary/20"
             >
               <Plus className="h-4 w-4" />
               <span>محادثة جديدة</span>
@@ -332,29 +372,30 @@ export default function AIAssistant({
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {isLoadingConversations ? (
-              <div className="text-center text-gray-500 py-8">
+              <div className="py-8 text-center text-muted-foreground">
                 <div className="animate-pulse">جاري التحميل...</div>
               </div>
             ) : conversations.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <div className="py-8 text-center text-muted-foreground">
+                <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p className="text-sm">لا توجد محادثات سابقة</p>
+                <p className="mt-1 text-[11px]">ابدأ سؤالك وستُحفظ محادثتك هنا تلقائياً</p>
               </div>
             ) : (
               conversations.map((conv) => (
                 <div
                   key={conv.id}
                   onClick={() => loadConversation(conv.id)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all group ${
+                  className={`cursor-pointer rounded-xl border p-3 transition-all group ${
                     conversationId === conv.id
-                      ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                      ? 'border-primary/30 bg-primary/10'
+                      : 'border-transparent bg-muted/50 hover:bg-muted hover:border-border'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{conv.title || 'محادثة'}</div>
-                      <div className="text-xs text-gray-500 mt-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-foreground">{conv.title || 'محادثة'}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
                         {formatDate(conv.updatedAt)}
                         {conv._count && conv._count.messages > 0 && (
                           <span className="me-2">({conv._count.messages} رسالة)</span>
@@ -363,7 +404,7 @@ export default function AIAssistant({
                     </div>
                     <button
                       onClick={(e) => deleteConversation(conv.id, e)}
-                      className="text-red-400/50 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="p-1 text-destructive/60 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
                       title="حذف المحادثة"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -376,27 +417,36 @@ export default function AIAssistant({
         </div>
       )}
 
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/40">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSidebar(!showSidebar)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
               title="المحادثات السابقة"
             >
-              <Menu className="h-5 w-5 text-gray-400" />
+              <Menu className="h-5 w-5 text-muted-foreground" />
             </button>
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/30 blur-lg rounded-full" />
-              <div className="relative p-2 bg-primary/20 rounded-lg border border-primary/30">
+              <div className="relative p-2 bg-primary/10 rounded-lg border border-primary/20">
                 <Bot className="h-5 w-5 text-primary" />
               </div>
             </div>
-            <h3 className="font-bold text-lg text-white">{title}</h3>
+            <h3 className="font-bold text-lg text-foreground">{title}</h3>
           </div>
-          <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
-            <Zap className="h-3 w-3" />
-            <span>المساعد الذكي الموحد</span>
+          <div className="flex items-center gap-2">
+            <button onClick={retryLast} disabled={isLoading || isStreaming} className="hidden sm:flex items-center gap-1.5 text-xs bg-muted text-muted-foreground px-3 py-1.5 rounded-full border border-border hover:text-foreground disabled:opacity-50" title="إعادة توليد آخر رد">
+              <Sparkles className="h-3 w-3" />
+              <span>إعادة التوليد</span>
+            </button>
+            <button onClick={exportChat} className="hidden sm:flex items-center gap-1.5 text-xs bg-muted text-muted-foreground px-3 py-1.5 rounded-full border border-border hover:text-foreground" title="تنزيل المحادثة">
+              <Copy className="h-3 w-3" />
+              <span>تصدير</span>
+            </button>
+            <div className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/30">
+              <Zap className="h-3 w-3" />
+              <span>مساعد المذاكرة</span>
+            </div>
           </div>
         </div>
 
@@ -416,25 +466,25 @@ export default function AIAssistant({
                 <div
                   className={`max-w-[85%] rounded-2xl px-5 py-4 ${
                     message.role === 'user'
-                      ? 'bg-primary text-white rounded-tr-md'
-                      : 'bg-white/5 border border-white/10 text-gray-200 rounded-tl-md'
+                      ? 'bg-primary text-primary-foreground rounded-tr-md'
+                      : 'bg-muted border border-border text-foreground rounded-tl-md'
                   }`}
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-sm max-w-none">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
                       <SafeMarkdown
                         components={{
                           code: ({ className, children, ...props }) => {
                             const isInline = !className && typeof children === 'string' && !children?.toString().includes('\n');
                             if (isInline) {
                               return (
-                                <code className="bg-white/10 px-1.5 py-0.5 rounded text-sm" {...props}>
+                                <code className="rounded bg-muted px-1.5 py-0.5 text-sm text-foreground" {...props}>
                                   {children}
                                 </code>
                               );
                             }
                             return (
-                              <code className="block bg-black/40 p-3 rounded-lg text-sm overflow-x-auto" {...props}>
+                              <code dir="ltr" className="block overflow-x-auto rounded-lg bg-muted p-3 text-left text-sm" {...props}>
                                 {children}
                               </code>
                             );
@@ -443,7 +493,7 @@ export default function AIAssistant({
                           ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
                           li: ({ children }) => <li className="text-sm">{children}</li>,
-                          strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                          strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
                         } satisfies Components}
                       >
                         {message.content}
@@ -453,15 +503,15 @@ export default function AIAssistant({
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</div>
                   )}
                   <div className={`flex items-center justify-between mt-3 pt-2 border-t ${
-                    message.role === 'user' ? 'border-white/20' : 'border-white/5'
+                    message.role === 'user' ? 'border-primary-foreground/20' : 'border-border'
                   }`}>
-                    <span className={`text-xs ${message.role === 'user' ? 'text-white/60' : 'text-gray-500'}`}>
+                    <span className={`text-xs ${message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                       {formatTime(message.timestamp)}
                     </span>
                     {message.role === 'assistant' && message.content && (
                       <button
                         onClick={() => copyToClipboard(message.content, msgId)}
-                        className="text-gray-500 hover:text-white transition-colors p-1"
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
                         title="نسخ"
                       >
                         {copiedId === msgId ? (
@@ -474,8 +524,8 @@ export default function AIAssistant({
                   </div>
                 </div>
                 {message.role === 'user' && (
-                  <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary">
+                    <User className="h-4 w-4 text-primary-foreground" />
                   </div>
                 )}
               </div>
@@ -486,14 +536,14 @@ export default function AIAssistant({
               <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
                 <Bot className="h-4 w-4 text-primary" />
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-md px-5 py-4">
+              <div className="bg-muted border border-border rounded-2xl rounded-tl-md px-5 py-4">
                 <div className="flex items-center gap-2">
                   <div className="flex space-x-1.5">
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-xs text-gray-500 me-2">جاري التفكير...</span>
+                  <span className="text-xs text-muted-foreground me-2">جاري التفكير... يمكنك الضغط على إيقاف</span>
                 </div>
               </div>
             </div>
@@ -505,51 +555,67 @@ export default function AIAssistant({
           <div className="px-4 sm:px-6 pb-4">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">اقتراحات سريعة</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">اقتراحات سريعة</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {quickSuggestions.map((suggestion, idx) => (
+              {quickSuggestions.map((suggestion, idx) => {
+                const SuggestionIcon = suggestion.icon;
+                return (
                 <button
                   key={idx}
                   onClick={() => handleSuggestionClick(suggestion.text)}
                   disabled={isLoading || isStreaming}
-                  className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/30 rounded-xl transition-all text-start disabled:opacity-50 group"
+                  className="flex items-center gap-3 p-3 bg-muted/60 hover:bg-muted border border-border hover:border-primary/30 rounded-xl transition-all text-start disabled:opacity-50 group"
                 >
-                  <span className="text-xl">{suggestion.icon}</span>
+                  <span className="rounded-lg bg-primary/10 border border-primary/20 p-2"><SuggestionIcon className="h-5 w-5 text-primary" /></span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-gray-300 group-hover:text-white truncate">{suggestion.text}</div>
-                    <div className="text-[10px] text-gray-500">{suggestion.category}</div>
+                    <div className="text-sm text-foreground truncate">{suggestion.text}</div>
+                    <div className="text-[10px] text-muted-foreground">{suggestion.category}</div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-4 border-t border-white/10 bg-black/40">
+        <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-muted/40">
           <div className="flex gap-3 items-end">
             <div className="flex-1 relative">
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => setInput(e.target.value.slice(0, 4000))}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 rows={1}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none text-sm transition-all"
+                className="w-full bg-background border border-border rounded-2xl px-5 py-3.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 resize-none text-sm transition-all"
                 disabled={isLoading || isStreaming}
               />
+              <span className="pointer-events-none absolute bottom-2 end-4 text-[10px] text-muted-foreground">{input.length}/4000</span>
             </div>
-            <button
-              type="submit"
-              className="bg-primary hover:bg-primary/90 text-black rounded-xl p-3.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex-shrink-0"
-              disabled={isLoading || isStreaming || !input.trim()}
-            >
-              <Send className="h-5 w-5" />
-            </button>
+            {(isLoading || isStreaming) ? (
+              <button
+                type="button"
+                onClick={stopStreaming}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl px-4 py-3.5 transition-all text-sm font-bold flex-shrink-0"
+              >
+                إيقاف
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl p-3.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 flex-shrink-0"
+                disabled={!input.trim()}
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            )}
           </div>
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">Enter للإرسال • Shift+Enter لسطر جديد • المحادثات تُحفظ في حسابك</p>
         </form>
       </div>
     </div>
   );
 }
+

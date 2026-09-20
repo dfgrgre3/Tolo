@@ -6,8 +6,7 @@ import { useAuthContext } from "@/contexts/auth-context";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Loader2, MailCheck, ShieldAlert } from "lucide-react";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { resendVerificationEmail } from "@/features/auth/api";
 
 /**
  * Renders a dismissable banner when the signed-in user has an unverified
@@ -30,7 +29,7 @@ export default function AccountVerificationAlert() {
   async function resend() {
     setIsSending(true);
     try {
-      await apiClient.post(apiRoutes.auth.resendVerification, {});
+      await resendVerificationEmail();
       setSent(true);
       toast.success("أرسلنا رمز التأكيد إلى بريدك الإلكتروني");
     } catch {

@@ -10,12 +10,25 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
+        // Advisory layer only — enforcement is X-Robots-Tag in
+        // next.config.js. Keep the two lists in sync.
         disallow: [
           '/admin/',
           '/api/',
           '/dashboard/',
           '/billing/',
           '/subscription/',
+          '/jobs/',
+          '/employer/',
+          '/teaching/',
+          '/profile/',
+          '/learning/',
+          '/cart/',
+          '/wishlist/',
+          '/chat/',
+          '/support/tickets/',
+          '/courses/*/checkout/',
+          '/courses/*/learn/',
         ],
       },
       {

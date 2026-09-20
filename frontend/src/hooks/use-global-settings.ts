@@ -13,8 +13,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/use-auth';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import { fetchUserSettingsPreferencesRaw } from '@/lib/settings-preferences';
 
 import { logger } from '@/lib/logger';
 import type { SettingsPreferences } from '@/types/user-ui-preferences';
@@ -167,7 +166,7 @@ export function useGlobalSettings() {
     if (!user?.id) return;
 
     try {
-      const response = await apiClient.get<SettingsPayload>(apiRoutes.settings.preferences);
+      const response = await fetchUserSettingsPreferencesRaw<SettingsPayload>();
       const preferences = response?.preferences || response;
 
       if (!preferences) return;

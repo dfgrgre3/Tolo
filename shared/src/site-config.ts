@@ -40,6 +40,9 @@ export const LEGAL = {
   companyNameEn: "Thanawy Online Educational Platform",
   taxId: "٣١٢-٤٥٦-٧٨٩",
   commercialReg: "١٢٣٤٥٦٧٨٩٠",
+  // سياسة صريحة: نطاق التحقق القديم thanawy.online مقصود ومُبقى عمدًا حتى
+  // تظل الفواتير والشهادات الصادرة سابقًا (QR) قابلة للتحقق. أي إصدار جديد
+  // يجب أن يستخدم SITE.url، ولا يُحذف هذا النطاق قبل ترحيل المحفوظات.
   verificationBaseUrl: "https://thanawy.online/verify",
 } as const;
 

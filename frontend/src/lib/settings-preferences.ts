@@ -22,6 +22,17 @@ type PreferencesResponse = {
 
 type SettingsRecord = Record<string, unknown>;
 
+// ─── مرايا النقل الخام لقراء الإعدادات (F-018) ───────────────────────
+// 1:1 mirrors of pre-existing UI call sites (same route + options).
+
+export function fetchUserSettingsPreferencesRaw<T>(): Promise<T> {
+  return apiClient.get<T>(apiRoutes.settings.preferences);
+}
+
+export function fetchSystemSettingsRaw<T>(options?: { timeout?: number }): Promise<T> {
+  return apiClient.get<T>("/settings", options);
+}
+
 function asSettingsRecord(value: unknown): SettingsRecord | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as SettingsRecord

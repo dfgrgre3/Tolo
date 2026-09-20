@@ -8,8 +8,7 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchCommunityUsersRaw } from "@/features/community/api/community-gateway";
 
 type DirectoryUser = {
   id: string;
@@ -39,7 +38,7 @@ export default function NewChatPage() {
       try {
         // Session-scoped directory: the backend excludes the caller based on
         // the JWT, so no userId is sent (IDOR/BOLA hardening).
-        const payload = await apiClient.get<unknown>(apiRoutes.community.users);
+        const payload = await fetchCommunityUsersRaw();
         const data = unwrap<DirectoryUser[]>(payload);
         setUsers(Array.isArray(data) ? data : []);
       } catch (error) {

@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
 import { CallerAbortError } from "@/lib/api/retry-policy";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { fetchProgressSummaryRaw } from "@/features/gamification/api/gamification-gateway";
 
 /**
  * Shared by the overview tab and the learning tab — both used to carry
@@ -36,8 +36,7 @@ export function useProgressSummary() {
 
   useEffect(() => {
     const controller = new AbortController();
-    apiClient
-      .get<ProgressSummary>(apiRoutes.progress.summary, { signal: controller.signal })
+    fetchProgressSummaryRaw<ProgressSummary>({ signal: controller.signal })
       .then((data) => {
         setSummary(data);
         setError(null);

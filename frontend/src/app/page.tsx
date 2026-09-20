@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import HomePage from "@/app/components/home/HomePage";
+import { SITE } from "@thanawy/shared/site-config";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -23,10 +24,10 @@ export const metadata: Metadata = {
     description: "منصة تعليمية عربية متكاملة لتعلم المهارات الحديثة على يد خبراء ومدربين مؤهلين.",
     type: "website",
     locale: "ar_EG",
-    url: "https://tanthawy.com",
+    url: SITE.url,
     images: [
       {
-        url: "https://tanthawy.com/og-image.jpg",
+        url: `${SITE.url}${SITE.logo}`,
         width: 1200,
         height: 630,
         alt: "منصة ثنائي التعليمية",

@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { SITE } from "@thanawy/shared/site-config";
 import BlogClient from "./blog-client";
 import type { BlogPost, BlogCategory } from "./blog-client";
-import { apiClient } from "@/lib/api/api-client";
+import {
+  fetchBlogCategoriesRaw,
+  fetchBlogPostsRaw,
+} from "@/features/community/api/community-gateway";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
@@ -73,18 +76,16 @@ function mapBlogPost(item: unknown): BlogPost | null {
   };
 }
 
-// نستخدم apiClient بدلاً من fetch الخام لأنه على الخادم لا يوجد مسار نسبي
-// للمتصفح (/api/...) — apiClient يحوّل العنوان إلى العنوان المطلق للـ API
-// الداخلي (INTERNAL_API_URL) تلقائياً. أي فشل هنا يُرجع undefined فتتكفل
-// الواجهة بالجلب البديل من المتصفح. هذه بيانات عامة فقط (تدوينات وتصنيفات)
-// أما بيانات المستخدم (userId) فتبقى تُجلب في المتصفح حصراً.
+// النقل عبر بوابة المجتمع (transport boundary) — أي فشل هنا يُرجع
+// undefined فتتكفل الواجهة بالجلب البديل من المتصفح. هذه بيانات عامة فقط
+// (تدوينات وتصنيفات) أما بيانات المستخدم (userId) فتبقى تُجلب في المتصفح حصراً.
 async function fetchBlogData(): Promise<{
   posts?: BlogPost[];
   categories?: BlogCategory[];
 }> {
   const [postsResult, categoriesResult] = await Promise.allSettled([
-    apiClient.get<unknown>("/blog/posts"),
-    apiClient.get<unknown>("/blog/categories"),
+    fetchBlogPostsRaw(),
+    fetchBlogCategoriesRaw(),
   ]);
 
   let posts: BlogPost[] | undefined;

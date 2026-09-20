@@ -18,8 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trash2 } from "lucide-react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { deleteAccount } from "@/features/auth/api";
 import { useAuthContext } from "@/contexts/auth-context";
 
 const DELETE_CONFIRMATION_WORD = "DELETE";
@@ -53,9 +53,7 @@ export default function DangerZoneSection() {
     setError(null);
     setIsDeleting(true);
     try {
-      await apiClient.delete(apiRoutes.auth.deleteAccount, {
-        body: JSON.stringify({ password, confirmation }),
-      });
+      await deleteAccount(password, confirmation);
       toast.success("تم حذف الحساب");
       await logout();
     } catch (err) {

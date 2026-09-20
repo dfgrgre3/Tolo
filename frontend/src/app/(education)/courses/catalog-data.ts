@@ -2,7 +2,10 @@
  * تجميع بيانات كتالوج الدورات — خالص (لا React) ليعمل على الخادم
  * (في صفحة /courses كـ Server Component) وفي المتصفح (خطة بديلة عند فشل التجمع).
  */
-import { apiClient } from "@/lib/api/api-client";
+import {
+  fetchCatalogPageRaw,
+  fetchCategoriesRaw,
+} from "@/features/courses/api/courses-gateway";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 import type { CourseLevel, CourseSummary, CourseCategory } from "./_components/types";
@@ -143,8 +146,8 @@ export interface CatalogLoadResult {
 
 export async function fetchCoursesCatalog(): Promise<CatalogLoadResult> {
   const [coursesResult, categoriesResult] = await Promise.allSettled([
-    apiClient.get<unknown>("/courses?limit=48"),
-    apiClient.get<unknown>("/categories"),
+    fetchCatalogPageRaw(48),
+    fetchCategoriesRaw(),
   ]);
 
   let coursesData: Array<Record<string, unknown>> = [];

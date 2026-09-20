@@ -1,6 +1,7 @@
 'use client';
 
 import { useGuestHomeData } from './hooks/useGuestHomeData';
+import './homepage-flat.css';
 import { HeroSection } from './sections/HeroSection';
 import { WhyUsSection } from './sections/WhyUsSection';
 import { CategoriesSection } from './sections/CategoriesSection';
@@ -47,7 +48,7 @@ export default function GuestHome() {
   const topInstructors = instructors.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-[#1E293B] dark:text-white font-sans" dir="rtl">
+    <div className="homepage-flat motion-off min-h-screen bg-white dark:bg-slate-950 text-[#1E293B] dark:text-white font-sans" dir="rtl">
       {/* Hero Section */}
       <HeroSection
         categories={categories.slice(0, 5)}
@@ -56,9 +57,7 @@ export default function GuestHome() {
         loading={loadingData}
       />
 
-      {/* Why Choose Us */}
-      <WhyUsSection />
-
+      {/* ── Discover: quick navigation into the catalog ── */}
       {/* Quick Categories Navigation */}
       <CategoriesSection categories={categories} loading={loadingCategories} />
 
@@ -76,15 +75,7 @@ export default function GuestHome() {
       {/* Latest Courses Addition */}
       <NewCoursesSection courses={newCourses} loading={loadingCourses} />
 
-      {/* Best Teachers Showcase */}
-      <BestTeachersSection instructors={topInstructors} loading={loadingInstructors} />
-
-      {/* Free Learning Resources */}
-      <FreeResourcesSection courses={courses} loading={loadingCourses} />
-
-      {/* Trending Topics Right Now */}
-      <TrendingTopicsSection />
-
+      {/* ── Guided tracks: paths, specializations, exam prep ── */}
       {/* Learning Paths */}
       <LearningPathsSection />
 
@@ -97,11 +88,25 @@ export default function GuestHome() {
       {/* Educational How-It-Works */}
       <HowItWorksSection />
 
+      {/* Why Choose Us */}
+      <WhyUsSection />
+
+      {/* ── People: teachers, then free value ── */}
+      {/* Best Teachers Showcase */}
+      <BestTeachersSection instructors={topInstructors} loading={loadingInstructors} />
+
+      {/* Instructor Spotlight */}
+      <InstructorsSection instructors={instructors} loading={loadingInstructors} />
+
+      {/* Free Learning Resources */}
+      <FreeResourcesSection courses={courses} loading={loadingCourses} />
+
+      {/* Trending Topics Right Now */}
+      <TrendingTopicsSection />
+
+      {/* ── Proof: testimonials, partners, platform numbers ── */}
       {/* Student Testimonials */}
       <TestimonialsSection />
-
-      {/* Promotional CTA Section */}
-      <PromotionalCTASection />
 
       {/* Technology Partners */}
       <PartnersSection />
@@ -112,14 +117,15 @@ export default function GuestHome() {
       {/* Achievement Stats Strip */}
       <AchievementStrip stats={stats} />
 
-      {/* Instructor Spotlight */}
-      <InstructorsSection instructors={instructors} loading={loadingInstructors} />
-
+      {/* ── Learn more, then convert ── */}
       {/* Blog Section */}
       <BlogSection posts={blogPosts} loading={loadingBlog} />
 
       {/* Frequently Asked Questions */}
       <FAQSection />
+
+      {/* Promotional CTA Section */}
+      <PromotionalCTASection />
 
       {/* Become An Instructor CTA */}
       <InstructorCtaSection stats={stats} />

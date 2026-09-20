@@ -43,7 +43,7 @@ function LearningPathsDashboardSectionBase({
     <DashSection
       title="مسارات التعلم المنظمة"
       subtitle="تعلم بطريقة منظمة مع خارطة طريق واضحة"
-      href="/learning-paths"
+      href="/pathways"
       linkLabel="عرض جميع المسارات"
       rail
     >
@@ -66,13 +66,13 @@ function LearningPathsDashboardSectionBase({
           {paths.map((path) => (
             <Link
               key={path.id}
-              href={`/learning-paths/${path.slug}`}
+              href={`/pathways/${path.slug}`}
               className={`${DASH_RAIL.item} group flex w-80 flex-col rounded-xl border border-border bg-card hover:border-primary transition-colors overflow-hidden`}
             >
               <div className="flex flex-1 flex-col gap-3 p-5">
                 {/* Icon and Title */}
                 <div className="flex items-start gap-3">
-                  <div className="text-4xl shrink-0 transition-transform group-hover:scale-110" aria-hidden="true">
+                  <div className="text-4xl shrink-0" aria-hidden="true">
                     {path.icon || '🗺️'}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -204,8 +204,47 @@ const nextConfig = {
           // middleware is the only script-src key the browser enforces.
         ],
       },
-      // API responses — minimal but non-negotiable security headers.
-      // The HTML route above excludes `/api/*` (see the negative
+      // Authenticated / interactive routes — intentional noindex policy.
+      // robots.ts is advisory only; this X-Robots-Tag is the enforcement
+      // layer so private pages are never indexed even if linked. Keep the
+      // two lists in sync (see src/app/robots.ts).
+      {
+        source: '/:prefix(dashboard|jobs|employer|teaching|billing|profile|goals|tasks|time|schedule|academy|ai|analytics|leaderboard|connections|learning|cart|wishlist|subscription|settings|mfa|chat)/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/:suffix(announcements/new|blog/new-post|forum/new-post|events/new|contests/new|support/tickets|support/bug-report|support/feature-request|teacher-application|account-blocked|access-denied|offline)',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/courses/:slug/checkout',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/courses/:slug/learn/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      // API responses — minimal but non-negotiable security headers.      // The HTML route above excludes `/api/*` (see the negative
       // lookahead in its source pattern) so these routes need their own
       // block. CSP is NOT applied here: API responses are never
       // rendered as documents, only consumed by fetch, so the runtime
@@ -304,6 +343,28 @@ const nextConfig = {
       {
         source: "/plans/:path*",
         destination: "/billing?tab=upgrade",
+        permanent: false,
+      },
+      // Legacy route families unified on canonical pages (audit F-007/F-008):
+      // /instructors* -> /teachers*, /learning-paths* -> /pathways.
+      {
+        source: "/instructors",
+        destination: "/teachers",
+        permanent: false,
+      },
+      {
+        source: "/instructors/:path*",
+        destination: "/teachers/:path*",
+        permanent: false,
+      },
+      {
+        source: "/learning-paths",
+        destination: "/pathways",
+        permanent: false,
+      },
+      {
+        source: "/learning-paths/:path*",
+        destination: "/pathways",
         permanent: false,
       },
     ];

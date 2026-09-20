@@ -7,8 +7,7 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { createContestRaw } from "@/features/community/api/community-gateway";
 
 export default function NewContestPage() {
   const router = useRouter();
@@ -45,7 +44,7 @@ export default function NewContestPage() {
 
     setIsSubmitting(true);
     try {
-      const newContest = await apiClient.postJson<{ id: string }>(apiRoutes.contests.list, {
+      const newContest = await createContestRaw({
         userId,
         title,
         description,

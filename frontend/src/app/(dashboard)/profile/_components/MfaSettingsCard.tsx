@@ -9,8 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  disableMfa,
+  enableMfa,
+  fetchMfaRecoveryStatus,
+  regenerateMfaRecoveryCodes,
+  setupMfaTotp,
+} from "@/features/auth/api";
 import MfaSetupVerifyStep from "@/components/auth/MfaSetupVerifyStep";
 import MfaSetupBackupStep from "@/components/auth/MfaSetupBackupStep";
 import { useProfileData } from "./useProfileData";
@@ -57,7 +63,7 @@ export default function MfaSettingsCard() {
 
   useEffect(() => {
     if (!isEnabled) return;
-    apiClient.get<{ remaining: number }>(apiRoutes.auth.mfa.recoveryCodes.status)
+    fetchMfaRecoveryStatus<{ remaining: number }>()
       .then((data) => setRecoveryRemaining(data.remaining))
       .catch(() => setRecoveryRemaining(null));
   }, [isEnabled]);
@@ -66,7 +72,7 @@ export default function MfaSettingsCard() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiClient.post<MfaSetupResponse>(apiRoutes.auth.mfa.setup, { method: "totp" });
+      const data = await setupMfaTotp<MfaSetupResponse>();
       setSecret(data.secret);
       setQrCodeUrl(data.qrCodeUrl || "");
       setStep("verify");
@@ -86,7 +92,7 @@ export default function MfaSettingsCard() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await apiClient.post<{ backupCodes?: string[] }>(apiRoutes.auth.mfa.enable, { code });
+      const data = await enableMfa<{ backupCodes?: string[] }>(code);
       setBackupCodes(data.backupCodes || []);
       setSuccess("تم تفعيل المصادقة الثنائية بنجاح!");
       setEnabledOverride(true);
@@ -110,7 +116,7 @@ export default function MfaSettingsCard() {
     setError(null);
     try {
       // Backend requires password re-auth + live TOTP/backup code.
-      await apiClient.post(apiRoutes.auth.mfa.disable, { password: disablePassword, code: disableCode });
+      await disableMfa(disablePassword, disableCode);
       setEnabledOverride(false);
       setDisableCode("");
       setDisablePassword("");
@@ -141,9 +147,10 @@ export default function MfaSettingsCard() {
   async function regenerateRecoveryCodes() {
     setIsLoading(true);
     try {
-      const data = await apiClient.post<{ backupCodes?: string[] }>(apiRoutes.auth.mfa.recoveryCodes.regenerate, {
-        password: recoveryPassword, code: recoveryCode,
-      });
+      const data = await regenerateMfaRecoveryCodes<{ backupCodes?: string[] }>(
+        recoveryPassword,
+        recoveryCode,
+      );
       setBackupCodes(data.backupCodes || []);
       setRecoveryRemaining(data.backupCodes?.length ?? null);
       setRecoveryPassword(""); setRecoveryCode(""); setShowRecoveryForm(false); setStep("backup");

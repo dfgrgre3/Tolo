@@ -43,8 +43,7 @@ import { toast } from 'sonner';
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
 
 import { logger } from '@/lib/logger';
-import { apiClient } from '@/lib/api/api-client';
-import { apiRoutes } from '@/lib/api/routes';
+import { patchTaskRaw } from '@/features/tasks/api/tasks-gateway';
 import { buildTaskPayload, mergeServerTask } from './_components/_components/task-utils';
 import { useTimeTrackerStore } from '@/hooks/use-time-tracker-store';
 
@@ -96,7 +95,7 @@ export default function TimeManagementPage() {
           if (typeof storedState.showUpcomingRemindersOnly === 'boolean') setShowUpcomingRemindersOnly(storedState.showUpcomingRemindersOnly);
           if (typeof storedState.showAnalytics === 'boolean') setShowAnalytics(storedState.showAnalytics);
         } catch (e) {
-          console.error('Failed to restore time management state', e);
+          logger.error('Failed to restore time management state', e);
         }
       }
       setIsInitialized(true);
@@ -172,7 +171,7 @@ export default function TimeManagementPage() {
     const optimistic = { ...oldTask, status };
     setTasks(prev => prev.map(t => t.id === taskId ? optimistic : t));
     try {
-      const saved = await apiClient.patch<Task>(apiRoutes.tasks.update(taskId), buildTaskPayload(optimistic));
+      const saved = await patchTaskRaw<Task>(taskId, buildTaskPayload(optimistic));
       handleTaskUpdate(mergeServerTask(optimistic, saved));
     } catch (error) {
       setTasks(prev => prev.map(t => t.id === taskId ? oldTask : t));

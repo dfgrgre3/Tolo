@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import { submitTeacherApplicationRaw } from "@/features/teaching/api/teaching-gateway";
 
 export default function TeacherApplicationPage() {
   const [fullName, setFullName] = useState("");
@@ -15,7 +15,7 @@ export default function TeacherApplicationPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setLoading(true); setMessage(null);
     try {
-      await apiClient.post(apiRoutes.teacherApplications.submit, {
+      await submitTeacherApplicationRaw({
         fullName, phone, subjects: subjects.split(",").map((v) => v.trim()).filter(Boolean),
         experienceYears: Number(experienceYears) || 0, bio,
       });

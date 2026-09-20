@@ -120,8 +120,44 @@ describe('validateAuthCookieAttributes', () => {
 
   it('accepts missing SameSite by default', () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('REQUIRE_EXPLICIT_SAMESITE', '');
     expect(
       validateAuthCookieAttributes('access_token=abc; HttpOnly; Secure'),
+    ).toEqual([]);
+  });
+
+  it('rejects missing SameSite when REQUIRE_EXPLICIT_SAMESITE=true (B-10)', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('REQUIRE_EXPLICIT_SAMESITE', 'true');
+    const v = validateAuthCookieAttributes('access_token=abc; HttpOnly; Secure');
+    expect(v).toContain("'access_token' is missing SameSite attribute");
+  });
+
+  it('explicit allowMissingSameSite option overrides the env flag', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('REQUIRE_EXPLICIT_SAMESITE', 'true');
+    expect(
+      validateAuthCookieAttributes('access_token=abc; HttpOnly; Secure', {
+        allowMissingSameSite: true,
+      }),
+    ).toEqual([]);
+  });
+
+  it('rejects unrecognized SameSite values even without the env flag', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('REQUIRE_EXPLICIT_SAMESITE', '');
+    const v = validateAuthCookieAttributes(
+      'access_token=abc; HttpOnly; Secure; SameSite=Banana',
+    );
+    expect(v).toContain(
+      "'access_token' has an unrecognized SameSite value 'banana'",
+    );
+  });
+
+  it('accepts SameSite case-insensitively (Lax/Strict)', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(
+      validateAuthCookieAttributes('access_token=abc; HttpOnly; Secure; SameSite=STRICT'),
     ).toEqual([]);
   });
 

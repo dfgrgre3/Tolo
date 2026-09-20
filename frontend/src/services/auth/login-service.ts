@@ -16,6 +16,8 @@
 import * as z from "zod";
 import { apiClient, ApiError } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
+import { formatCooldownAr } from "@/lib/auth/rate-limit";
+import { isSocialAuthRedirectUrl } from "@/lib/security/redirect-policy";
 import type {
   LoginRequestPayload,
   MfaVerifyPayload,
@@ -74,16 +76,53 @@ export interface LoginOutcome {
   rateLimited?: boolean;
   /** Server-directed wait in ms, when the backend supplied one. */
   retryAfterMs?: number | null;
+  /**
+   * True when the backend rejected the login because the email is not
+   * verified yet. Drives a "verify your email first" CTA instead of a
+   * dead-end error — otherwise fresh accounts look like wrong passwords.
+   */
+  needsVerification?: boolean;
 }
 
 /** Extracts 429 semantics from an ApiError (status + optional body hint). */
-function rateLimitOf(err: unknown): { rateLimited: boolean; retryAfterMs: number | null } {
-  if (err instanceof ApiError && err.status === 429) {
+function rateLimitOf(err: unknown): { rateLimited: boolean; retryAfterMs: number | null } {  if (err instanceof ApiError && err.status === 429) {
     const raw = err.data?.retryAfterMs ?? err.data?.retry_after_ms ?? err.data?.retryAfter;
     const ms = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
     return { rateLimited: true, retryAfterMs: ms };
   }
   return { rateLimited: false, retryAfterMs: null };
+}
+
+/**
+ * Detects a rejected login caused by an unverified/inactive email rather
+ * than wrong credentials. Backends phrase it many ways; match liberally in
+ * English and Arabic, but never match the generic invalid-credentials text.
+ */
+function parseEmailNotVerified(err: unknown): boolean {
+  const raw = err instanceof ApiError || err instanceof Error ? err.message : "";
+  return /email.{0,20}not.{0,20}verif|not.{0,20}verif.{0,20}email|unverified|not.{0,20}activat|inactive|EMAIL_NOT_VERIFIED|ACCOUNT_NOT_VERIFIED|غير.?مفعّل|لم يتم (تفعيل|توثيق|تأكيد)/i.test(
+    raw
+  );
+}
+
+/**
+ * Parses a backend temporary account lockout (`ACCOUNT_LOCKED[:seconds]`).
+ * The suffix is the remaining lockout in seconds. Returns a friendly Arabic
+ * message plus the wait in ms (fed to the client throttle so the form shows
+ * a live countdown), or `null` when this is not a lockout error.
+ */
+function parseAccountLocked(err: unknown): { message: string; retryAfterMs: number | null } | null {
+  const raw = err instanceof ApiError || err instanceof Error ? err.message : "";
+  const match = /ACCOUNT_LOCKED(?::(\d+))?/.exec(raw);
+  if (!match) return null;
+  const seconds = match[1] ? Number.parseInt(match[1], 10) : null;
+  const retryAfterMs =
+    seconds !== null && Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : null;
+  const waitText = retryAfterMs !== null ? ` — حاول مجددًا ${formatCooldownAr(retryAfterMs)}` : "";
+  return {
+    message: `تم إغلاق الحساب مؤقتًا لكثرة محاولات الدخول الفاشلة${waitText}`,
+    retryAfterMs,
+  };
 }
 
 export interface LoginCredentials {
@@ -116,7 +155,9 @@ function toErrorMessage(err: unknown, fallback: string): string {
  */
 export async function login(credentials: LoginCredentials): Promise<LoginOutcome> {
   const payload: LoginRequestPayload = {
-    email: credentials.email.trim(),
+    // Email is case-insensitive (RFC 5321 mailbox): normalize so
+    // `User@Example.com` at register matches `user@example.com` at login.
+    email: credentials.email.trim().toLowerCase(),
     password: credentials.password,
     rememberMe: credentials.rememberMe ?? false,
     deviceName: getDeviceName(),
@@ -160,6 +201,27 @@ export async function login(credentials: LoginCredentials): Promise<LoginOutcome
 
     return { success: true, status: "success", requiresMfa: false, challengeId: null };
   } catch (err: unknown) {
+    const locked = parseAccountLocked(err);
+    if (locked) {
+      return {
+        success: false,
+        status: "failure",
+        requiresMfa: false,
+        challengeId: null,
+        error: locked.message,
+        retryAfterMs: locked.retryAfterMs,
+      };
+    }
+    if (parseEmailNotVerified(err)) {
+      return {
+        success: false,
+        status: "failure",
+        requiresMfa: false,
+        challengeId: null,
+        error: "هذا الحساب غير مفعّل بعد — أدخل رمز التفعيل المرسل إلى بريدك الإلكتروني أولاً.",
+        needsVerification: true,
+      };
+    }
     return {
       success: false,
       status: "failure",
@@ -212,8 +274,8 @@ export async function verifyMfa(
 
 /**
  * Starts a social sign-in flow and returns the provider's authorization URL.
- * Throws if the backend returns a URL that is not absolute HTTPS — an
- * attacker-controlled value here would be an open redirect.
+ * Throws unless the backend returns the exact OAuth host of the requested
+ * provider — any other host (even HTTPS) is rejected as an open redirect.
  */
 export async function getSocialLoginUrl(
   provider: "google" | "apple"
@@ -222,7 +284,7 @@ export async function getSocialLoginUrl(
     apiRoutes.auth.social.login(provider)
   );
 
-  if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
+  if (!isSocialAuthRedirectUrl(redirectUrl, provider)) {
     throw new Error("رابط تسجيل الدخول الاجتماعي غير صالح");
   }
 
@@ -241,7 +303,7 @@ export async function getSocialLinkUrl(
     apiRoutes.auth.social.linkRedirect(provider)
   );
 
-  if (!redirectUrl || !/^https:\/\//i.test(redirectUrl)) {
+  if (!isSocialAuthRedirectUrl(redirectUrl, provider)) {
     throw new Error("رابط ربط الحساب الاجتماعي غير صالح");
   }
 

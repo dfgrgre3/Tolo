@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/client";
 import { apiClient } from "@/lib/api/api-client";
+import { logger } from "@/lib/logger";
 import { sanitizeSvg } from "./svg-sanitizer";
 import type {
   UploadOptions,
@@ -50,7 +51,7 @@ async function prepareUploadFile(file: File): Promise<File> {
   try {
     sanitizedText = sanitizeSvg(await file.text());
   } catch (error) {
-    console.error("SVG sanitization failed; refusing to upload raw file", error);
+    logger.error("SVG sanitization failed; refusing to upload raw file", error);
     throw new Error("SVG validation failed: the file could not be safely sanitized and was rejected.");
   }
 
@@ -154,7 +155,7 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
       const text = await file.text();
       sanitizedText = sanitizeSvg(text);
     } catch (e) {
-      console.error("SVG sanitization failed; refusing to upload raw file", e);
+      logger.error("SVG sanitization failed; refusing to upload raw file", e);
       throw new Error(
         "SVG validation failed: the file could not be safely sanitized and was rejected."
       );
@@ -321,7 +322,7 @@ export async function deleteFiles(options: DeleteOptions): Promise<void> {
         body: JSON.stringify({ fileKey: path }),
       });
     } catch (e) {
-      console.error(`Failed to delete file ${path}:`, e);
+      logger.error(`Failed to delete file ${path}:`, e);
       throw e;
     }
   }

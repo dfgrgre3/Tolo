@@ -64,6 +64,9 @@ export default function RegisterAccountFields({
             </span>
             <Input
               id="phone"
+              type="tel"
+              dir="ltr"
+              inputMode="tel"
               placeholder="01xxxxxxxxx"
               value={phone}
               onChange={(e) => onPhoneChange(e.target.value)}

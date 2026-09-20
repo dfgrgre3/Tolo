@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SITE } from "@thanawy/shared/site-config";
-import { apiClient } from "@/lib/api/api-client";
+import { fetchTeachersRaw } from "@/features/courses/api/courses-gateway";
 import { logger } from "@/lib/logger";
 import TeachersPage from "./teachers-client";
 import type { Teacher } from "./teachers-client";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 // الحصص والجدول الخاصان بالمستخدم يُجلبان في المتصفح كالمعتاد.
 async function getTeachers(): Promise<Teacher[] | undefined> {
   try {
-    return await apiClient.get<Teacher[]>("/teachers");
+    return await fetchTeachersRaw<Teacher[]>();
   } catch (err) {
     logger.error("SSR: failed to load teachers", err);
     return undefined; // المتصفح سيعيد المحاولة عبر المكوّن التفاعلي

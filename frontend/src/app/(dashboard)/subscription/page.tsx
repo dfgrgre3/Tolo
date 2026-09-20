@@ -33,8 +33,15 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import Link from "next/link";
-import { apiClient, ApiError } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { ApiError } from "@/lib/api/api-client";
+import {
+  cancelSubscription,
+  fetchBillingSummaryRaw,
+  fetchPaymentHistoryRaw,
+  fetchSubscriptionAddonsRaw,
+  purchaseAddonRaw,
+  renewSubscriptionRaw,
+} from "@/features/payments/api/payments-gateway";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
 import {
@@ -233,7 +240,7 @@ export default function SubscriptionPage() {
   const refresh = async () => {
     setRefreshing(true);
     try {
-      const updated = await apiClient.get<BillingSummary>(apiRoutes.users.billingSummary);
+      const updated = await fetchBillingSummaryRaw<BillingSummary>();
       setSummary(normalizeBillingSummary(updated));
       toast.success("تم تحديث البيانات");
     } catch {
@@ -245,7 +252,7 @@ export default function SubscriptionPage() {
 
   const reloadSummarySilent = async () => {
     try {
-      const updated = await apiClient.get<BillingSummary>(apiRoutes.users.billingSummary);
+      const updated = await fetchBillingSummaryRaw<BillingSummary>();
       setSummary(normalizeBillingSummary(updated));
     } catch {
       // يبقى الملخص الحالي — الخطأ يُعرض عبر toast الإجراء نفسه
@@ -259,7 +266,7 @@ export default function SubscriptionPage() {
     }
     setSubAction("cancel");
     try {
-      await apiClient.post(apiRoutes.subscriptions.cancel, {});
+      await cancelSubscription();
       toast.success("تم إلغاء الاشتراك");
       setConfirmingCancel(false);
       await reloadSummarySilent();
@@ -273,7 +280,7 @@ export default function SubscriptionPage() {
   const handleRenewSubscription = async () => {
     setSubAction("renew");
     try {
-      await apiClient.post(apiRoutes.subscriptions.renew, {});
+      await renewSubscriptionRaw();
       toast.success("تم تجديد الاشتراك بنجاح");
       await reloadSummarySilent();
     } catch {
@@ -288,9 +295,9 @@ export default function SubscriptionPage() {
       try {
         const [, summaryData, addonsData, historyData] = await Promise.allSettled([
           Promise.resolve(),
-          apiClient.get<BillingSummary>(apiRoutes.users.billingSummary),
-          apiClient.get<unknown>(apiRoutes.subscriptions.addons),
-          apiClient.get<unknown>(apiRoutes.payments.history),
+          fetchBillingSummaryRaw<BillingSummary>(),
+          fetchSubscriptionAddonsRaw(),
+          fetchPaymentHistoryRaw(),
         ]);
 
         if (summaryData.status === "fulfilled") {
@@ -350,9 +357,9 @@ export default function SubscriptionPage() {
   const handlePurchaseAddon = async (addonId: string) => {
     setPurchasing(addonId);
     try {
-      await apiClient.post(apiRoutes.subscriptions.addons, { addonId });
+      await purchaseAddonRaw(addonId);
       toast.success("تمت عملية الشراء بنجاح!");
-      const updated = await apiClient.get<BillingSummary>(apiRoutes.users.billingSummary);
+      const updated = await fetchBillingSummaryRaw<BillingSummary>();
       setSummary(normalizeBillingSummary(updated));
     } catch (err: unknown) {
       const apiErr = err instanceof ApiError ? err : null;

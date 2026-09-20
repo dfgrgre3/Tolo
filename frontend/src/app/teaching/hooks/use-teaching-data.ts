@@ -1,15 +1,28 @@
-"use client";
+﻿"use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  addTeachingCalendarEventRaw,
+  fetchTeachingActivitiesRaw,
+  fetchTeachingCalendarRaw,
+  fetchTeachingConversationsRaw,
+  fetchTeachingNotificationsRaw,
+  fetchTeachingReviewsRaw,
+  fetchTeachingStatsRaw,
+  fetchTeachingStudentsRaw,
+  fetchTeachingTransactionsRaw,
+  markAllTeachingNotificationsReadRaw,
+  markTeachingNotificationReadRaw,
+  replyTeachingReviewRaw,
+  sendTeachingMessageRaw,
+} from "@/features/teaching/api/teaching-gateway";
 import {
   contractCreateTeachingCourse,
   contractDeleteTeachingCourse,
   contractListTeachingCourses,
   contractUpdateTeachingCourse,
 } from "@/services/api/contracts-teaching-courses-service";
-import { usePermission } from "@/hooks/use-permission";
+import { usePermission } from "@/features/auth/hooks/use-permission";
 import type { TeachingCourse, TeachingChapter, TeachingLessonInput } from "@/types/domain/teaching";
 import { normalizeCourseLifecycle, type CourseLifecycle } from "@thanawy/shared/types/course-state";
 import { unwrapOpenApiPayload } from "@/lib/api/generated-client";
@@ -290,7 +303,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const queryClient = useQueryClient();
   const { isAuthenticated, isContentCreator } = usePermission();
 
-  // Only fetch teaching data for authenticated teachers/admins — the page
+  // Only fetch teaching data for authenticated teachers/admins â€” the page
   // renders the "apply as teacher" screen for everyone else, and firing the
   // queries anyway would just produce a burst of 403 insufficient_role errors.
   const canFetch = isAuthenticated && isContentCreator();
@@ -299,29 +312,29 @@ export function useTeachingData(activeTab: string = "dashboard") {
   const STALE_TIME = 5 * 60 * 1000;  // 5 minutes
   const GC_TIME = 10 * 60 * 1000;    // 10 minutes
 
-  // ── Stats ──────────────────────────────────────────
+  // â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Stats: always enabled (needed in header + dashboard)
   const statsQuery = useQuery<TeachingStatsResponse>({
     queryKey: ["teaching", "stats"],
-    queryFn: () => apiClient.get<TeachingStatsResponse>(apiRoutes.teaching.dashboard.stats),
+    queryFn: () => fetchTeachingStatsRaw<TeachingStatsResponse>(),
     enabled: canFetch,
     ...queryProfiles.dashboard,
   });
 
   const stats = statsQuery.data ?? EMPTY_STATS;
 
-  // ── Activities ─────────────────────────────────────
+  // â”€â”€ Activities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Activities: only when dashboard tab is active
   const activitiesQuery = useQuery<ActivitiesResponse>({
     queryKey: ["teaching", "activities"],
-    queryFn: () => apiClient.get<ActivitiesResponse>(apiRoutes.teaching.activities),
+    queryFn: () => fetchTeachingActivitiesRaw<ActivitiesResponse>(),
     enabled: canFetch && activeTab === "dashboard",
     ...queryProfiles.dashboard,
   });
 
   const activities = activitiesQuery.data?.activities ?? [];
 
-  // ── Courses ────────────────────────────────────────
+  // â”€â”€ Courses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Courses: when dashboard or courses tab is active
   const coursesQuery = useQuery<CoursesListResponse>({
     queryKey: ["teaching", "courses"],
@@ -387,22 +400,22 @@ export function useTeachingData(activeTab: string = "dashboard") {
     },
   });
 
-  // ── All Students (across all courses) ──────────────────
+  // â”€â”€ All Students (across all courses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Students: only when students tab is active
   const allStudentsQuery = useQuery<StudentsResponse>({
     queryKey: ["teaching", "students"],
-    queryFn: () => apiClient.get<StudentsResponse>(apiRoutes.teaching.students.all),
+    queryFn: () => fetchTeachingStudentsRaw<StudentsResponse>(),
     enabled: canFetch && activeTab === "students",
     ...queryProfiles.dashboard,
   });
 
   const allStudents = allStudentsQuery.data?.students ?? [];
 
-  // ── All Reviews (across all courses) ───────────────────
+  // â”€â”€ All Reviews (across all courses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Reviews: only when reviews tab is active
   const allReviewsQuery = useQuery<ReviewsResponse>({
     queryKey: ["teaching", "reviews"],
-    queryFn: () => apiClient.get<ReviewsResponse>(apiRoutes.teaching.reviews.all),
+    queryFn: () => fetchTeachingReviewsRaw<ReviewsResponse>(),
     enabled: canFetch && activeTab === "reviews",
     ...queryProfiles.dashboard,
   });
@@ -421,20 +434,17 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const replyToReview = useMutation({
     mutationFn: ({ reviewId, text }: { reviewId: string; text: string }) =>
-      apiClient.post<{ reply: ReviewReply }>(
-        apiRoutes.teaching.reviews.reply(reviewId),
-        { text }
-      ),
+      replyTeachingReviewRaw<{ reply: ReviewReply }>(reviewId, text),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teaching", "reviews"] });
     },
   });
 
-  // ── Notifications ────────────────────────────────────
+  // â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Notifications: always enabled (needed in header)
   const notificationsQuery = useQuery<NotificationsResponse>({
     queryKey: ["teaching", "notifications"],
-    queryFn: () => apiClient.get<NotificationsResponse>(apiRoutes.teaching.notifications.list),
+    queryFn: () => fetchTeachingNotificationsRaw<NotificationsResponse>(),
     enabled: canFetch,
     ...queryProfiles.dashboard,
   });
@@ -443,7 +453,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const markNotificationRead = useMutation({
     mutationFn: (id: string) =>
-      apiClient.post<{ marked: boolean }>(apiRoutes.teaching.notifications.markRead(id), {}),
+      markTeachingNotificationReadRaw<{ marked: boolean }>(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "notifications"] });
       const prev = queryClient.getQueryData<NotificationsResponse>(["teaching", "notifications"]);
@@ -467,7 +477,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const markAllNotificationsRead = useMutation({
     mutationFn: () =>
-      apiClient.post<{ marked: boolean }>(apiRoutes.teaching.notifications.markAllRead, {}),
+      markAllTeachingNotificationsReadRaw<{ marked: boolean }>(),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "notifications"] });
       const prev = queryClient.getQueryData<NotificationsResponse>(["teaching", "notifications"]);
@@ -489,11 +499,11 @@ export function useTeachingData(activeTab: string = "dashboard") {
     },
   });
 
-  // ── Messaging / Conversations ───────────────────────
+  // â”€â”€ Messaging / Conversations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Conversations: only when messages tab is active
   const conversationsQuery = useQuery<{ conversations: Conversation[] }>({
     queryKey: ["teaching", "conversations"],
-    queryFn: () => apiClient.get<{ conversations: Conversation[] }>(apiRoutes.teaching.conversations),
+    queryFn: () => fetchTeachingConversationsRaw<{ conversations: Conversation[] }>(),
     enabled: canFetch && activeTab === "messages",
     ...queryProfiles.dashboard,
   });
@@ -502,7 +512,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const sendMessageMutation = useMutation({
     mutationFn: ({ convId, text }: { convId: string; text: string }) =>
-      apiClient.post<{ message: Message }>(apiRoutes.teaching.messages(convId), { text }),
+      sendTeachingMessageRaw<{ message: Message }>(convId, text),
     onMutate: async ({ convId, text }) => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "conversations"] });
       const prev = queryClient.getQueryData<{ conversations: Conversation[] }>(["teaching", "conversations"]);
@@ -510,16 +520,16 @@ export function useTeachingData(activeTab: string = "dashboard") {
         const newMsg: Message = {
           id: `msg-${Date.now()}`,
           senderId: "me",
-          senderName: "أنا",
+          senderName: "Ø£Ù†Ø§",
           senderAvatar: "",
           text,
-          time: "الآن",
+          time: "Ø§Ù„Ø¢Ù†",
           isMe: true,
         };
         queryClient.setQueryData<{ conversations: Conversation[] }>(["teaching", "conversations"], {
           conversations: prev.conversations.map((c) =>
             c.id === convId
-              ? { ...c, lastMessage: text, time: "الآن", messages: [...c.messages, newMsg] }
+              ? { ...c, lastMessage: text, time: "Ø§Ù„Ø¢Ù†", messages: [...c.messages, newMsg] }
               : c
           ),
         });
@@ -536,11 +546,11 @@ export function useTeachingData(activeTab: string = "dashboard") {
     },
   });
 
-  // ── Calendar Events ──────────────────────────────────
+  // â”€â”€ Calendar Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Calendar: only when calendar tab is active
   const calendarEventsQuery = useQuery<{ events: CalendarEvent[] }>({
     queryKey: ["teaching", "calendar"],
-    queryFn: () => apiClient.get<{ events: CalendarEvent[] }>(apiRoutes.teaching.calendar),
+    queryFn: () => fetchTeachingCalendarRaw<{ events: CalendarEvent[] }>(),
     enabled: canFetch && activeTab === "calendar",
     ...queryProfiles.dashboard,
   });
@@ -549,7 +559,7 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   const addCalendarEventMutation = useMutation({
     mutationFn: (event: Omit<CalendarEvent, "id">) =>
-      apiClient.post<{ event: CalendarEvent }>(apiRoutes.teaching.calendar, event),
+      addTeachingCalendarEventRaw<{ event: CalendarEvent }>(event),
     onMutate: async (newEvent) => {
       await queryClient.cancelQueries({ queryKey: ["teaching", "calendar"] });
       const prev = queryClient.getQueryData<{ events: CalendarEvent[] }>(["teaching", "calendar"]);
@@ -569,11 +579,11 @@ export function useTeachingData(activeTab: string = "dashboard") {
     },
   });
 
-  // ── Transactions & Earnings ──────────────────────────
+  // â”€â”€ Transactions & Earnings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Transactions: only when earnings tab is active
   const transactionsQuery = useQuery<{ transactions: Transaction[] }>({
     queryKey: ["teaching", "transactions"],
-    queryFn: () => apiClient.get<{ transactions: Transaction[] }>(apiRoutes.teaching.transactions),
+    queryFn: () => fetchTeachingTransactionsRaw<{ transactions: Transaction[] }>(),
     enabled: canFetch && activeTab === "earnings",
     ...queryProfiles.financial,
   });

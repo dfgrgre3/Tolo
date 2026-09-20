@@ -1,8 +1,17 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
 import { getCourseDetailHydration } from "@/lib/course/course-domain-service";
 import { ApiError } from "@/lib/api/api-client";
+import { logger } from "@/lib/logger";
 import type { LessonRowDTO } from "@/types/domain/mappers";
+
+// Redirect-only resolver route behind enrollment: never index it, even if
+// a crawler somehow obtains the URL. The canonical indexable page is
+// /courses/[slug].
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -30,7 +39,7 @@ async function resolveResumeLesson(slug: string): Promise<string | null> {
     return next?.id ?? null;
   } catch (error) {
     if (!(error instanceof ApiError && error.status === 404)) {
-      console.error("Error resolving resume lesson:", error);
+      logger.error("Error resolving resume lesson:", error);
     }
     return null;
   }

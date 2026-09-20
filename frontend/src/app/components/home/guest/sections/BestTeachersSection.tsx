@@ -54,7 +54,7 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
             </p>
           </div>
           <button
-            onClick={() => router.push('/instructors')}
+            onClick={() => router.push('/teachers')}
             className={SECTION_HEADER.viewAllButton}
           >
             عرض الكل <ChevronLeft className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
               return (
                 <button
                   key={ins.id}
-                  onClick={() => router.push(`/instructors/${ins.id}`)}
+                  onClick={() => router.push(`/teachers/${ins.id}`)}
                   className={`
                     ${RAIL.item} w-40
                     bg-white dark:bg-slate-800

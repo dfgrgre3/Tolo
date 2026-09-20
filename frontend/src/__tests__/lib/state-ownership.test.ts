@@ -33,11 +33,16 @@ describe("state-ownership (P0-5)", () => {
     });
 
     // Verify cache updates
-    const updatedCourse: any = queryClient.getQueryData(courseProgressKeys.detail("c-100"));
-    expect(updatedCourse.progress).toBe(50);
-    expect(updatedCourse.completion.progress).toBe(50);
+    const updatedCourse = queryClient.getQueryData<{
+      progress?: number;
+      completion?: { progress?: number };
+    }>(courseProgressKeys.detail("c-100"));
+    expect(updatedCourse?.progress).toBe(50);
+    expect(updatedCourse?.completion?.progress).toBe(50);
 
-    const lessonData: any = queryClient.getQueryData(courseProgressKeys.lessonProgress("l-200"));
-    expect(lessonData.completed).toBe(true);
+    const lessonData = queryClient.getQueryData<{ completed?: boolean }>(
+      courseProgressKeys.lessonProgress("l-200")
+    );
+    expect(lessonData?.completed).toBe(true);
   });
 });

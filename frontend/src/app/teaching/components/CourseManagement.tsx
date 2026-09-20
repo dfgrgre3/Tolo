@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import CourseCard from "./CourseCard";
+import TeachingCourseCard from "./CourseCard";
 import EmptyState from "./EmptyState";
 import { GridSkeleton } from "./Skeletons";
 import { Course } from "../hooks/use-teaching-data";
@@ -131,7 +131,7 @@ export default function CourseManagement({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((c) => (
-            <CourseCard
+            <TeachingCourseCard
               key={c.id}
               course={c}
               onEdit={onEditCourse}

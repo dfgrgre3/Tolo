@@ -1,5 +1,6 @@
 import { AlertCircle, Inbox } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { S, badgeClass } from './support-design';
 
 const STATUS_LABELS: Record<string, string> = {    open: 'مفتوحة',
@@ -66,14 +67,8 @@ export function SlaBadge({ status }: { status?: string }) {
 }
 
 export function SupportEmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
-    return (
-        <div className={S.emptyWrap}>
-            <Inbox className="h-12 w-12 text-[#64748B] mx-auto mb-4 opacity-50" />
-            <p className="text-sm text-[#64748B] dark:text-slate-400 font-bold px-4">{title}</p>
-            {hint ? <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400 px-4">{hint}</p> : null}
-            {action ? <div className="mt-6">{action}</div> : null}
-        </div>
-    );
+    // B-11: markup lives in components/ui/empty-state; same signature.
+    return <EmptyState title={title} description={hint} icon={Inbox} action={action} />;
 }
 
 export function SupportErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {

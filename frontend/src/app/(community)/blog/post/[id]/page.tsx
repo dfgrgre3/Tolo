@@ -9,8 +9,10 @@ import { Layout } from "@/components/layout/Layout";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import {
+  fetchBlogPostRaw,
+  incrementBlogPostViewRaw,
+} from "@/features/community/api/community-gateway";
 
 type BlogPost = {
   id: string;
@@ -45,7 +47,7 @@ export default function BlogPostPage() {
 
     const fetchPost = async () => {
       try {
-        const postData = await apiClient.get<BlogPost>(apiRoutes.blog.post(postId));
+        const postData = await fetchBlogPostRaw<BlogPost>(postId);
         setPost(postData);
       } catch (error) {
         logger.error("Error fetching post:", error);
@@ -55,7 +57,7 @@ export default function BlogPostPage() {
 
     const incrementViews = async () => {
       try {
-        await apiClient.postJson(apiRoutes.blog.incrementView(postId), {});
+        await incrementBlogPostViewRaw(postId);
       } catch (error) {
         logger.error("Error incrementing views:", error);
       }

@@ -16,6 +16,9 @@
  * State persists in localStorage so a reload does not reset the counter
  * (per scope: consecutive failures, escalations so far, lock deadline).
  * Scopes are independent: failing login must not lock password recovery.
+ * Within the login scope, records are additionally keyed per account
+ * (normalized email), so switching accounts shows each account's own
+ * lockout instead of one shared browser-wide state.
  */
 
 export type ThrottleScope =
@@ -27,11 +30,23 @@ export type ThrottleScope =
   | "change-password";
 
 export interface ThrottleConfig {
-  /** Consecutive failures that trigger a lockout. */
+  /** Consecutive failures that trigger a lockout (starting budget). */
   maxAttempts: number;
+  /**
+   * Floor for the decaying attempt budget. When set below `maxAttempts`,
+   * each lockout shrinks the next round's budget by one:
+   * `max( minAttempts, maxAttempts - lockouts )`.
+   * Unset = fixed budget (no decay).
+   */
+  minAttempts?: number;
   /** First lockout length; doubles per escalation up to `maxLockoutMs`. */
   baseLockoutMs: number;
   maxLockoutMs: number;
+  /**
+   * Optional explicit escalation ladder: lockout #n lasts `steps[min(n, len-1)]`.
+   * When set, it replaces the base-doubling rule for this scope.
+   */
+  lockoutStepsMs?: number[];
   /**
    * Failures after which human verification is required before the next
    * submit. `Infinity` = this scope never asks (lockout only).
@@ -43,8 +58,10 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
 export const THROTTLE_CONFIGS: Record<ThrottleScope, ThrottleConfig> = {
-  // Credentials: stuffing target. Captcha early, lockout escalates fast.
-  login: { maxAttempts: 5, baseLockoutMs: MINUTE, maxLockoutMs: 15 * MINUTE, captchaAfter: 3 },
+  // Credentials: stuffing target. Captcha early. Decaying budget + growing
+  // lockout per account: 4 attempts → lock 5min, 3 attempts → 10min,
+  // 2 attempts → 15min, then 1 attempt → 30/60/120min up to a 3h cap.
+  login: { maxAttempts: 4, minAttempts: 1, baseLockoutMs: 5 * MINUTE, maxLockoutMs: 180 * MINUTE, lockoutStepsMs: [5 * MINUTE, 10 * MINUTE, 15 * MINUTE, 30 * MINUTE, 60 * MINUTE, 120 * MINUTE, 180 * MINUTE], captchaAfter: 3 },
   // TOTP is 6 digits (a million combinations): failures must cost time.
   // No captcha here — the login gate already verified humanity; a lockout
   // is the correct friction for a code-entry step.
@@ -81,27 +98,40 @@ interface ThrottleRecord {
 
 const STORAGE_KEY = "thanawy:throttle:v1";
 
+type ThrottleStore = Record<string, ThrottleRecord>;
+
+/**
+ * Storage key for a scope, optionally namespaced per account.
+ * The account key (e.g. normalized email) isolates lockouts so each
+ * account carries its own failures/escalations/deadline.
+ */
+function storeKey(scope: ThrottleScope, accountKey?: string): string {
+  const normalized = (accountKey ?? "").trim().toLowerCase();
+  return normalized ? `${scope}::${normalized}` : scope;
+}
+
 function emptyRecord(): ThrottleRecord {
   return { fails: 0, lockouts: 0, lockedUntil: 0 };
 }
 
-function readStore(): Partial<Record<ThrottleScope, ThrottleRecord>> {
+function readStore(): ThrottleStore {
   try {
     if (typeof window === "undefined" || !window.localStorage) return {};
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return {};
-    const out: Partial<Record<ThrottleScope, ThrottleRecord>> = {};
+    const out: ThrottleStore = {};
     for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
       if (
+        typeof key === "string" &&
         typeof value === "object" &&
         value !== null &&
         typeof (value as ThrottleRecord).fails === "number" &&
         typeof (value as ThrottleRecord).lockouts === "number" &&
         typeof (value as ThrottleRecord).lockedUntil === "number"
       ) {
-        out[key as ThrottleScope] = {
+        out[key] = {
           fails: Math.max(0, Math.floor((value as ThrottleRecord).fails)),
           lockouts: Math.max(0, Math.floor((value as ThrottleRecord).lockouts)),
           lockedUntil: (value as ThrottleRecord).lockedUntil,
@@ -114,7 +144,7 @@ function readStore(): Partial<Record<ThrottleScope, ThrottleRecord>> {
   }
 }
 
-function writeStore(store: Partial<Record<ThrottleScope, ThrottleRecord>>): void {
+function writeStore(store: ThrottleStore): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
@@ -126,20 +156,31 @@ function writeStore(store: Partial<Record<ThrottleScope, ThrottleRecord>>): void
 function snapshotOf(scope: ThrottleScope, record: ThrottleRecord, now: number): ThrottleSnapshot {
   const config = THROTTLE_CONFIGS[scope];
   const locked = record.lockedUntil > now;
+  const budget = effectiveMaxAttempts(config, record.lockouts);
   return {
     scope,
     locked,
     remainingMs: locked ? record.lockedUntil - now : 0,
-    remainingAttempts: locked ? 0 : Math.max(0, config.maxAttempts - record.fails),
+    remainingAttempts: locked ? 0 : Math.max(0, budget - record.fails),
     captchaRequired:
       record.fails >= config.captchaAfter || record.lockouts > 0,
   };
 }
 
-/** Current throttle state for `scope` (never throws, never locks by itself). */
-export function getThrottle(scope: ThrottleScope): ThrottleSnapshot {
+/**
+ * Attempt budget for the current escalation round. With `minAttempts`
+ * configured (login), every served lockout shrinks the next round's budget
+ * by one down to the floor: 4 → 3 → 2 → 1.
+ */
+export function effectiveMaxAttempts(config: ThrottleConfig, lockouts: number): number {
+  const floor = config.minAttempts ?? config.maxAttempts;
+  return Math.max(floor, config.maxAttempts - Math.max(0, Math.floor(lockouts)));
+}
+
+/** Current throttle state for `scope` (+ optional account). Never throws, never locks by itself. */
+export function getThrottle(scope: ThrottleScope, accountKey?: string): ThrottleSnapshot {
   const store = readStore();
-  return snapshotOf(scope, store[scope] ?? emptyRecord(), Date.now());
+  return snapshotOf(scope, store[storeKey(scope, accountKey)] ?? emptyRecord(), Date.now());
 }
 
 /**
@@ -152,12 +193,14 @@ export function getThrottle(scope: ThrottleScope): ThrottleSnapshot {
  */
 export function recordFailure(
   scope: ThrottleScope,
-  serverRetryAfterMs?: number | null
+  serverRetryAfterMs?: number | null,
+  accountKey?: string
 ): ThrottleSnapshot {
   const config = THROTTLE_CONFIGS[scope];
   const now = Date.now();
   const store = readStore();
-  const record = store[scope] ?? emptyRecord();
+  const key = storeKey(scope, accountKey);
+  const record = store[key] ?? emptyRecord();
 
   // A failure arriving mid-lockout (stale tab, double submit) must not
   // extend or reset anything — the existing deadline stands.
@@ -166,12 +209,20 @@ export function recordFailure(
   }
 
   record.fails += 1;
-  if (record.fails >= config.maxAttempts) {
-    const escalation = Math.min(record.lockouts, 10);
-    const clientLockout = Math.min(
-      config.baseLockoutMs * 2 ** escalation,
-      config.maxLockoutMs
-    );
+  if (record.fails >= effectiveMaxAttempts(config, record.lockouts)) {
+    // Stepped ladder when configured (login: 5 → 10 → 15 → 30 → 60 → 120 → 180min cap),
+    // otherwise the classic base-doubling rule capped at maxLockoutMs.
+    const steps = config.lockoutStepsMs;
+    const clientLockout =
+      steps && steps.length > 0
+        ? Math.min(
+            steps[Math.min(record.lockouts, steps.length - 1)]!,
+            config.maxLockoutMs
+          )
+        : Math.min(
+            config.baseLockoutMs * 2 ** Math.min(record.lockouts, 10),
+            config.maxLockoutMs
+          );
     const serverWait =
       typeof serverRetryAfterMs === "number" &&
       Number.isFinite(serverRetryAfterMs) &&
@@ -183,7 +234,7 @@ export function recordFailure(
     record.fails = 0;
   }
 
-  store[scope] = record;
+  store[key] = record;
   writeStore(store);
   return snapshotOf(scope, record, Date.now());
 }
@@ -194,17 +245,17 @@ export function recordFailure(
  * gets it right is not punished for old mistakes. Human-verification solved
  * state is owned by the form, not the store.
  */
-export function recordSuccess(scope: ThrottleScope): ThrottleSnapshot {
+export function recordSuccess(scope: ThrottleScope, accountKey?: string): ThrottleSnapshot {
   const store = readStore();
   const record = emptyRecord();
-  store[scope] = record;
+  store[storeKey(scope, accountKey)] = record;
   writeStore(store);
   return snapshotOf(scope, record, Date.now());
 }
 
-/** Test/escape-hatch reset for one scope. */
-export function resetThrottle(scope: ThrottleScope): void {
+/** Test/escape-hatch reset for one scope (+ optional account). */
+export function resetThrottle(scope: ThrottleScope, accountKey?: string): void {
   const store = readStore();
-  delete store[scope];
+  delete store[storeKey(scope, accountKey)];
   writeStore(store);
 }

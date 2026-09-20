@@ -14,19 +14,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Course } from "../hooks/use-teaching-data";
 
-interface CourseCardProps {
+// NOTE (B-11): instructor-management card — edit/duplicate/delete + status.
+// Deliberately NOT the student-facing CourseCard (components/common) nor the
+// browse-page card (courses/_components/course-card). Kept separate by domain;
+// the distinct export name below prevents import confusion between the three.
+interface TeachingCourseCardProps {
   course: Course;
   onEdit: (course: Course) => void;
   onDuplicate: (course: Course) => void;
   onDelete: (id: string) => void;
 }
 
-export default function CourseCard({
+export default function TeachingCourseCard({
   course,
   onEdit,
   onDuplicate,
   onDelete,
-}: CourseCardProps) {
+}: TeachingCourseCardProps) {
   const getStatusBadge = (status: Course["status"]) => {
     switch (status) {
       case "PUBLISHED":

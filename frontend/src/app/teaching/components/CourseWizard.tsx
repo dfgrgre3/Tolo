@@ -13,8 +13,7 @@ import LessonBuilder from "./LessonBuilder";
 import { QuizBuilder } from "./QuizBuilder";
 import { Course, Chapter } from "../hooks/use-teaching-data";
 import { useUpload } from "@/hooks/use-upload";
-import { apiClient } from "@/lib/api/api-client";
-import { apiRoutes } from "@/lib/api/routes";
+import { fetchCategoriesRaw } from "@/features/courses/api/courses-gateway";
 import { validateQuizQuestions } from "@/lib/quiz/validation";
 
 interface CourseWizardProps {
@@ -87,7 +86,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
 
   useEffect(() => {
     let active = true;
-    apiClient.get<unknown>(apiRoutes.categories).then((payload) => {
+    fetchCategoriesRaw().then((payload) => {
       const value = payload as { categories?: unknown; data?: unknown } | unknown[];
       const raw = Array.isArray(value) ? value : Array.isArray(value.categories) ? value.categories : Array.isArray(value.data) ? value.data : [];
       const next = raw.flatMap((item) => {
