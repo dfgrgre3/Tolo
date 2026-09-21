@@ -25,6 +25,8 @@ export default function LoginForm() {
     mfaCode,
     setMfaCode,
     mfaChallenge,
+    magicLinkMode,
+    magicLinkSent,
     error,
     needsVerification,
     isLoading,
@@ -34,6 +36,8 @@ export default function LoginForm() {
     handleMfaSubmit,
     cancelMfa,
     handleSocialLogin,
+    handleMagicLinkRequest,
+    toggleMagicLinkMode,
   } = useLoginForm();
 
   if (mfaChallenge !== null) {
@@ -66,6 +70,10 @@ export default function LoginForm() {
       sessionExpired={sessionExpired}
       onSubmit={handleSubmit}
       onSocialLogin={handleSocialLogin}
+      magicLinkMode={magicLinkMode}
+      magicLinkSent={magicLinkSent}
+      onMagicLinkRequest={handleMagicLinkRequest}
+      onToggleMagicLinkMode={toggleMagicLinkMode}
       submitDisabled={loginThrottle.locked}
       noticeSlot={<ThrottleNotice snapshot={loginThrottle} />}
     />

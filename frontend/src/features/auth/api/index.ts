@@ -11,6 +11,7 @@ export {
   verifyEmail,
   resendVerification,
   requestMagicLink,
+  verifyMagicLink,
   changePassword,
   type AuthActionResult,
 } from "@/services/auth/auth-api-service";

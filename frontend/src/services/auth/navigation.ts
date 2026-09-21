@@ -16,6 +16,7 @@ export const SAFE_REDIRECT_PUBLIC_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  "/magic-link",
 ];
 
 const BACKSLASH_CHAR = String.fromCharCode(92);

@@ -126,6 +126,7 @@ export const EDGE_GUEST_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  "/magic-link",
 ];
 
 /**

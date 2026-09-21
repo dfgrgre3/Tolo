@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LoaderCircle, AlertCircle, CheckCircle, KeyRound } from "lucide-react";
+import { LoaderCircle, AlertCircle, CheckCircle, KeyRound, Mail } from "lucide-react";
 import Link from "next/link";
 import SocialLoginButtons from "./SocialLoginButtons";
 import PasskeyLoginButton from "./PasskeyLoginButton";
@@ -25,6 +25,12 @@ interface LoginCredentialsStepProps {
   sessionExpired: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onSocialLogin: (provider: "google" | "apple") => void;
+  /** When true, the form asks only for an email and sends a sign-in link. */
+  magicLinkMode?: boolean;
+  /** A link was requested (or appeared to be) — show the confirmation state. */
+  magicLinkSent?: boolean;
+  onMagicLinkRequest?: (e: React.FormEvent) => void;
+  onToggleMagicLinkMode?: () => void;
   /** Disables submit while a throttle lockout is active. */
   submitDisabled?: boolean;
   /** Renders lockout / remaining-attempts state above the fields. */
@@ -49,6 +55,10 @@ export default function LoginCredentialsStep({
   sessionExpired,
   onSubmit,
   onSocialLogin,
+  magicLinkMode = false,
+  magicLinkSent = false,
+  onMagicLinkRequest,
+  onToggleMagicLinkMode,
   submitDisabled = false,
   noticeSlot,
 }: LoginCredentialsStepProps) {
@@ -63,7 +73,7 @@ export default function LoginCredentialsStep({
         <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50">تسجيل الدخول</CardTitle>
         <CardDescription className="text-slate-500 dark:text-slate-400">أدخل بيانات الاعتماد الخاصة بك للدخول إلى المنصة</CardDescription>
       </CardHeader>
-      <form onSubmit={onSubmit} aria-busy={isLoading}>
+      <form onSubmit={magicLinkMode ? onMagicLinkRequest : onSubmit} aria-busy={isLoading}>
         <CardContent className="grid gap-5" aria-live="polite">
           {error && (
             <Alert variant="destructive" className="bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400">
@@ -105,34 +115,81 @@ export default function LoginCredentialsStep({
               </AlertDescription>
             </Alert>
           )}
+          {magicLinkSent && !error && (
+            <Alert className="border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/10">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <AlertTitle className="font-semibold me-2">تم إرسال الرابط</AlertTitle>
+              <AlertDescription dir="rtl" className="me-2">
+                إذا كان بريدك مسجلاً لدينا، ستصلك رسالة تحتوي على رابط تسجيل دخول صالح لمدة 15 دقيقة.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          <LoginCredentialsFields
-            email={email}
-            onEmailChange={onEmailChange}
-            password={password}
-            onPasswordChange={onPasswordChange}
-            rememberMe={rememberMe}
-            onRememberMeChange={onRememberMeChange}
-            isLoading={isLoading}
-          />
+          {magicLinkMode ? (
+            <div className="grid gap-2">
+              <label htmlFor="magic-link-email" className="text-slate-700 dark:text-slate-300 font-semibold text-sm">
+                البريد الإلكتروني
+              </label>
+              <input
+                id="magic-link-email"
+                type="email"
+                dir="ltr"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => onEmailChange(e.target.value)}
+                disabled={isLoading}
+                required
+                className="flex h-11 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+              />
+            </div>
+          ) : (
+            <LoginCredentialsFields
+              email={email}
+              onEmailChange={onEmailChange}
+              password={password}
+              onPasswordChange={onPasswordChange}
+              rememberMe={rememberMe}
+              onRememberMeChange={onRememberMeChange}
+              isLoading={isLoading}
+            />
+          )}
 
           {noticeSlot}
 
           <SocialLoginButtons isLoading={isLoading} onSelect={onSocialLogin} />
-          <PasskeyLoginButton />
+          {!magicLinkMode && <PasskeyLoginButton />}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4 pt-4">
-          <Button type="submit" className="h-11 w-full bg-[#0F766E] text-white font-bold shadow-lg shadow-[#0F766E]/20 hover:bg-[#115E59]" disabled={isLoading || submitDisabled}>
+          <Button
+            type="submit"
+            className="h-11 w-full bg-[#0F766E] text-white font-bold shadow-lg shadow-[#0F766E]/20 hover:bg-[#115E59]"
+            disabled={isLoading || submitDisabled}
+          >
             {isLoading ? (
               <>
                 <LoaderCircle className="ms-2 h-4 w-4" />
                 جاري التحقق...
               </>
+            ) : magicLinkMode ? (
+              <>
+                <Mail className="ms-2 h-4 w-4" />
+                إرسال رابط تسجيل الدخول
+              </>
             ) : (
               "تسجيل الدخول"
             )}
           </Button>
+          <button
+            type="button"
+            onClick={onToggleMagicLinkMode}
+            disabled={isLoading}
+            className="text-sm font-semibold text-primary hover:text-primary/80 disabled:opacity-50"
+          >
+            {magicLinkMode
+              ? "تسجيل الدخول بكلمة المرور"
+              : "تسجيل الدخول عبر رابط سحري"}
+          </button>
           <div className="text-sm text-center text-slate-500 dark:text-slate-400">
             ليس لديك حساب؟{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-bold hover:underline underline-offset-4">

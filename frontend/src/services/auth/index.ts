@@ -4,6 +4,7 @@ export {
   verifyEmail,
   resendVerification,
   requestMagicLink,
+  verifyMagicLink,
 } from "./auth-api-service";
 export { verifyForgotPasswordCode } from "./auth-api-service";
 export type { AuthActionResult } from "./auth-api-service";

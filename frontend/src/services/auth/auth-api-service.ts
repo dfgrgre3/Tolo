@@ -156,6 +156,26 @@ export async function requestMagicLink(
 }
 
 /**
+ * Redeems the one-time token from an emailed sign-in link.
+ *
+ * Contract: POST /api/v1/auth/magic-link/verify
+ *   body: { token }
+ * On success the backend sets the HttpOnly session cookies and returns the
+ * same `{ accessToken, user }` shape as login — the caller just needs to
+ * refresh the session cache, never to store a token itself.
+ */
+export async function verifyMagicLink(
+  token: string
+): Promise<AuthActionResult> {
+  try {
+    await apiClient.post(apiRoutes.auth.magicLink.verify, { token });
+    return { success: true };
+  } catch (err: unknown) {
+    return actionFailure("Network error")(err);
+  }
+}
+
+/**
  * Authenticated password change (profile → security tab).
  *
  * Contract: POST /api/v1/auth/change-password

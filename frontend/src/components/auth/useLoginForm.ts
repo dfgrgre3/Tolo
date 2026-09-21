@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/api-client";
 import { useAuthContext } from "@/contexts/auth-context";
 import { getDeviceFingerprint } from "@/lib/auth/device-fingerprint";
 import { login, verifyMfa, getSocialLoginUrl } from "@/services/auth/login-service";
+import { requestMagicLink } from "@/services/auth";
 import { sanitizeRedirectPath } from "@/services/auth/navigation";
 import {
   getThrottle,
@@ -57,6 +58,10 @@ export function useLoginForm() {
   const [rememberMe, setRememberMe] = useState(true);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaChallenge, setMfaChallenge] = useState<string | null>(null);
+  // Magic-link mode swaps the password field for a single email + "send link"
+  // submit. The backend always answers success, so the UI just confirms.
+  const [magicLinkMode, setMagicLinkMode] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -229,6 +234,43 @@ export function useLoginForm() {
     }
   };
 
+  const handleMagicLinkRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      setError("يرجى إدخال البريد الإلكتروني");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError("يرجى إدخال بريد إلكتروني صحيح");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setMagicLinkSent(false);
+
+    const result = await requestMagicLink(trimmedEmail);
+    // The endpoint is intentionally constant-outcome, so success is the same
+    // for unknown addresses — never hint whether the account exists.
+    if (result.success) {
+      setMagicLinkSent(true);
+    } else {
+      setError(result.error ?? "تعذر إرسال رابط تسجيل الدخول، حاول مرة أخرى.");
+    }
+    setIsLoading(false);
+  };
+
+  /** Toggles between password and magic-link (passwordless) sign-in. */
+  const toggleMagicLinkMode = () => {
+    setMagicLinkMode((prev) => !prev);
+    setMagicLinkSent(false);
+    setError(null);
+    setPassword("");
+  };
+
   return {
     registered,
     sessionExpired,
@@ -241,6 +283,8 @@ export function useLoginForm() {
     mfaCode,
     setMfaCode,
     mfaChallenge,
+    magicLinkMode,
+    magicLinkSent,
     error,
     needsVerification,
     isLoading,
@@ -250,5 +294,7 @@ export function useLoginForm() {
     handleMfaSubmit,
     cancelMfa,
     handleSocialLogin,
+    handleMagicLinkRequest,
+    toggleMagicLinkMode,
   };
 }
