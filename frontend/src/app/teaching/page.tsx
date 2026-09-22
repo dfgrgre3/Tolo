@@ -125,7 +125,110 @@ export default function TeachingPage() {
   const [applyName, setApplyName] = useState(user?.name || "");
   const [applyFormEmail, setApplyFormEmail] = useState(user?.email || "");
 
-  // 1. Loading State � static, no animation
+  // Course Wizard controls (stable callbacks — avoid re-rendering panels).
+  // Declared BEFORE any early return: React hooks must run unconditionally.
+  const handleCreateCourseClick = useCallback(() => {
+    setEditingCourse(null);
+    setIsWizardOpen(true);
+  }, []);
+
+  const handleEditCourseClick = useCallback((course: Course) => {
+    setEditingCourse(course);
+    setIsWizardOpen(true);
+  }, []);
+
+  const handleSaveCourse = useCallback(
+    async (courseData: Partial<Course>) => {
+      try {
+        if (editingCourse) {
+          await updateCourseAsync({ id: editingCourse.id, data: courseData });
+          toast.success("تم تحديث بيانات الدورة بنجاح");
+        } else {
+          await createCourseAsync(courseData);
+          toast.success("تم إنشاء الدورة بنجاح");
+        }
+        setIsWizardOpen(false);
+      } catch {
+        toast.error("حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مرة أخرى");
+      }
+    },
+    [editingCourse, updateCourseAsync, createCourseAsync]
+  );
+
+  const handleDeleteCourse = useCallback(
+    async (id: string) => {
+      try {
+        await deleteCourseAsync(id);
+        toast.success("تم حذف الدورة بنجاح");
+      } catch {
+        toast.error("حدث خطأ أثناء حذف البيانات، يرجى المحاولة مرة أخرى");
+      }
+    },
+    [deleteCourseAsync]
+  );
+
+  const handleMessageStudent = useCallback((_studentId: string) => {
+    // Select messages tab
+    setActiveTab("messages");
+  }, []);
+
+  const handleDuplicateCourse = useCallback(
+    (c: Course) => createCourse({ ...c, title: createCourseDuplicateTitle(c.title) }),
+    [createCourse]
+  );
+  const goCalendar = useCallback(() => setActiveTab("calendar"), []);
+  const goMessages = useCallback(() => setActiveTab("messages"), []);
+  const closeWizard = useCallback(() => setIsWizardOpen(false), []);
+
+
+  // Render tab component — memoized so tab switches don't rebuild closures.
+  // Declared BEFORE any early return: React hooks must run unconditionally.
+  const tabContent = useMemo(() => {
+    switch (activeTab) {
+      case "dashboard":
+        return (
+          <DashboardOverview
+            stats={stats}
+            activities={activities}
+            onCreateCourse={handleCreateCourseClick}
+            onScheduleSession={goCalendar}
+            onSendAnnouncement={goMessages}
+            user={user}
+          />
+        );
+      case "courses":
+        return (
+          <CourseManagement
+            courses={courses}
+            isLoading={isCoursesLoading}
+            onCreateCourse={handleCreateCourseClick}
+            onEditCourse={handleEditCourseClick}
+            onDuplicateCourse={handleDuplicateCourse}
+            onDeleteCourse={handleDeleteCourse}
+          />
+        );
+      case "quizzes":
+        return <QuizManagementPanelLazy courses={courses} />;
+      case "students":
+        return <StudentManagement students={students} isLoading={isStudentsLoading} onMessageStudent={handleMessageStudent} />;
+      case "messages":
+        return <MessagingInbox conversations={conversations} onSendMessage={sendMessage} />;
+      case "reviews":
+        return <ReviewsPanel reviews={reviews} isLoading={isReviewsLoading} onReplyToReview={replyToReview} />;
+      case "analytics":
+        return <AnalyticsPanel />;
+      case "earnings":
+        return <EarningsPanel transactions={transactions} isLoading={isTransactionsLoading} />;
+      case "calendar":
+        return <CalendarScheduler events={calendarEvents} isLoading={isCalendarLoading} onAddEvent={addCalendarEvent} />;
+      case "settings":
+        return <SettingsPanel />;
+      default:
+        return <div className="text-center p-8">جارٍ تحميل المحتوى...</div>;
+    }
+  }, [activeTab, stats, activities, courses, students, conversations, reviews, transactions, calendarEvents, isCoursesLoading, isStudentsLoading, isReviewsLoading, isTransactionsLoading, isCalendarLoading, handleCreateCourseClick, handleEditCourseClick, handleDuplicateCourse, handleDeleteCourse, handleMessageStudent, sendMessage, replyToReview, addCalendarEvent, goCalendar, goMessages, user]);
+
+  // 1. Loading State — static, no animation
   if (isLoading) {
     return (
       <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950" dir="rtl">
@@ -374,107 +477,6 @@ export default function TeachingPage() {
       </div>
     );
   }
-
-  // Course Wizard controls (stable callbacks � avoid re-rendering panels)
-  const handleCreateCourseClick = useCallback(() => {
-    setEditingCourse(null);
-    setIsWizardOpen(true);
-  }, []);
-
-  const handleEditCourseClick = useCallback((course: Course) => {
-    setEditingCourse(course);
-    setIsWizardOpen(true);
-  }, []);
-
-  const handleSaveCourse = useCallback(
-    async (courseData: Partial<Course>) => {
-      try {
-        if (editingCourse) {
-          await updateCourseAsync({ id: editingCourse.id, data: courseData });
-          toast.success("?? ??? ??????? ?????? ?????");
-        } else {
-          await createCourseAsync(courseData);
-          toast.success("?? ????? ?????? ?????");
-        }
-        setIsWizardOpen(false);
-      } catch {
-        toast.error("???? ??? ??????? ???? ???????? ??? ????");
-      }
-    },
-    [editingCourse, updateCourseAsync, createCourseAsync]
-  );
-
-  const handleDeleteCourse = useCallback(
-    async (id: string) => {
-      try {
-        await deleteCourseAsync(id);
-        toast.success("?? ??? ?????? ?????");
-      } catch {
-        toast.error("???? ??? ??????? ???? ???????? ??? ????");
-      }
-    },
-    [deleteCourseAsync]
-  );
-
-  const handleMessageStudent = useCallback((_studentId: string) => {
-    // Select messages tab
-    setActiveTab("messages");
-  }, []);
-
-  const handleDuplicateCourse = useCallback(
-    (c: Course) => createCourse({ ...c, title: createCourseDuplicateTitle(c.title) }),
-    [createCourse]
-  );
-  const goCalendar = useCallback(() => setActiveTab("calendar"), []);
-  const goMessages = useCallback(() => setActiveTab("messages"), []);
-  const closeWizard = useCallback(() => setIsWizardOpen(false), []);
-
-  // Render tab component � memoized so tab switches don't rebuild closures
-  const tabContent = useMemo(() => {
-    switch (activeTab) {
-      case "dashboard":
-        return (
-          <DashboardOverview
-            stats={stats}
-            activities={activities}
-            onCreateCourse={handleCreateCourseClick}
-            onScheduleSession={goCalendar}
-            onSendAnnouncement={goMessages}
-            user={user}
-          />
-        );
-      case "courses":
-        return (
-          <CourseManagement
-            courses={courses}
-            isLoading={isCoursesLoading}
-            onCreateCourse={handleCreateCourseClick}
-            onEditCourse={handleEditCourseClick}
-            onDuplicateCourse={handleDuplicateCourse}
-            onDeleteCourse={handleDeleteCourse}
-          />
-        );
-      case "quizzes":
-        return <QuizManagementPanelLazy courses={courses} />;
-      case "students":
-        return <StudentManagement students={students} isLoading={isStudentsLoading} onMessageStudent={handleMessageStudent} />;
-      case "messages":
-        return <MessagingInbox conversations={conversations} onSendMessage={sendMessage} />;
-      case "reviews":
-        return <ReviewsPanel reviews={reviews} isLoading={isReviewsLoading} onReplyToReview={replyToReview} />;
-      case "analytics":
-        return <AnalyticsPanel />;
-      case "earnings":
-        return <EarningsPanel transactions={transactions} isLoading={isTransactionsLoading} />;
-      case "calendar":
-        return <CalendarScheduler events={calendarEvents} isLoading={isCalendarLoading} onAddEvent={addCalendarEvent} />;
-      case "settings":
-        return <SettingsPanel />;
-      default:
-        return <div className="text-center p-8">????? ??? ??????? ??????...</div>;
-    }
-  }, [activeTab, stats, activities, courses, students, conversations, reviews, transactions, calendarEvents, isCoursesLoading, isStudentsLoading, isReviewsLoading, isTransactionsLoading, isCalendarLoading, handleCreateCourseClick, handleEditCourseClick, handleDuplicateCourse, handleDeleteCourse, handleMessageStudent, sendMessage, replyToReview, addCalendarEvent, goCalendar, goMessages, user]);
-
   return (
     <TeachingLayout
       activeTab={activeTab}

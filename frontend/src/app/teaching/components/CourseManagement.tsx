@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useDeferredValue, useMemo, useState } from "react";
+import React, { useDeferredValue, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,11 +68,6 @@ export default function CourseManagement({
       })
       .map(({ course }) => course);
   }, [courses, deferredSearch, statusFilter]);
-
-  const handleDeleteRequest = (id: string) => {
-    const target = courses.find((course) => course.id === id);
-    if (target) setCourseToDelete(target);
-  };
 
   if (isLoading) {
     return (
