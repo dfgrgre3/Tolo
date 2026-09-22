@@ -81,8 +81,17 @@ export function applyCsp(response: NextResponse, nonce: string): NextResponse {
     // img-src: explicit host allowlist. The previous `https:` wildcard
     // allowed any HTTPS origin to be a tracking/exfiltration target; we
     // restrict to known image sources only.
-    "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
-    "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
+    // In development, uploaded media (avatars, covers, …) is served by the
+    // local MinIO instance (S3_PUBLIC_URL → http://127.0.0.1:9000/<bucket>),
+    // which is a different origin (port) than the app, so 'self' does not
+    // cover it. Production serves these from *.vercel.app / Supabase, which
+    // are already listed. Keep dev-only to avoid widening the prod surface.
+    isDev
+      ? "img-src 'self' data: blob: http://127.0.0.1:9000 https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com"
+      : "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://i.ytimg.com https://lh3.googleusercontent.com https://api.dicebear.com",
+    isDev
+      ? "media-src 'self' blob: http://127.0.0.1:9000 https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com"
+      : "media-src 'self' blob: https://*.supabase.co https://*.supabase.in https://cdn.bunny.net https://*.b-cdn.net https://stream.cloudflare.com https://*.cloudflarestream.com https://*.youtube.com",
     buildConnectSrc(),
     "frame-src 'self' https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com https://*.paymob.com https://player.vimeo.com",
     "frame-ancestors 'none'",
