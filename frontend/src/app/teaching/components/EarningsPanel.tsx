@@ -97,10 +97,10 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
             <Card key={i} className="border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
               <CardContent className="p-6 flex items-center justify-between">
                 <div className="space-y-2 w-full">
-                  <div className="h-3 w-24 bg-slate-100 dark:bg-slate-850 rounded animate-pulse" />
-                  <div className="h-7 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-slate-100 dark:bg-slate-850 rounded " />
+                  <div className="h-7 w-32 bg-slate-200 dark:bg-slate-800 rounded " />
                 </div>
-                <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-850 animate-pulse" />
+                <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-850 " />
               </CardContent>
             </Card>
           ))}
@@ -139,7 +139,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 dark:text-slate-450 block">إجمالي أرباح المنصة</span>
@@ -151,7 +151,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
           </CardContent>
         </Card>
         
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 dark:text-slate-450 block">الرصيد المتاح للسحب</span>
@@ -166,8 +166,8 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
 
       {/* Payout dialog modal */}
       {showWithdrawModal && (
-        <div role="dialog" aria-modal="true" aria-label="طلب سحب رصيد" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setShowWithdrawModal(false)}>
-          <div className="bg-card w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div role="dialog" aria-modal="true" aria-label="طلب سحب رصيد" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60  p-4" onClick={() => setShowWithdrawModal(false)}>
+          <div className="bg-card w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800  p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
               <h4 className="text-xs font-bold text-slate-850 dark:text-slate-100">طلب سحب رصيد</h4>
               <button onClick={() => setShowWithdrawModal(false)} aria-label="إغلاق" className="text-slate-400 hover:text-slate-650">X</button>
@@ -221,7 +221,7 @@ export default function EarningsPanel({ transactions, isLoading = false }: Earni
       )}
 
       {/* Transaction History Table */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card overflow-hidden">
+      <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card overflow-hidden">
         <CardHeader className="border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold text-slate-850 dark:text-slate-100">سجل المعاملات والتحويلات المالية</CardTitle>
           <Button onClick={handleExportCSV} variant="ghost" size="icon" className="w-8 h-8 rounded-lg text-slate-400" title="تصدير ملف CSV">

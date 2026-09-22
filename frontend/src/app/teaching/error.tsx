@@ -18,7 +18,7 @@ export default function TeachingError({ error, reset }: ErrorProps) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/40 p-4 text-center" dir="rtl">
-      <div className="max-w-md w-full bg-card p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg space-y-6">
+      <div className="max-w-md w-full bg-card p-8 rounded-2xl border border-slate-200 dark:border-slate-800  space-y-6">
         <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mx-auto text-red-500">
           <AlertCircle className="w-10 h-10" />
         </div>

@@ -45,7 +45,7 @@ export default function TeachingCourseCard({
   };
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden bg-card text-right flex flex-col h-full group">
+    <Card className="border-slate-200 dark:border-slate-800     rounded-2xl overflow-hidden bg-card text-right flex flex-col h-full group">
       {/* Thumbnail Banner */}
       <div className="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
         <Image
@@ -54,10 +54,10 @@ export default function TeachingCourseCard({
           fill
           sizes="(min-width: 768px) 33vw, 100vw"
           unoptimized
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className="object-cover   "
         />
         <div className="absolute top-3 right-3">{getStatusBadge(course.status)}</div>
-        <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">
+        <div className="absolute top-3 left-3 bg-black/40  text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">
           ${course.price}
         </div>
       </div>

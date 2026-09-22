@@ -76,7 +76,7 @@ export default function SettingsPanel() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Profile Card */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-850 flex flex-row items-center gap-3">
             <User className="w-5 h-5 text-primary" />
             <CardTitle className="text-sm font-bold text-slate-850 dark:text-slate-100">الملف الشخصي للمدرب</CardTitle>
@@ -105,7 +105,7 @@ export default function SettingsPanel() {
         </Card>
 
         {/* Payout Channels Card */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-850 flex flex-row items-center gap-3">
             <CreditCard className="w-5 h-5 text-primary" />
             <CardTitle className="text-sm font-bold text-slate-850 dark:text-slate-100">تفاصيل وسائل سحب الأرباح</CardTitle>
@@ -125,7 +125,7 @@ export default function SettingsPanel() {
         </Card>
 
         {/* API keys Card */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-850 flex flex-row items-center gap-3">
             <Key className="w-5 h-5 text-primary" />
             <CardTitle className="text-sm font-bold text-slate-850 dark:text-slate-100">إعدادات المطور ومفاتيح الوصول (API Keys)</CardTitle>

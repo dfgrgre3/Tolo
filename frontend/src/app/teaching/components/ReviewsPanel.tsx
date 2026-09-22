@@ -69,7 +69,7 @@ export default function ReviewsPanel({ reviews, isLoading = false, onReplyToRevi
       <div className="flex flex-wrap gap-2 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
         <button
           onClick={() => setFilterRating("all")}
-          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+          className={`px-4 py-1.5 rounded-xl text-xs font-bold  border ${
             filterRating === "all"
               ? "bg-primary text-white border-primary"
               : "bg-card text-slate-500 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
@@ -81,7 +81,7 @@ export default function ReviewsPanel({ reviews, isLoading = false, onReplyToRevi
           <button
             key={stars}
             onClick={() => setFilterRating(stars)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold  border flex items-center gap-1.5 ${
               filterRating === stars
                 ? "bg-primary text-white border-primary"
                 : "bg-card text-slate-500 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
@@ -101,7 +101,7 @@ export default function ReviewsPanel({ reviews, isLoading = false, onReplyToRevi
           </div>
         ) : (
           filteredReviews.map((review) => (
-            <Card key={review.id} className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden bg-card">
+            <Card key={review.id} className="border-slate-200 dark:border-slate-800  rounded-2xl overflow-hidden bg-card">
               <CardContent className="p-6 space-y-4 text-xs font-semibold">
                 {/* Review Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">

@@ -1,11 +1,16 @@
-﻿"use client";
+"use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { usePermission } from "@/features/auth/hooks/use-permission";
 import { useAuth } from "@/hooks/use-auth";
 import TeachingLayout from "./components/TeachingLayout";
-import TeachingLoading from "./loading";
+import DashboardOverview from "./components/DashboardOverview";
+import CourseManagement from "./components/CourseManagement";
+import StudentManagement from "./components/StudentManagement";
+import MessagingInbox from "./components/MessagingInbox";
+import ReviewsPanel from "./components/ReviewsPanel";
 import { ShieldAlert, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,23 +21,22 @@ import {
   submitTeachingApplicationRaw,
 } from "@/features/teaching/api/teaching-gateway";
 
-// Tabs Panels
-import DashboardOverview from "./components/DashboardOverview";
-import CourseManagement from "./components/CourseManagement";
-import StudentManagement from "./components/StudentManagement";
-import MessagingInbox from "./components/MessagingInbox";
-import ReviewsPanel from "./components/ReviewsPanel";
-import AnalyticsPanel from "./components/AnalyticsPanel";
-import CalendarScheduler from "./components/CalendarScheduler";
-import EarningsPanel from "./components/EarningsPanel";
-import SettingsPanel from "./components/SettingsPanel";
-import { QuizManagementPanel } from "./components/QuizManagementPanel";
+// Heavy panels � lazy loaded so initial bundle stays small.
+// No loading spinners/animations: render nothing until loaded.
+const AnalyticsPanel = dynamic(() => import("./components/AnalyticsPanel"), { ssr: false });
+const CalendarScheduler = dynamic(() => import("./components/CalendarScheduler"), { ssr: false });
+const EarningsPanel = dynamic(() => import("./components/EarningsPanel"), { ssr: false });
+const SettingsPanel = dynamic(() => import("./components/SettingsPanel"), { ssr: false });
+const QuizManagementPanelLazy = dynamic(
+  () => import("./components/QuizManagementPanel").then((m) => ({ default: m.QuizManagementPanel })),
+  { ssr: false }
+);
 
-// Wizard Modal
-import CourseWizard from "./components/CourseWizard";
+// Wizard Modal � heavy (upload + lesson/quiz builders), load on demand only.
+const CourseWizard = dynamic(() => import("./components/CourseWizard"), { ssr: false });
 
 // Hooks
-import { useTeachingData, Course } from "./hooks/use-teaching-data";
+import { useTeachingData, Course, createCourseDuplicateTitle } from "./hooks/use-teaching-data";
 
 const VALID_TABS = [
   "dashboard",
@@ -121,9 +125,21 @@ export default function TeachingPage() {
   const [applyName, setApplyName] = useState(user?.name || "");
   const [applyFormEmail, setApplyFormEmail] = useState(user?.email || "");
 
-  // 1. Loading State
+  // 1. Loading State � static, no animation
   if (isLoading) {
-    return <TeachingLoading />;
+    return (
+      <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950" dir="rtl">
+        <aside className="hidden lg:block w-64 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900" />
+        <div className="flex-1 p-8">
+          <div className="h-10 w-48 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-28 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // 2. Auth Role Guard Fallback Screen
@@ -134,7 +150,7 @@ export default function TeachingPage() {
       setApplyError("");
       try {
         const data = await submitTeachingApplicationRaw<{ code?: string; email?: string }>({
-          name: applyName || user?.name || "Ù…Ù‚Ø¯Ù… Ø§Ù„Ø·Ù„Ø¨",
+          name: applyName || user?.name || "مقدم الطلب",
           email: applyFormEmail || user?.email || "",
           experience: applyExperience,
           bio: applyBio,
@@ -144,7 +160,7 @@ export default function TeachingPage() {
         setApplySuccess(true);
       } catch (err) {
         errorService.logError(err, { source: "teaching:apply", severity: "medium" });
-        setApplyError("ØªØ¹Ø°Ø± ØªÙ‚Ø¯ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨ Ø­Ø§Ù„ÙŠØ§Ù‹ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©.");
+        setApplyError("تعذر تقديم الطلب حالياً، يرجى التحقق من البيانات وإعادة المحاولة.");
       } finally {
         setIsSubmitting(false);
       }
@@ -166,34 +182,34 @@ export default function TeachingPage() {
         );
         switch (data.status) {
           case "approved":
-            setLookupMessage("Ù…Ø¨Ø±ÙˆÙƒ! ØªÙ…Øª Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø·Ù„Ø¨Ùƒ. ÙŠÙ…ÙƒÙ†Ùƒ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù„Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ Ù„ÙˆØ­Ø© ØªØ­ÙƒÙ… Ø§Ù„Ù…Ø¹Ù„Ù….");
+            setLookupMessage("مبروك! تمت الموافقة على طلبك. يمكنك تسجيل الدخول للوصول إلى لوحة تحكم المعلم.");
             break;
           case "rejected":
-            setLookupMessage("Ù†Ø£Ø³ÙØŒ Ù„Ù… ÙŠØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨Ùƒ Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø±Ø©. ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„ØªÙØ§ØµÙŠÙ„.");
+            setLookupMessage("نأسف، لم يتم قبول طلبك هذه المرة. يمكنك التواصل مع الدعم الفني لمعرفة التفاصيل.");
             break;
           default:
-            setLookupMessage(data.message || "Ø·Ù„Ø¨Ùƒ Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø© ÙˆØ§Ù„ØªØ¯Ù‚ÙŠÙ‚ Ø­Ø§Ù„ÙŠØ§Ù‹ Ù…Ù† Ù‚Ø¨Ù„ Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ù†ØµØ©.");
+            setLookupMessage(data.message || "طلبك قيد المراجعة والتدقيق حالياً من قبل إدارة المنصة.");
         }
       } catch (_err) {
         setLookupStatus("error");
-        setLookupMessage("Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù…. ÙŠØ±Ø¬Ù‰ Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø­Ù‚Ø§Ù‹.");
+        setLookupMessage("حدث خطأ أثناء الاتصال بالخادم. يرجى إعادة المحاولة لاحقاً.");
       }
     };
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 text-center" dir="rtl">
-        <div className="max-w-md w-full bg-card p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
+        <div className="max-w-md w-full bg-card p-8 rounded-3xl border border-slate-200 dark:border-slate-800  space-y-6">
           {applySuccess ? (
             <div className="space-y-4 py-4 text-center">
               <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/20 rounded-full flex items-center justify-center mx-auto text-emerald-500">
                 <ShieldAlert className="w-10 h-10 text-emerald-500" />
               </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">ØªÙ… ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨Ùƒ Ø¨Ù†Ø¬Ø§Ø­!</h2>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">تم تقديم طلبك بنجاح!</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                Ø´ÙƒØ±Ù‹Ø§ Ù„Ø§Ù‡ØªÙ…Ø§Ù…Ùƒ Ø¨Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… ÙƒÙ…Ø¹Ù„Ù… ÙÙŠ Ù…Ù†ØµØ© TOLO. ØªÙ… Ø¥Ø±Ø³Ø§Ù„ ÙƒÙˆØ¯ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© ÙˆØªÙØ§ØµÙŠÙ„ Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ: <strong className="text-slate-800 dark:text-slate-100">{applyEmail}</strong>
+                شكرًا لاهتمامك بالانضمام كمعلم في منصة TOLO. تم إرسال كود المتابعة وتفاصيل طلبك إلى بريدك الإلكتروني: <strong className="text-slate-800 dark:text-slate-100">{applyEmail}</strong>
               </p>
               <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs text-slate-800 dark:text-slate-200 font-bold select-all">
-                ÙƒÙˆØ¯ Ø§Ù„Ø·Ù„Ø¨: {applyCode}
+                كود الطلب: {applyCode}
               </div>
               <Button
                 onClick={() => {
@@ -201,32 +217,32 @@ export default function TeachingPage() {
                 }}
                 className="bg-primary hover:bg-primary/95 text-white rounded-xl w-full"
               >
-                Ø§Ù„Ø¹ÙˆØ¯Ø© Ù„Ù„Ø±Ø¦ÙŠØ³ÙŠØ©
+                العودة للرئيسية
               </Button>
             </div>
           ) : showApplyForm ? (
             <form onSubmit={handleApplySubmit} className="space-y-4 text-right">
               <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Ø·Ù„Ø¨ Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… ÙƒÙ…Ø¹Ù„Ù…</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">ÙŠØ±Ø¬Ù‰ ØªØ¹Ø¨Ø¦Ø© Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø£Ø¯Ù†Ø§Ù‡ Ù„ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨Ùƒ Ù„Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©</p>
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">طلب الانضمام كمعلم</h3>
+                <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5">يرجى تعبئة الحقول أدناه لتقديم طلبك للمراجعة</p>
               </div>
 
               <div className="space-y-3 text-xs font-semibold">
                 <div className="space-y-1">
-                  <label className="text-slate-500">Ø§Ù„Ø§Ø³Ù… Ø§Ù„ÙƒØ§Ù…Ù„</label>
-                  <Input required value={applyName} onChange={(e) => setApplyName(e.target.value)} placeholder="Ù…Ø«Ø§Ù„: Ø£Ø­Ù…Ø¯ Ù…Ø­Ù…Ø¯ Ø¹Ù„ÙŠ" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
+                  <label className="text-slate-500">الاسم الكامل</label>
+                  <Input required value={applyName} onChange={(e) => setApplyName(e.target.value)} placeholder="مثال: أحمد محمد علي" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-500">Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ù„Ù„ØªÙˆØ§ØµÙ„</label>
+                  <label className="text-slate-500">البريد الإلكتروني للتواصل</label>
                   <Input required type="email" value={applyFormEmail} onChange={(e) => setApplyFormEmail(e.target.value)} placeholder="example@tolo.edu" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-500">Ø³Ù†ÙˆØ§Øª Ø§Ù„Ø®Ø¨Ø±Ø©</label>
-                  <Input required value={applyExperience} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApplyExperience(e.target.value)} placeholder="Ù…Ø«Ø§Ù„: 5 Ø³Ù†ÙˆØ§Øª" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
+                  <label className="text-slate-500">سنوات الخبرة</label>
+                  <Input required value={applyExperience} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApplyExperience(e.target.value)} placeholder="مثال: 5 سنوات" className="rounded-xl border-slate-200 dark:border-slate-800 text-right text-xs" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-500 font-bold text-xs">Ù†Ø¨Ø°Ø© ØªØ¹Ø±ÙŠÙÙŠØ© Ù…Ø®ØªØµØ±Ø©</label>
-                  <Textarea required value={applyBio} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setApplyBio(e.target.value)} placeholder="Ø£Ø®Ø¨Ø±Ù†Ø§ Ø¹Ù† Ø®Ù„ÙÙŠØªÙƒ Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠØ© ÙˆØ§Ù„ØªØ¹Ù„ÙŠÙ…ÙŠØ©..." rows={3} className="rounded-xl border-slate-200 dark:border-slate-800 text-xs text-right" />
+                  <label className="text-slate-500 font-bold text-xs">نبذة تعريفية مختصرة</label>
+                  <Textarea required value={applyBio} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setApplyBio(e.target.value)} placeholder="أخبرنا عن خلفيتك الأكاديمية والتعليمية..." rows={3} className="rounded-xl border-slate-200 dark:border-slate-800 text-xs text-right" />
                 </div>
               </div>
 
@@ -238,21 +254,21 @@ export default function TeachingPage() {
 
                 <div className="flex gap-2 pt-2">
                   <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary text-white rounded-xl text-xs">
-                    {isSubmitting ? "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙ‚Ø¯ÙŠÙ…..." : "ØªÙ‚Ø¯ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨"}
+                    {isSubmitting ? "جاري التقديم..." : "تقديم الطلب"}
                   </Button>
-                <Button type="button" disabled={isSubmitting} variant="outline" onClick={() => { setShowApplyForm(false); setApplyError(""); }} className="rounded-xl text-xs">Ø¥Ù„ØºØ§Ø¡</Button>
+                <Button type="button" disabled={isSubmitting} variant="outline" onClick={() => { setShowApplyForm(false); setApplyError(""); }} className="rounded-xl text-xs">إلغاء</Button>
               </div>
             </form>
           ) : showLookupForm ? (
             <form onSubmit={handleLookupSubmit} className="space-y-4 text-right">
               <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Ø§Ø³ØªØ¹Ù„Ø§Ù… Ø¹Ù† Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨</h3>
-                <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5 font-bold">Ø£Ø¯Ø®Ù„ ÙƒÙˆØ¯ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© Ù„Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø­Ø§Ù„Ø© Ø·Ù„Ø¨ Ø§Ù†Ø¶Ù…Ø§Ù…Ùƒ</p>
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">استعلام عن حالة الطلب</h3>
+                <p className="text-[10px] text-slate-400 dark:text-slate-450 mt-0.5 font-bold">أدخل كود المتابعة للتحقق من حالة طلب انضمامك</p>
               </div>
 
               <div className="space-y-3 text-xs font-semibold">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500">ÙƒÙˆØ¯ Ø§Ù„Ø·Ù„Ø¨ (Tracking Code)</label>
+                  <label className="text-slate-500">كود الطلب (Tracking Code)</label>
                   <Input
                     required
                     value={lookupCode}
@@ -277,7 +293,7 @@ export default function TeachingPage() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button type="submit" className="flex-1 bg-primary text-white rounded-xl text-xs">Ø§Ø³ØªØ¹Ù„Ø§Ù…</Button>
+                <Button type="submit" className="flex-1 bg-primary text-white rounded-xl text-xs">استعلام</Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -289,7 +305,7 @@ export default function TeachingPage() {
                   }}
                   className="rounded-xl text-xs"
                 >
-                  Ø¥Ù„ØºØ§Ø¡
+                  إلغاء
                 </Button>
               </div>
             </form>
@@ -300,9 +316,9 @@ export default function TeachingPage() {
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Ù…Ù†Ø·Ù‚Ø© Ø®Ø§ØµØ© Ø¨Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† ÙÙ‚Ø·</h2>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">منطقة خاصة بالمعلمين فقط</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                  Ø£Ù†Øª Ù„Ø§ ØªÙ…Ù„Ùƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„ÙƒØ§ÙÙŠØ© Ù„Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ Ù„ÙˆØ­Ø© ØªØ­ÙƒÙ… Ø§Ù„Ù…Ø¹Ù„Ù…. Ø¥Ø°Ø§ ÙƒÙ†Øª Ù…Ø¹Ù„Ù…Ø§Ù‹ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ Ù„ØªÙØ¹ÙŠÙ„ Ø­Ø³Ø§Ø¨ÙƒØŒ Ø£Ùˆ ÙŠÙ…ÙƒÙ†Ùƒ ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø¬Ø¯ÙŠØ¯ Ø£Ùˆ ØªØªØ¨Ø¹ Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø§Ù„Ø­Ø§Ù„ÙŠ.
+                  أنت لا تملك الصلاحيات الكافية للوصول إلى لوحة تحكم المعلم. إذا كنت معلماً، يرجى التواصل مع الدعم الفني لتفعيل حسابك، أو يمكنك تقديم طلب جديد أو تتبع حالة طلبك الحالي.
                 </p>
               </div>
 
@@ -311,14 +327,14 @@ export default function TeachingPage() {
                   onClick={() => setShowApplyForm(true)}
                   className="bg-primary hover:bg-primary/95 text-white rounded-xl w-full text-xs"
                 >
-                  ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… ÙƒÙ…Ø¹Ù„Ù…
+                  تقديم طلب الانضمام كمعلم
                 </Button>
                 <Button
                   onClick={() => setShowLookupForm(true)}
                   variant="outline"
                   className="border-primary/40 hover:bg-primary/5 text-primary rounded-xl w-full text-xs"
                 >
-                  Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø© Ø·Ù„Ø¨ Ø³Ø§Ø¨Ù‚
+                  متابعة حالة طلب سابق
                 </Button>
                 <div className="flex gap-2">
                   <Button
@@ -329,7 +345,7 @@ export default function TeachingPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 rounded-xl text-xs"
                   >
                     <Home className="w-4 h-4" />
-                    Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©
+                    الرئيسية
                   </Button>
                   {user ? (
                     <Button
@@ -337,7 +353,7 @@ export default function TeachingPage() {
                       onClick={logout}
                       className="flex-1 rounded-xl text-xs"
                     >
-                      ØªØ³Ø¬ÙŠÙ„ Ø®Ø±ÙˆØ¬
+                      تسجيل خروج
                     </Button>
                   ) : (
                     <Button
@@ -347,7 +363,7 @@ export default function TeachingPage() {
                       }}
                       className="flex-1 rounded-xl text-xs"
                     >
-                      ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„
+                      تسجيل الدخول
                     </Button>
                   )}
                 </div>
@@ -359,48 +375,62 @@ export default function TeachingPage() {
     );
   }
 
-  // Course Wizard controls
-  const handleCreateCourseClick = () => {
+  // Course Wizard controls (stable callbacks � avoid re-rendering panels)
+  const handleCreateCourseClick = useCallback(() => {
     setEditingCourse(null);
     setIsWizardOpen(true);
-  };
+  }, []);
 
-  const handleEditCourseClick = (course: Course) => {
+  const handleEditCourseClick = useCallback((course: Course) => {
     setEditingCourse(course);
     setIsWizardOpen(true);
-  };
+  }, []);
 
-  const handleSaveCourse = async (courseData: Partial<Course>) => {
-    try {
-      if (editingCourse) {
-        await updateCourseAsync({ id: editingCourse.id, data: courseData });
-        toast.success("ØªÙ… Ø­ÙØ¸ ØªØ¹Ø¯ÙŠÙ„Ø§Øª Ø§Ù„ÙƒÙˆØ±Ø³ Ø¨Ù†Ø¬Ø§Ø­");
-      } else {
-        await createCourseAsync(courseData);
-        toast.success("ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ÙƒÙˆØ±Ø³ Ø¨Ù†Ø¬Ø§Ø­");
+  const handleSaveCourse = useCallback(
+    async (courseData: Partial<Course>) => {
+      try {
+        if (editingCourse) {
+          await updateCourseAsync({ id: editingCourse.id, data: courseData });
+          toast.success("?? ??? ??????? ?????? ?????");
+        } else {
+          await createCourseAsync(courseData);
+          toast.success("?? ????? ?????? ?????");
+        }
+        setIsWizardOpen(false);
+      } catch {
+        toast.error("???? ??? ??????? ???? ???????? ??? ????");
       }
-      setIsWizardOpen(false);
-    } catch {
-      toast.error("ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø§Ù„ÙƒÙˆØ±Ø³ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰");
-    }
-  };
+    },
+    [editingCourse, updateCourseAsync, createCourseAsync]
+  );
 
-  const handleDeleteCourse = async (id: string) => {
-    try {
-      await deleteCourseAsync(id);
-      toast.success("ØªÙ… Ø­Ø°Ù Ø§Ù„ÙƒÙˆØ±Ø³ Ø¨Ù†Ø¬Ø§Ø­");
-    } catch {
-      toast.error("ØªØ¹Ø°Ø± Ø­Ø°Ù Ø§Ù„ÙƒÙˆØ±Ø³ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰");
-    }
-  };
+  const handleDeleteCourse = useCallback(
+    async (id: string) => {
+      try {
+        await deleteCourseAsync(id);
+        toast.success("?? ??? ?????? ?????");
+      } catch {
+        toast.error("???? ??? ??????? ???? ???????? ??? ????");
+      }
+    },
+    [deleteCourseAsync]
+  );
 
-  const handleMessageStudent = (_studentId: string) => {
+  const handleMessageStudent = useCallback((_studentId: string) => {
     // Select messages tab
     setActiveTab("messages");
-  };
+  }, []);
 
-  // Render tab component
-  const renderTabContent = () => {
+  const handleDuplicateCourse = useCallback(
+    (c: Course) => createCourse({ ...c, title: createCourseDuplicateTitle(c.title) }),
+    [createCourse]
+  );
+  const goCalendar = useCallback(() => setActiveTab("calendar"), []);
+  const goMessages = useCallback(() => setActiveTab("messages"), []);
+  const closeWizard = useCallback(() => setIsWizardOpen(false), []);
+
+  // Render tab component � memoized so tab switches don't rebuild closures
+  const tabContent = useMemo(() => {
     switch (activeTab) {
       case "dashboard":
         return (
@@ -408,8 +438,8 @@ export default function TeachingPage() {
             stats={stats}
             activities={activities}
             onCreateCourse={handleCreateCourseClick}
-            onScheduleSession={() => setActiveTab("calendar")}
-            onSendAnnouncement={() => setActiveTab("messages")}
+            onScheduleSession={goCalendar}
+            onSendAnnouncement={goMessages}
             user={user}
           />
         );
@@ -420,12 +450,12 @@ export default function TeachingPage() {
             isLoading={isCoursesLoading}
             onCreateCourse={handleCreateCourseClick}
             onEditCourse={handleEditCourseClick}
-            onDuplicateCourse={(c) => createCourse({ ...c, title: `${c.title} (Ù†Ø³Ø®Ø© Ù…ÙƒØ±Ø±Ø©)` })}
+            onDuplicateCourse={handleDuplicateCourse}
             onDeleteCourse={handleDeleteCourse}
           />
         );
       case "quizzes":
-        return <QuizManagementPanel courses={courses} />;
+        return <QuizManagementPanelLazy courses={courses} />;
       case "students":
         return <StudentManagement students={students} isLoading={isStudentsLoading} onMessageStudent={handleMessageStudent} />;
       case "messages":
@@ -441,9 +471,9 @@ export default function TeachingPage() {
       case "settings":
         return <SettingsPanel />;
       default:
-        return <div className="text-center p-8">Ø§Ù„Ù‚Ø³Ù… Ù‚ÙŠØ¯ Ø§Ù„ØªØ·ÙˆÙŠØ± Ø­Ø§Ù„ÙŠØ§Ù‹...</div>;
+        return <div className="text-center p-8">????? ??? ??????? ??????...</div>;
     }
-  };
+  }, [activeTab, stats, activities, courses, students, conversations, reviews, transactions, calendarEvents, isCoursesLoading, isStudentsLoading, isReviewsLoading, isTransactionsLoading, isCalendarLoading, handleCreateCourseClick, handleEditCourseClick, handleDuplicateCourse, handleDeleteCourse, handleMessageStudent, sendMessage, replyToReview, addCalendarEvent, goCalendar, goMessages, user]);
 
   return (
     <TeachingLayout
@@ -455,7 +485,7 @@ export default function TeachingPage() {
       user={user}
       logout={logout}
     >
-      {renderTabContent()}
+      {tabContent}
 
       {/* Course Creation/Editing Wizard Modal */}
       {isWizardOpen && (
@@ -463,7 +493,7 @@ export default function TeachingPage() {
           course={editingCourse}
           onSave={handleSaveCourse}
           isSaving={isCreatingCourse}
-          onClose={() => setIsWizardOpen(false)}
+          onClose={closeWizard}
         />
       )}
     </TeachingLayout>

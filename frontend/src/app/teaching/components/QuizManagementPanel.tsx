@@ -65,7 +65,7 @@ function QuizCard({ course, quiz }: { course: Course; quiz: NonNullable<Course["
     <div className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-card overflow-hidden">
       <button
         onClick={() => setExpanded((e) => !e)}
-        className="w-full p-4 flex items-center justify-between gap-3 text-start hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors"
+        className="w-full p-4 flex items-center justify-between gap-3 text-start hover:bg-slate-50/50 dark:hover:bg-slate-900/20 "
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="h-10 w-10 min-w-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center border border-violet-500/20">

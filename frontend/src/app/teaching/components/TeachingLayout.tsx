@@ -41,12 +41,12 @@ export default function TeachingLayout({
 
       {/* Mobile Sidebar Overlay Drawer */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300">
+        <div className="fixed inset-0 z-50 flex lg:hidden bg-slate-900/60   ">
           {/* Backdrop Click */}
           <div className="absolute inset-0" onClick={() => setMobileSidebarOpen(false)} />
           
           {/* Drawer Panel */}
-          <div className="relative flex flex-col w-72 h-full bg-card shadow-2xl animate-in slide-in-from-right duration-350">
+          <div className="relative flex flex-col w-72 h-full bg-card    ">
             <TeachingSidebar
               activeTab={activeTab}
               setActiveTab={setActiveTab}

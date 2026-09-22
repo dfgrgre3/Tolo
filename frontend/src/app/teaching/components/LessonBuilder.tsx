@@ -30,8 +30,8 @@ function EditLessonModal({ lesson, onSave, onClose }: EditLessonModalProps) {
   const [type, setType] = useState<Lesson["type"]>(lesson.type);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-right" dir="rtl">
-      <div className="bg-card w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60  p-4 text-right" dir="rtl">
+      <div className="bg-card w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800  p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">تعديل تفاصيل الدرس</h4>
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -269,7 +269,7 @@ export default function LessonBuilder({ chapters, onChange, onDeleteChapter, onD
                     return (
                       <div
                         key={lesson.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-850 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-all text-xs gap-3"
+                        className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-850 hover:bg-slate-50/50 dark:hover:bg-slate-900/20  text-xs gap-3"
                       >
                         <div className="flex items-center gap-3 flex-1">
                           <div className="p-2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">

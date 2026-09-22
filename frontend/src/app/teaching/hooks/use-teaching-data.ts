@@ -68,7 +68,21 @@ export function toTeachingStatusTransport(status: CourseLifecycle): CourseLifecy
 }
 
 export function normalizeTeachingCourse(course: Course): Course {
-  return { ...course, status: normalizeCourseLifecycle({ status: course.status }) };
+  const nextStatus = normalizeCourseLifecycle({ status: course.status }) || "DRAFT";
+
+  return {
+    ...course,
+    title: course.title?.trim() ? course.title : "عنوان غير مسمى",
+    category: course.category?.trim() ? course.category : "غير مصنف",
+    status: nextStatus as CourseLifecycle,
+    thumbnail: course.thumbnail?.trim() ? course.thumbnail : "/images/courses/placeholder-course.jpg",
+    description: course.description?.trim() ? course.description : "لا يوجد وصف متاح في الوقت الحالي.",
+  };
+}
+
+export function createCourseDuplicateTitle(title: string): string {
+  const baseTitle = title?.trim() ? title.trim() : "عنوان غير مسمى";
+  return `${baseTitle} (نسخة جديدة)`;
 }
 
 /** Keeps the persisted lesson order identical to the editor's array order. */
@@ -308,34 +322,49 @@ export function useTeachingData(activeTab: string = "dashboard") {
   // queries anyway would just produce a burst of 403 insufficient_role errors.
   const canFetch = isAuthenticated && isContentCreator();
 
-  // Cache configuration
-  const STALE_TIME = 5 * 60 * 1000;  // 5 minutes
-  const GC_TIME = 10 * 60 * 1000;    // 10 minutes
+  // Cache configuration — OPTIMIZED for performance
+  const statsStaleTime = 60_000;              // 1 minute for stats
+  const notificationsStaleTime = 120_000;     // 2 minutes for notifications
+  const tabDataStaleTime = 5 * 60 * 1000;     // 5 minutes for tab data
+  const gcTime = 10 * 60 * 1000;              // 10 minutes GC for all
 
   // â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Stats: always enabled (needed in header + dashboard)
+  // OPTIMIZED: Custom cache config with no refetchOnMount
   const statsQuery = useQuery<TeachingStatsResponse>({
     queryKey: ["teaching", "stats"],
     queryFn: () => fetchTeachingStatsRaw<TeachingStatsResponse>(),
     enabled: canFetch,
-    ...queryProfiles.dashboard,
+    staleTime: statsStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const stats = statsQuery.data ?? EMPTY_STATS;
 
   // â”€â”€ Activities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Activities: only when dashboard tab is active
+  // OPTIMIZED: Custom cache config with no refetchOnMount
   const activitiesQuery = useQuery<ActivitiesResponse>({
     queryKey: ["teaching", "activities"],
     queryFn: () => fetchTeachingActivitiesRaw<ActivitiesResponse>(),
     enabled: canFetch && activeTab === "dashboard",
-    ...queryProfiles.dashboard,
+    staleTime: tabDataStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const activities = activitiesQuery.data?.activities ?? [];
 
   // â”€â”€ Courses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Courses: when dashboard or courses tab is active
+  // OPTIMIZED: Custom cache config with no refetchOnMount
   const coursesQuery = useQuery<CoursesListResponse>({
     queryKey: ["teaching", "courses"],
     queryFn: async () => {
@@ -348,7 +377,12 @@ export function useTeachingData(activeTab: string = "dashboard") {
       return { ...payload, courses: payload.courses.map(normalizeTeachingCourse) };
     },
     enabled: canFetch && (activeTab === "dashboard" || activeTab === "courses" || activeTab === "quizzes"),
-    ...queryProfiles.dashboard,
+    staleTime: tabDataStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const courses = coursesQuery.data?.courses ?? [];
@@ -402,22 +436,34 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   // â”€â”€ All Students (across all courses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Students: only when students tab is active
+  // OPTIMIZED: Custom cache config - heavy query, deferred until tab active
   const allStudentsQuery = useQuery<StudentsResponse>({
     queryKey: ["teaching", "students"],
     queryFn: () => fetchTeachingStudentsRaw<StudentsResponse>(),
     enabled: canFetch && activeTab === "students",
-    ...queryProfiles.dashboard,
+    staleTime: tabDataStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const allStudents = allStudentsQuery.data?.students ?? [];
 
   // â”€â”€ All Reviews (across all courses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Reviews: only when reviews tab is active
+  // OPTIMIZED: Custom cache config - heavy query, deferred until tab active
   const allReviewsQuery = useQuery<ReviewsResponse>({
     queryKey: ["teaching", "reviews"],
     queryFn: () => fetchTeachingReviewsRaw<ReviewsResponse>(),
     enabled: canFetch && activeTab === "reviews",
-    ...queryProfiles.dashboard,
+    staleTime: tabDataStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const allReviews = allReviewsQuery.data?.reviews ?? [];
@@ -442,11 +488,17 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   // â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Notifications: always enabled (needed in header)
+  // OPTIMIZED: Longer staleTime since it's a lighter endpoint, no refetchOnMount
   const notificationsQuery = useQuery<NotificationsResponse>({
     queryKey: ["teaching", "notifications"],
     queryFn: () => fetchTeachingNotificationsRaw<NotificationsResponse>(),
     enabled: canFetch,
-    ...queryProfiles.dashboard,
+    staleTime: notificationsStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 1,
   });
 
   const notifications = notificationsQuery.data?.notifications ?? [];
@@ -501,11 +553,17 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   // â”€â”€ Messaging / Conversations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Conversations: only when messages tab is active
+  // OPTIMIZED: Custom cache config - heavy query, deferred until tab active
   const conversationsQuery = useQuery<{ conversations: Conversation[] }>({
     queryKey: ["teaching", "conversations"],
     queryFn: () => fetchTeachingConversationsRaw<{ conversations: Conversation[] }>(),
     enabled: canFetch && activeTab === "messages",
-    ...queryProfiles.dashboard,
+    staleTime: tabDataStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const conversations = conversationsQuery.data?.conversations ?? [];
@@ -548,11 +606,17 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   // â”€â”€ Calendar Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Calendar: only when calendar tab is active
+  // OPTIMIZED: Custom cache config - heavy query, deferred until tab active
   const calendarEventsQuery = useQuery<{ events: CalendarEvent[] }>({
     queryKey: ["teaching", "calendar"],
     queryFn: () => fetchTeachingCalendarRaw<{ events: CalendarEvent[] }>(),
     enabled: canFetch && activeTab === "calendar",
-    ...queryProfiles.dashboard,
+    staleTime: tabDataStaleTime,
+    gcTime,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: 2,
   });
 
   const calendarEvents = calendarEventsQuery.data?.events ?? [];
@@ -581,11 +645,14 @@ export function useTeachingData(activeTab: string = "dashboard") {
 
   // â”€â”€ Transactions & Earnings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Transactions: only when earnings tab is active
+  // OPTIMIZED: Using financial profile for data freshness but deferred until tab active
+  // Also disabling refetchOnWindowFocus to avoid constant refetches
   const transactionsQuery = useQuery<{ transactions: Transaction[] }>({
     queryKey: ["teaching", "transactions"],
     queryFn: () => fetchTeachingTransactionsRaw<{ transactions: Transaction[] }>(),
     enabled: canFetch && activeTab === "earnings",
     ...queryProfiles.financial,
+    refetchOnWindowFocus: false,
   });
 
   const transactions = transactionsQuery.data?.transactions ?? [];

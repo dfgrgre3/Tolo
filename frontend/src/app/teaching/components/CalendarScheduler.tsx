@@ -122,10 +122,10 @@ export default function CalendarScheduler({ events, isLoading = false, onAddEven
             Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="border-slate-200 dark:border-slate-800 rounded-2xl bg-card">
                 <CardContent className="p-5 flex items-center gap-4">
-                  <div className="w-20 h-6 bg-slate-100 dark:bg-slate-850 rounded-full animate-pulse" />
+                  <div className="w-20 h-6 bg-slate-100 dark:bg-slate-850 rounded-full " />
                   <div className="space-y-2 flex-1">
-                    <div className="h-3.5 w-48 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                    <div className="h-2.5 w-64 bg-slate-100 dark:bg-slate-850 rounded animate-pulse" />
+                    <div className="h-3.5 w-48 bg-slate-200 dark:bg-slate-800 rounded " />
+                    <div className="h-2.5 w-64 bg-slate-100 dark:bg-slate-850 rounded " />
                   </div>
                 </CardContent>
               </Card>
@@ -134,7 +134,7 @@ export default function CalendarScheduler({ events, isLoading = false, onAddEven
             <div className="text-center p-8 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-850 rounded-2xl text-slate-400 text-xs">لا يوجد فعاليات قادمة مضافة</div>
           ) : (
             events.map((evt) => (
-              <Card key={evt.id} className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden bg-card">
+              <Card key={evt.id} className="border-slate-200 dark:border-slate-800  rounded-2xl overflow-hidden bg-card">
                 <CardContent className="p-5 flex items-center justify-between gap-4 text-xs">
                   <div className="flex items-center gap-4">
                     <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${getEventBadge(evt.type)}`}>
@@ -161,7 +161,7 @@ export default function CalendarScheduler({ events, isLoading = false, onAddEven
 
       {/* Calendar Month sidebar preview widget */}
       <div className="space-y-6">
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
             <CardTitle className="text-sm font-bold text-slate-850 dark:text-slate-150">تاريخ الأيام النشطة</CardTitle>
           </CardHeader>
@@ -178,7 +178,7 @@ export default function CalendarScheduler({ events, isLoading = false, onAddEven
                 return (
                   <span
                     key={idx}
-                    className={`py-2 rounded-xl flex items-center justify-center transition-colors ${
+                    className={`py-2 rounded-xl flex items-center justify-center  ${
                       hasEvent
                         ? "bg-primary/20 text-primary border border-primary/40 font-black"
                         : "hover:bg-slate-100 dark:hover:bg-slate-800"

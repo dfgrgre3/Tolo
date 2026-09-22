@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { memo, useDeferredValue, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,20 +40,38 @@ export default function CourseManagement({
 }: CourseManagementProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
-  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
-  const filteredCourses = courses.filter((c) => {
-    const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase()) ||
-                          c.category.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all"
-      ? true
-      : c.status === statusFilter.toUpperCase();
-    return matchesSearch && matchesStatus;
-  });
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
 
   const handleDuplicate = (course: Course) => {
     onDuplicateCourse(course);
     toast.success(`تم إنشاء نسخة من كورس "${course.title}" كمسودة`);
+  };
+
+  // Deferred search value keeps input typing but defers expensive filtering work.
+  const deferredSearch = useDeferredValue(search);
+
+  const filteredCourses = useMemo(() => {
+    const normalized = courses.map((c) => ({
+      title: c.title?.trim() ? c.title.trim() : "عنوان غير مسمى",
+      category: c.category?.trim() ? c.category.trim() : "غير مصنف",
+      course: c,
+    }));
+    return normalized
+      .filter(({ title, category }) => {
+        const lower = deferredSearch.toLowerCase();
+        return title.toLowerCase().includes(lower) || category.toLowerCase().includes(lower);
+      })
+      .filter(({ course }) => {
+        if (statusFilter === "all") return true;
+        return course.status === statusFilter.toUpperCase();
+      })
+      .map(({ course }) => course);
+  }, [courses, deferredSearch, statusFilter]);
+
+  const handleDeleteRequest = (id: string) => {
+    const target = courses.find((course) => course.id === id);
+    if (target) setCourseToDelete(target);
   };
 
   if (isLoading) {
@@ -61,10 +79,10 @@ export default function CourseManagement({
       <div className="space-y-6 text-right" dir="rtl">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-2">
-            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
-            <div className="h-3 w-64 bg-slate-100 dark:bg-slate-850 rounded-lg animate-pulse" />
+            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            <div className="h-3 w-64 bg-slate-100 dark:bg-slate-850 rounded-lg" />
           </div>
-          <div className="h-9 w-36 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+          <div className="h-9 w-36 bg-slate-200 dark:bg-slate-800 rounded-xl" />
         </div>
         <GridSkeleton />
       </div>
@@ -95,7 +113,7 @@ export default function CourseManagement({
             placeholder="بحث باسم الكورس..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-right pr-9 pl-3 py-2 border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-700 dark:text-slate-200"
+            className="w-full text-right pr-9 pl-3 py-2 border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary  text-slate-700 dark:text-slate-200"
           />
         </div>
 
@@ -105,7 +123,7 @@ export default function CourseManagement({
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold  border ${
                 statusFilter === status
                   ? "bg-primary text-white border-primary"
                   : "bg-card text-slate-500 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/40"

@@ -63,7 +63,7 @@ export default function AnalyticsPanel() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Area Chart */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">تحليلات الأرباح الشهرية</CardTitle>
           </CardHeader>
@@ -93,11 +93,11 @@ export default function AnalyticsPanel() {
         </Card>
 
         {/* Student Growth Bar Chart */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">معدل نمو الطلاب</CardTitle>
           </CardHeader>
-          <CardContent className="h-80 pt-4">
+          <div className="h-80 pt-4">
             {!isMounted || isLoading ? (
               <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">جاري التحميل...</div>
             ) : studentGrowthData.length === 0 ? (
@@ -113,11 +113,11 @@ export default function AnalyticsPanel() {
                 </BarChart>
               </ResponsiveContainer>
             )}
-          </CardContent>
+          </div>
         </Card>
 
         {/* Traffic Sources Pie Chart */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card lg:col-span-2">
+        <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">مصادر زيارات الكورسات</CardTitle>
           </CardHeader>

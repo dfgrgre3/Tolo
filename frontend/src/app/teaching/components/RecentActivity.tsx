@@ -24,7 +24,7 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
   };
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl bg-card text-right">
+    <Card className="border-slate-200 dark:border-slate-800  rounded-2xl bg-card text-right">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100">
           آخر النشاطات والتفاعلات

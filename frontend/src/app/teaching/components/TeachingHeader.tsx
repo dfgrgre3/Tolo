@@ -55,7 +55,7 @@ export default function TeachingHeader({
   };
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-card/85 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30 w-full text-right" dir="rtl">
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-card/85  px-6 flex items-center justify-between sticky top-0 z-30 w-full text-right" dir="rtl">
       {/* Right Section: Mobile menu + Title */}
       <div className="flex items-center gap-3">
         <button
@@ -79,7 +79,7 @@ export default function TeachingHeader({
             placeholder="بحث في لوحة التحكم..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full text-right pr-9 pl-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 text-xs focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all text-slate-700 dark:text-slate-200"
+            className="w-full text-right pr-9 pl-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 text-xs focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary  text-slate-700 dark:text-slate-200"
           />
         </div>
 
@@ -96,7 +96,7 @@ export default function TeachingHeader({
             >
               <Bell className="w-4 h-4 text-slate-600 dark:text-slate-350" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 left-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-card animate-pulse" />
+                <span className="absolute top-1.5 left-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-card " />
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -119,7 +119,7 @@ export default function TeachingHeader({
                 notifications.map((notif) => (
                   <div
                     key={notif.id}
-                    className={`p-4 flex flex-col gap-1 transition-colors ${
+                    className={`p-4 flex flex-col gap-1  ${
                       notif.read ? "bg-card hover:bg-slate-50 dark:hover:bg-slate-800/20" : "bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/15"
                     }`}
                   >

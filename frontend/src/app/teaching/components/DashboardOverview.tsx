@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from "recharts";
+import { memo, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Sparkles, TrendingUp } from "lucide-react";
 import DashboardCards from "./DashboardCards";
 import QuickActions from "./QuickActions";
 import RecentActivity from "./RecentActivity";
 import { InstructorStats, ActivityLog } from "../hooks/use-teaching-data";
+
+// recharts is heavy (~100KB) — load only when dashboard tab mounts.
+const DashboardChart = dynamic(() => import("./DashboardChart"), { ssr: false });
 
 interface DashboardOverviewProps {
   stats: InstructorStats;
@@ -17,7 +20,7 @@ interface DashboardOverviewProps {
   user: { name: string | null } | null;
 }
 
-export default function DashboardOverview({
+function DashboardOverview({
   stats,
   activities,
   onCreateCourse,
@@ -25,38 +28,33 @@ export default function DashboardOverview({
   onSendAnnouncement,
   user,
 }: DashboardOverviewProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Generate dynamic chart data based on stats
-  const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس"];
-  const currentMonthIdx = new Date().getMonth();
-  const activeMonths = months.slice(Math.max(0, currentMonthIdx - 5), currentMonthIdx + 1);
-
-  const chartData = activeMonths.map((m, idx) => {
-    const factor = (idx + 1) / activeMonths.length;
-    return {
-      name: m,
-      earnings: Math.round(stats.monthlyRevenue * (0.6 + factor * 0.4)),
-      enrollments: Math.round(stats.enrollmentsCount * (0.6 + factor * 0.4)),
-    };
-  });
-
-  useEffect(() => {
-    queueMicrotask(() => setIsMounted(true));
-  }, []);
+  // Static chart data — computed once per stats change, no mount effects.
+  const chartData = useMemo(() => {
+    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس"];
+    const currentMonthIdx = new Date().getMonth();
+    const activeMonths = months.slice(Math.max(0, currentMonthIdx - 5), currentMonthIdx + 1);
+    return activeMonths.map((m, idx) => {
+      const factor = (idx + 1) / activeMonths.length;
+      return {
+        name: m,
+        earnings: Math.round(stats.monthlyRevenue * (0.6 + factor * 0.4)),
+        enrollments: Math.round(stats.enrollmentsCount * (0.6 + factor * 0.4)),
+      };
+    });
+  }, [stats.monthlyRevenue, stats.enrollmentsCount]);
 
   return (
     <div className="space-y-8 text-right" dir="rtl">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/90 to-primary p-6 md:p-8 text-white shadow-lg">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Welcome Banner — flat color, no gradient/shadow/decorations */}
+      <div className="rounded-2xl bg-primary p-6 md:p-8 text-white">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold backdrop-blur-sm">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>مرحباً بك مجدداً</span>
             </div>
             <h1 className="text-xl md:text-3xl font-black tracking-tight">
-              أهلاً بك، أ. {user?.name || "معلمنا المتميز"}! 👋
+              أهلاً بك، أ. {user?.name || "معلمنا المتميز"}!
             </h1>
             <p className="text-xs md:text-sm text-white/80 max-w-xl">
               تصفح آخر الإحصائيات لطلابك، وتابع أداء كورساتك التعليمية، وقم بالرد على استفسارات الطلاب من مكان واحد.
@@ -73,9 +71,6 @@ export default function DashboardOverview({
             </div>
           </div>
         </div>
-        {/* Abstract background graphics */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-8 -mb-8 pointer-events-none" />
       </div>
 
       {/* KPI Cards Grid */}
@@ -85,7 +80,7 @@ export default function DashboardOverview({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Analytics Chart */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-card border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="bg-card border border-slate-200 dark:border-slate-800 p-6 rounded-2xl  space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="text-sm font-bold text-slate-850 dark:text-slate-100">نمو الأرباح والتسجيل</h3>
@@ -100,62 +95,12 @@ export default function DashboardOverview({
             </div>
 
             <div className="h-72 w-full pt-4">
-              {isMounted ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={chartData}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-primary, #f97316)" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="var(--color-primary, #f97316)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(200,200,200,0.15)"/>
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 10, fill: "#94a3b8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 10, fill: "#94a3b8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        direction: "rtl",
-                        textAlign: "right",
-                        borderRadius: "12px",
-                        border: "1px solid rgba(200,200,200,0.2)",
-                        fontSize: "11px"
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="earnings"
-                      name="الأرباح (ج.م)"
-                      stroke="var(--color-primary, #f97316)"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#colorEarnings)"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="enrollments"
-                      name="التسجيلات"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
+              {chartData.length === 0 ? (
                 <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
-                  جاري تحميل الرسم البياني...
+                  لا توجد بيانات بعد
                 </div>
+              ) : (
+                <DashboardChart data={chartData} />
               )}
             </div>
           </div>
@@ -176,3 +121,5 @@ export default function DashboardOverview({
     </div>
   );
 }
+
+export default memo(DashboardOverview);

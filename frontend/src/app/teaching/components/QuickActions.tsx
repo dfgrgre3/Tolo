@@ -49,16 +49,16 @@ export default function QuickActions({
             <button
               key={idx}
               onClick={act.onClick}
-              className={`p-5 rounded-2xl border border-slate-200 dark:border-slate-850 flex items-center gap-4 text-right transition-all duration-300 group hover:border-primary/45 ${
+              className={`p-5 rounded-2xl border border-slate-200 dark:border-slate-850 flex items-center gap-4 text-right   group hover:border-primary/45 ${
                 idx === 0
-                  ? "bg-gradient-to-l from-primary/90 to-primary text-white shadow-lg shadow-primary/10 hover:shadow-primary/20"
+                  ? "bg-primary text-white "
                   : "bg-card hover:bg-slate-50 dark:hover:bg-slate-900/40"
               }`}
             >
               <div className={`p-3 rounded-xl ${
                 idx === 0 ? "bg-white/20 text-white" : "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground"
               }`}>
-                <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <Icon className="w-5 h-5  " />
               </div>
               <div className="flex-1 space-y-1">
                 <h4 className="text-xs font-bold">{act.label}</h4>

@@ -46,7 +46,7 @@ export default function DashboardCards({ stats }: DashboardCardsProps) {
       {cardData.map((card, i) => {
         const Icon = card.icon;
         return (
-          <Card key={i} className="border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden bg-card">
+          <Card key={i} className="border-slate-200 dark:border-slate-800     rounded-2xl overflow-hidden bg-card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-xl ${card.color}`}>

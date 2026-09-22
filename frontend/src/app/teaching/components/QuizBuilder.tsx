@@ -153,7 +153,7 @@ function TypePicker({ onAdd }: { onAdd: (t: QuizQuestionType) => void }) {
         إضافة سؤال
       </Button>
       {open && (
-        <div className="absolute z-20 mt-2 w-72 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+        <div className="absolute z-20 mt-2 w-72 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900  overflow-hidden">
           {QUESTION_TYPES.map((t) => (
             <button
               key={t.value}
@@ -402,7 +402,7 @@ function TrueFalseEditor({
           key={opt.id}
           onClick={() => setCorrect(opt.id)}
           className={cn(
-            "px-4 py-2 rounded-xl border text-xs font-bold transition-all",
+            "px-4 py-2 rounded-xl border text-xs font-bold ",
             correct === opt.id
               ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
               : "border-slate-200 dark:border-slate-700 text-slate-500"

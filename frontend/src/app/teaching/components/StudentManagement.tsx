@@ -31,9 +31,9 @@ function StudentDetailModal({ student, onClose, onMessage }: StudentDetailModalP
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-right" dir="rtl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60  p-4 text-right" dir="rtl">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-card w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5">
+      <div className="relative bg-card w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800  p-6 space-y-5">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12 rounded-full border border-primary/20">
@@ -170,14 +170,14 @@ export default function StudentManagement({ students, isLoading = false, onMessa
             placeholder="بحث باسم الطالب أو البريد..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-right pr-9 pl-3 py-2 border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-700 dark:text-slate-200"
+            className="w-full text-right pr-9 pl-3 py-2 border border-slate-200 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary  text-slate-700 dark:text-slate-200"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
           <button
             onClick={() => setStatusFilter("all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold  ${
               statusFilter === "all"
                 ? "bg-primary text-white"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
@@ -187,7 +187,7 @@ export default function StudentManagement({ students, isLoading = false, onMessa
           </button>
           <button
             onClick={() => setStatusFilter("completed")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold  ${
               statusFilter === "completed"
                 ? "bg-emerald-500 text-white"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
@@ -197,7 +197,7 @@ export default function StudentManagement({ students, isLoading = false, onMessa
           </button>
           <button
             onClick={() => setStatusFilter("in_progress")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold  ${
               statusFilter === "in_progress"
                 ? "bg-amber-500 text-white"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
