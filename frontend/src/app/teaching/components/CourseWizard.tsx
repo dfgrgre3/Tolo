@@ -191,8 +191,8 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-right" dir="rtl">
-      <div className="bg-card w-full max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 text-right" dir="rtl">
+      <div className="bg-card w-full max-w-4xl rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between">
           <div>
@@ -215,7 +215,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
           {steps.map((st) => (
             <div
               key={st.num}
-              className={`pb-2 border-b-2 transition-colors ${
+              className={`pb-2 border-b-2 ${
                 currentStep === st.num
                   ? "border-primary text-primary"
                   : currentStep > st.num
@@ -311,17 +311,17 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                     e.preventDefault();
                     void handleThumbnailFile(e.dataTransfer.files?.[0]);
                   }}
-                  className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/10 cursor-pointer hover:border-primary/50 transition-colors"
+                  className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-900/10 cursor-pointer hover:border-primary/50"
                 >
                   {thumbnail ? (
-                    <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden shadow-md">
+                    <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
                       <Image src={thumbnail} alt="غلاف الكورس" fill sizes="384px" className="object-cover" unoptimized />
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setThumbnail("");
                         }}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-10"
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 z-10"
                       >
                         <X className="w-4 h-4" />
                       </button>
