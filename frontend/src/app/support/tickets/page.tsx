@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { supportService, type SupportTicket } from '@/services/api/support-service';
+import { useSupportMyTickets } from '@/hooks/use-support-queries';
+import { isSupportAuthFailure } from '@/lib/support/validation';
 import { S } from '../_components/support-design';
 import { PriorityBadge, SlaBadge, StatusBadge, SupportEmptyState, SupportErrorState, SupportSkeleton } from '../_components/support-ui';
 
@@ -15,35 +16,19 @@ const STATUS_FILTERS = [
     { value: 'closed', label: 'مغلقة' },
 ];
 
+/**
+ * The signed-in user's tickets.
+ *
+ * Each filter is its own cached query key, so switching tabs is instant on the
+ * way back. A 401 is detected through the shared error taxonomy (not by
+ * string-matching the message) and switches straight to the sign-in state;
+ * retries are skipped for it since it can never succeed.
+ */
 export default function MyTicketsPage() {
-    const [tickets, setTickets] = useState<SupportTicket[]>([]);
     const [status, setStatus] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [unauthorized, setUnauthorized] = useState(false);
-    const [retryKey, setRetryKey] = useState(0);
-
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const res = await supportService.listMyTickets({ status: status || undefined, limit: 50 });
-                if (!cancelled) setTickets(res.data);
-            } catch (e) {
-                if (cancelled) return;
-                const msg = e instanceof Error ? e.message : '';
-                if (msg.includes('401')) setUnauthorized(true);
-                else setError('تعذّر تحميل التذاكر. حاول مجدداً.');
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [status, retryKey]);
+    const ticketsQuery = useSupportMyTickets(status);
+    const unauthorized = isSupportAuthFailure(ticketsQuery.error);
+    const tickets = ticketsQuery.data?.data ?? [];
 
     return (
         <div className={S.page} dir="rtl">
@@ -75,7 +60,7 @@ export default function MyTicketsPage() {
                     </div>
 
                     <div className="mt-5" aria-live="polite">
-                        {loading ? (
+                        {ticketsQuery.isPending ? (
                             <SupportSkeleton lines={4} />
                         ) : unauthorized ? (
                             <SupportEmptyState
@@ -87,8 +72,11 @@ export default function MyTicketsPage() {
                                     </Link>
                                 }
                             />
-                        ) : error ? (
-                            <SupportErrorState message={error} onRetry={() => setRetryKey((k) => k + 1)} />
+                        ) : ticketsQuery.isError ? (
+                            <SupportErrorState
+                                message="تعذّر تحميل التذاكر. حاول مجدداً."
+                                onRetry={() => void ticketsQuery.refetch()}
+                            />
                         ) : tickets.length === 0 ? (
                             <SupportEmptyState
                                 title="لا توجد طلبات دعم بعد"

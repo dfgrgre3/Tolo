@@ -622,10 +622,17 @@ async function handleProxy(
       // Scoped to /auth/me deliberately: other 401s (login, reauthenticate,
       // MFA) happen inside credential flows where a *valid* session may
       // exist alongside the failed attempt and must not be wiped.
+      //
+      // Skipped while a refresh_token cookie still exists: a blacklisted or
+      // just-rotated access token with a LIVE refresh token must not wipe the
+      // refresh credential — the middleware rotates it on the next request and
+      // the session recovers. Clearing here (e.g. right after a concurrent-tab
+      // rotation) force-logged the user out on the next reload.
       if (
         response.status === 401 &&
         path === 'v1/auth/me' &&
-        request.cookies.has('access_token')
+        request.cookies.has('access_token') &&
+        !request.cookies.has('refresh_token')
       ) {
         clearAuthCookies(errorResponse, request);
       }

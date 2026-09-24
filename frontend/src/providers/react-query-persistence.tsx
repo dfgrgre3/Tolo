@@ -117,17 +117,14 @@ export function ReactQueryPersistence({ children }: { children?: ReactNode } = {
   const transitionGenerationRef = useRef(0);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  // Gates the first render of `children` until the initial IndexedDB
-  // restore has settled. Without this, `useQuery` consumers mount and
-  // fire their network fetch in the SAME commit as this component (this
-  // effect only runs afterwards), so the restored cache always arrives
-  // too late to be used — every refresh looked like a cold, un-cached
-  // load. Mirrors what `PersistQueryClientProvider` does upstream.
-  // Deliberately never flips back to `false` on later identity
-  // transitions (login/logout) — those already clear/restore correctly
-  // in the background, and re-hiding already-rendered UI would just
-  // cause a jarring blank flash.
-  const [isReady, setIsReady] = useState(false);
+  // NOTE: we intentionally do NOT block the first paint on the IndexedDB
+  // restore. An earlier version gated `children` behind `isReady`, which left
+  // first-time visitors (empty/slow IndexedDB) staring at a blank page until
+  // the async open+read settled — the main "heavy on first open" complaint.
+  // Rendering immediately and hydrating the cache in the background is the
+  // right tradeoff: FCP/LCP happen at once, and restored entries still arrive
+  // via the subscription for subsequent navigations.
+  const [, setIsReady] = useState(false);
 
   useEffect(() => {
     // NOTE: we intentionally do NOT wait for `status !== 'loading'` here.
@@ -223,6 +220,8 @@ export function ReactQueryPersistence({ children }: { children?: ReactNode } = {
     };
   }, [authSessionVersion, queryClient, status, user?.id]);
 
-  if (!isReady) return null;
+  // Render children immediately — cache hydration happens in the background
+  // (see the NOTE on `isReady` above). Blocking first paint on IndexedDB
+  // made every cold open feel "heavy".
   return <>{children}</>;
 }

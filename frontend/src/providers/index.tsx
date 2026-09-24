@@ -192,6 +192,8 @@ type GlobalProvidersProps = {
  */
 export function GlobalProviders({ children, hasSessionHint = false }: GlobalProvidersProps) {
   return (
+    // LazyMotion defers loading framer-motion (~100KB) until the first `m.*`
+    // component mounts instead of blocking the cold-open bundle.
     <MotionConfig reducedMotion="always" transition={{ duration: 0 }}>
       <LazyMotion features={domAnimation}>
         <RuntimeProviders hasSessionHint={hasSessionHint}>{children}</RuntimeProviders>

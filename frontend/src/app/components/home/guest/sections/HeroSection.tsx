@@ -165,6 +165,8 @@ export function HeroSection({ categories, featuredCourse, stats, loading }: Hero
                         alt={heroTitle || 'كورس مميز'}
                         fill
                         className="object-cover"
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 420px"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-[#0F766E] to-[#1e3a5f]" />

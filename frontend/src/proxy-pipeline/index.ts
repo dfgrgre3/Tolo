@@ -163,6 +163,11 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
       // Definitive rejection only. On transient backend failure the 401
       // still stands for THIS request, but cookies are preserved so the
       // client's next request retries instead of starting logged-out.
+      // NOTE: the backend's concurrent-refresh rotation-race 401 ("rotated;
+      // please retry with the current token") is already classified as
+      // transient inside attemptTokenRefresh() — see jwt-edge.ts — so a
+      // live session never lands here just because two parallel requests
+      // raced the refresh rotation.
       clearAuthCookies(response);
     }
     return finalizeProxyResponse(response, nonce);

@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supportService, type SupportArticleSummary } from '@/services/api/support-service';
 import { supportTicketSchema } from '@/lib/support/contracts';
+import {
+    SUPPORT_SEARCH_MAX_LENGTH,
+    isSupportAuthFailure,
+    sanitizeSupportText,
+} from '@/lib/support/validation';
 import { S } from '../../_components/support-design';
 
 const CATEGORIES = [
@@ -35,23 +40,28 @@ export default function NewTicketPage() {
 
     // Real retrieval assistance: as the subject is typed, surface matching
     // knowledge-base articles so the issue may resolve without a ticket.
+    //
+    // The lookup is debounced AND abortable: typing another character cancels
+    // the in-flight request instead of letting a slow response race (and
+    // overwrite) a newer one. The term itself is sanitized and length-capped
+    // before it can reach the API.
     useEffect(() => {
-        const q = subject.trim();
+        const q = sanitizeSupportText(subject, SUPPORT_SEARCH_MAX_LENGTH);
         if (q.length < 4) return;
-        let cancelled = false;
-        const t = setTimeout(() => {
-            (async () => {
-                try {
-                    const res = await supportService.listArticles({ search: q, limit: 3 });
-                    if (!cancelled) setSuggestions(res.data);
-                } catch {
-                    if (!cancelled) setSuggestions([]);
-                }
-            })();
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            supportService
+                .listArticles({ search: q, limit: 3 }, { signal: controller.signal })
+                .then((res) => setSuggestions(res.data))
+                .catch(() => {
+                    // Aborted lookups are expected control flow; a newer effect run
+                    // owns the list in that case.
+                    if (!controller.signal.aborted) setSuggestions([]);
+                });
         }, 400);
         return () => {
-            cancelled = true;
-            clearTimeout(t);
+            clearTimeout(timer);
+            controller.abort();
         };
     }, [subject]);
 
@@ -80,12 +90,17 @@ export default function NewTicketPage() {
             });
             router.push(`/support/tickets/${encodeURIComponent(ticket.id)}`);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : '';
-            setSubmitError(msg.includes('401') ? 'يجب تسجيل الدخول أولاً لفتح تذكرة.' : 'تعذّر إنشاء التذكرة. حاول مجدداً.');
+            setSubmitError(isSupportAuthFailure(err) ? 'يجب تسجيل الدخول أولاً لفتح تذكرة.' : 'تعذّر إنشاء التذكرة. حاول مجدداً.');
         } finally {
             setSending(false);
         }
     }
+
+    // Retrieval suggestions are only meaningful once the subject is long enough
+    // to match something — derived during render instead of cleared in an
+    // effect (avoids a cascading re-render on every keystroke).
+    const showSuggestions =
+        suggestions.length > 0 && sanitizeSupportText(subject, SUPPORT_SEARCH_MAX_LENGTH).length >= 4;
 
     return (
         <div className={S.page} dir="rtl">
@@ -101,7 +116,7 @@ export default function NewTicketPage() {
                             <label htmlFor="t-subject" className={S.label}>الموضوع</label>
                             <input id="t-subject" value={subject} onChange={(e) => { setSubject(e.target.value); if (e.target.value.trim().length < 4) setSuggestions([]); }} placeholder="مثال: لا أستطيع تشغيل فيديو الدرس" className={S.input} maxLength={200} required />
                         </div>
-                        {suggestions.length > 0 && (
+                        {showSuggestions && (
                             <div className="rounded-[8px] border border-[#0F766E]/30 bg-[#0F766E]/5 dark:bg-orange-500/5 dark:border-orange-500/30 p-4" aria-live="polite">
                                 <p className="text-sm font-black">هل تساعدك هذه المقالات؟</p>
                                 <ul className="mt-2 space-y-2">

@@ -1,10 +1,13 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
+import { supportKeys, useSupportTicket } from '@/hooks/use-support-queries';
+import { isSupportAuthFailure, isValidSupportId } from '@/lib/support/validation';
 import { supportService, type SupportTicket, type SupportTicketMessage } from '@/services/api/support-service';
 import { S } from '../../_components/support-design';
-import { PriorityBadge, SlaBadge, StatusBadge, SupportErrorState, SupportSkeleton } from '../../_components/support-ui';
+import { PriorityBadge, SlaBadge, StatusBadge, SupportEmptyState, SupportErrorState, SupportSkeleton } from '../../_components/support-ui';
 
 const SENDER_LABELS: Record<string, string> = {
     user: 'أنت',
@@ -12,48 +15,41 @@ const SENDER_LABELS: Record<string, string> = {
     system: 'النظام',
 };
 
+/**
+ * Ticket conversation + lifecycle actions.
+ *
+ * The ticket is read through the shared React Query cache (`useSupportTicket`),
+ * so revisiting a ticket paints instantly. Invalid ids are rejected before any
+ * request is issued, a 401 renders the sign-in state (detected through the
+ * error taxonomy, not string matching), and every action invalidates the
+ * ticket + list keys so the cache can never drift from the server.
+ */
 export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const [ticket, setTicket] = useState<SupportTicket | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+    const validId = isValidSupportId(id);
+    const ticketQuery = useSupportTicket(id, validId);
+    const ticket = ticketQuery.data ?? null;
+
     const [reply, setReply] = useState('');
     const [sending, setSending] = useState(false);
     const [actionMsg, setActionMsg] = useState<string | null>(null);
     const [rating, setRating] = useState(0);
-    const [reloadKey, setReloadKey] = useState(0);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const t = await supportService.getMyTicket(id);
-                if (!cancelled) setTicket(t);
-            } catch {
-                if (!cancelled) setError('تعذّر تحميل التذكرة. قد تكون محذوفة أو غير مصرح لك بعرضها.');
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [id, reloadKey]);
+    const unauthorized = isSupportAuthFailure(ticketQuery.error);
 
-    function reload() {
-        setReloadKey((k) => k + 1);
-    }
-
-    async function sendReply(e: React.FormEvent) {
-        e.preventDefault();
+    async function sendReply(event: React.FormEvent) {
+        event.preventDefault();
         if (sending || !reply.trim() || !ticket) return;
         setSending(true);
         setActionMsg(null);
         try {
-            const msg: SupportTicketMessage = await supportService.replyToTicket(ticket.id, { body: reply.trim() });
-            setTicket({ ...ticket, messages: [...(ticket.messages ?? []), msg] });
+            const message: SupportTicketMessage = await supportService.replyToTicket(ticket.id, { body: reply.trim() });
+            // Append the server-returned message straight into the cache: instant
+            // feedback, no extra round-trip, no optimistic guesswork.
+            queryClient.setQueryData<SupportTicket>(supportKeys.myTicket(id), (previous) =>
+                previous ? { ...previous, messages: [...(previous.messages ?? []), message] } : previous,
+            );
             setReply('');
         } catch {
             setActionMsg('تعذّر إرسال الرد. حاول مجدداً.');
@@ -68,7 +64,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         try {
             await fn();
             setActionMsg(ok);
-            reload();
+            await queryClient.invalidateQueries({ queryKey: supportKeys.myTicket(id) });
+            await queryClient.invalidateQueries({ queryKey: ['support', 'tickets'] });
         } catch {
             setActionMsg(fail);
         }
@@ -83,20 +80,41 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         );
     }
 
-    const canReply = ticket && ticket.status !== 'closed' && ticket.status !== 'resolved';
-    const canClose = ticket && ['open', 'in_progress', 'waiting_for_user', 'resolved'].includes(ticket.status);
-    const canReopen = ticket && ['resolved', 'closed'].includes(ticket.status);
-    const canRate = ticket && (ticket.status === 'resolved' || ticket.status === 'closed') && !ticket.satisfactionRating;
+    const canReply = Boolean(ticket && ticket.status !== 'closed' && ticket.status !== 'resolved');
+    const canClose = Boolean(ticket && ['open', 'in_progress', 'waiting_for_user', 'resolved'].includes(ticket.status));
+    const canReopen = Boolean(ticket && ['resolved', 'closed'].includes(ticket.status));
+    const canRate = Boolean(ticket && (ticket.status === 'resolved' || ticket.status === 'closed') && !ticket.satisfactionRating);
 
     return (
         <div className={S.page} dir="rtl">
             <div className={S.narrow}>
                 <section className={S.section}>
                     <Link href="/support/tickets" className={S.viewAll}>→ العودة إلى تذاكري</Link>
-                    {loading ? (
+                    {!validId ? (
+                        <div className="mt-5">
+                            <SupportErrorState message="رابط التذكرة غير صالح." />
+                        </div>
+                    ) : ticketQuery.isPending ? (
                         <div className="mt-5"><SupportSkeleton lines={5} /></div>
-                    ) : error || !ticket ? (
-                        <div className="mt-5"><SupportErrorState message={error ?? 'التذكرة غير موجودة'} onRetry={reload} /></div>
+                    ) : unauthorized ? (
+                        <div className="mt-5">
+                            <SupportEmptyState
+                                title="سجّل الدخول لعرض التذكرة"
+                                hint="تذاكر الدعم متاحة للحسابات المسجلة."
+                                action={
+                                    <Link href="/login" className={`inline-block ${S.btnPrimary}`}>
+                                        تسجيل الدخول
+                                    </Link>
+                                }
+                            />
+                        </div>
+                    ) : ticketQuery.isError || !ticket ? (
+                        <div className="mt-5">
+                            <SupportErrorState
+                                message="تعذّر تحميل التذكرة. قد تكون محذوفة أو غير مصرح لك بعرضها."
+                                onRetry={() => void ticketQuery.refetch()}
+                            />
+                        </div>
                     ) : (
                         <div className="mt-5">
                             <div className={`${S.card} p-5 sm:p-6`}>
@@ -151,7 +169,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                                     <textarea
                                         id="reply"
                                         value={reply}
-                                        onChange={(e) => setReply(e.target.value)}
+                                        onChange={(event) => setReply(event.target.value)}
                                         rows={4}
                                         maxLength={20000}
                                         placeholder="اكتب ردّك هنا…"
@@ -180,17 +198,17 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                                 <div className={`${S.card} mt-4 p-5`}>
                                     <p className="text-sm font-bold">قيّم تجربة الدعم (1 - 5)</p>
                                     <div className="mt-3 flex items-center gap-2" role="radiogroup" aria-label="التقييم">
-                                        {[1, 2, 3, 4, 5].map((s) => (
+                                        {[1, 2, 3, 4, 5].map((score) => (
                                             <button
-                                                key={s}
+                                                key={score}
                                                 type="button"
                                                 role="radio"
-                                                aria-checked={rating === s}
-                                                aria-label={`${s} من 5`}
-                                                onClick={() => setRating(s)}
-                                                className={`h-10 w-10 rounded-[8px] border text-sm font-black ${rating === s ? 'border-[#0F766E] bg-[#0F766E]/10 text-[#0F766E] dark:border-orange-500 dark:bg-orange-500/10 dark:text-orange-400' : 'border-[#E2E8F0] dark:border-slate-700 text-[#64748B] dark:text-slate-400 hover:border-[#0F766E]'}`}
+                                                aria-checked={rating === score}
+                                                aria-label={`${score} من 5`}
+                                                onClick={() => setRating(score)}
+                                                className={`h-10 w-10 rounded-[8px] border text-sm font-black ${rating === score ? 'border-[#0F766E] bg-[#0F766E]/10 text-[#0F766E] dark:border-orange-500 dark:bg-orange-500/10 dark:text-orange-400' : 'border-[#E2E8F0] dark:border-slate-700 text-[#64748B] dark:text-slate-400 hover:border-[#0F766E]'}`}
                                             >
-                                                {s}
+                                                {score}
                                             </button>
                                         ))}
                                         <button type="button" onClick={submitRating} disabled={rating < 1} className={`${S.btnPrimary} mr-2 !px-5 !py-2 !text-xs`}>
@@ -208,3 +226,4 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         </div>
     );
 }
+

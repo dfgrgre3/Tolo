@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supportService } from '@/services/api/support-service';
 import { supportFeatureRequestSchema } from '@/lib/support/contracts';
+import { isSupportAuthFailure } from '@/lib/support/validation';
 import { S } from '../_components/support-design';
 
 export default function FeatureRequestPage() {
@@ -34,8 +35,7 @@ export default function FeatureRequestPage() {
             });
             router.push(`/support/tickets/${encodeURIComponent(ticket.id)}`);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : '';
-            setError(msg.includes('401') ? 'يجب تسجيل الدخول أولاً لاقتراح ميزة.' : 'تعذّر إرسال الاقتراح. حاول مجدداً.');
+            setError(isSupportAuthFailure(err) ? 'يجب تسجيل الدخول أولاً لاقتراح ميزة.' : 'تعذّر إرسال الاقتراح. حاول مجدداً.');
         } finally {
             setSending(false);
         }

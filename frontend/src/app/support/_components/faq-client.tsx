@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronDown, HelpCircle } from 'lucide-react';
-import { supportService, type SupportFaq } from '@/services/api/support-service';
+import { useSupportFaqs } from '@/hooks/use-support-queries';
+import type { SupportFaq } from '@/services/api/support-service';
 import { S } from './support-design';
 import { SupportErrorState, SupportSkeleton } from './support-ui';
 
@@ -15,38 +16,43 @@ const CATEGORY_TITLES: Record<string, string> = {
     certificates: 'الشهادات والدعم',
 };
 
-export function FaqClient() {
-    const [faqs, setFaqs] = useState<SupportFaq[] | null>(null);
-    const [failed, setFailed] = useState(false);
+/**
+ * FAQ list grouped by category.
+ *
+ * `initialFaqs` carries the server-rendered payload (SEO + instant paint) while
+ * the query keeps owning refresh/retry. Grouping is memoized so unrelated
+ * re-renders do not re-bucket the list, and native `<details>` keeps the
+ * accordion JS-free and animation-free.
+ */
+export function FaqClient({ initialFaqs }: { initialFaqs?: SupportFaq[] | null }) {
+    const faqsQuery = useSupportFaqs(initialFaqs);
+    const faqs = useMemo(() => faqsQuery.data ?? [], [faqsQuery.data]);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const items = await supportService.listFaqs();
-                if (!cancelled) setFaqs(items);
-            } catch {
-                if (!cancelled) setFailed(true);
+    const groups = useMemo(() => {
+        const bucket = new Map<string, SupportFaq[]>();
+        for (const faq of faqs) {
+            const list = bucket.get(faq.category);
+            if (list) {
+                list.push(faq);
+            } else {
+                bucket.set(faq.category, [faq]);
             }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+        }
+        return [...bucket.entries()];
+    }, [faqs]);
 
-    if (failed) {
+    if (faqsQuery.isPending) return <SupportSkeleton lines={5} />;
+
+    // Only surface the error state when there is nothing to show; a failed
+    // refresh keeps the previously rendered answers on screen.
+    if (faqsQuery.isError && !faqsQuery.data) {
         return (
             <SupportErrorState
                 message="تعذّر تحميل الأسئلة الشائعة."
-                onRetry={() => {
-                    setFailed(false);
-                    supportService.listFaqs().then(setFaqs).catch(() => setFailed(true));
-                }}
+                onRetry={() => void faqsQuery.refetch()}
             />
         );
     }
-
-    if (faqs === null) return <SupportSkeleton lines={5} />;
 
     if (faqs.length === 0) {
         return (
@@ -63,21 +69,17 @@ export function FaqClient() {
         );
     }
 
-    const groups = new Map<string, SupportFaq[]>();
-    for (const f of faqs) {
-        const list = groups.get(f.category) ?? [];
-        list.push(f);
-        groups.set(f.category, list);
-    }
-
     return (
         <div className="space-y-6">
-            {[...groups.entries()].map(([cat, items]) => (
+            {groups.map(([cat, items]) => (
                 <section key={cat} className={`${S.card} p-5 sm:p-6`}>
                     <h2 className="mb-4 text-lg font-black">{CATEGORY_TITLES[cat] ?? cat}</h2>
                     <div className="space-y-3">
                         {items.map((item) => (
-                            <details key={item.id} className="group rounded-[12px] border border-[#E2E8F0] dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800 open:border-[#0F766E] dark:open:border-orange-500">
+                            <details
+                                key={item.id}
+                                className="group rounded-[12px] border border-[#E2E8F0] dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800 open:border-[#0F766E] dark:open:border-orange-500"
+                            >
                                 <summary className="flex cursor-pointer list-none items-center gap-3 p-4 text-sm font-bold [&::-webkit-details-marker]:hidden">
                                     <ChevronDown className="h-5 w-5 shrink-0 text-[#0F766E] dark:text-orange-500 group-open:rotate-180" />
                                     <span>{item.question}</span>

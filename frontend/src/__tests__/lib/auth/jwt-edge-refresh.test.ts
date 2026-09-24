@@ -44,6 +44,7 @@ function mockFetchResponse(opts: {
     status: opts.status,
     headers,
     json: async () => opts.body ?? {},
+    text: async () => JSON.stringify(opts.body ?? {}),
   } as Response;
 }
 
@@ -154,6 +155,24 @@ describe("attemptTokenRefresh (P011 test matrix)", () => {
     const result = await attemptTokenRefresh("expired-refresh", fakeRequest());
 
     expect(result).toEqual({ payload: null, cookies: [], transient: false, status: 401 });
+  });
+
+  it("401 rotation-race ('please retry with the current token') → transient, cookies preserved", async () => {
+    // Concurrent cold-open requests: the backend rotated on the first refresh
+    // and answers the second with this message. The browser already holds the
+    // fresh cookie — callers must NOT clear cookies or the live session is
+    // force-logged-out on the next reload.
+    fetchSpy.mockResolvedValue(
+      mockFetchResponse({
+        status: 401,
+        body: { error: "refresh token was rotated; please retry with the current token" },
+      })
+    );
+
+    const { attemptTokenRefresh } = await import("@/lib/auth/jwt-edge");
+    const result = await attemptTokenRefresh("just-rotated-refresh", fakeRequest());
+
+    expect(result).toEqual({ payload: null, cookies: [], transient: true, status: 401 });
   });
 
   it("403 → fails closed and definitive (safe to clear cookies)", async () => {

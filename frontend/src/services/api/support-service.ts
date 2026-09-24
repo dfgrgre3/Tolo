@@ -5,6 +5,7 @@
  */
 import { apiClient } from '@/lib/api/api-client';
 import { apiRoutes } from '@/lib/api/routes';
+import type { SupportRequestOptions } from '@/lib/support/contracts';
 
 export interface SupportFaq {
     id: string;
@@ -115,6 +116,20 @@ interface ListEnvelope<T> {
     offset?: number;
 }
 
+/**
+ * Per-call transport controls for read endpoints.
+ *
+ *  - `signal`  — forwarded to fetch so React Query (or any caller) can cancel
+ *    a superseded navigation/filter change instead of letting the response
+ *    land on an unmounted tree.
+ *  - `timeout` / `retries` — overridden by server-side loaders, which must fail
+ *    fast (short timeout, no retries) so a slow backend can never stall SSR.
+ *
+ * Declared in `@/lib/support/contracts` (the support contract surface) and
+ * re-exported here so both the service and the query hooks reference one type.
+ */
+export type { SupportRequestOptions };
+
 function unwrapList<T>(payload: unknown, key: 'items' | 'tickets'): { data: T[]; total: number } {
     const p = payload as ListEnvelope<T> & Record<string, unknown>;
     const arr = (p[key] ?? p.items ?? []) as T[];
@@ -123,27 +138,27 @@ function unwrapList<T>(payload: unknown, key: 'items' | 'tickets'): { data: T[];
 
 export const supportService = {
     // ── Public Help Center ──────────────────────────────────────────
-    async listFaqs(params?: { category?: string; search?: string }): Promise<SupportFaq[]> {
+    async listFaqs(params?: { category?: string; search?: string }, options?: SupportRequestOptions): Promise<SupportFaq[]> {
         const q = new URLSearchParams();
         if (params?.category) q.set('category', params.category);
         if (params?.search) q.set('search', params.search);
         const suffix = q.toString() ? `?${q.toString()}` : '';
-        const res = await apiClient.get<{ items: SupportFaq[]; total: number }>(`${apiRoutes.support.faqs}${suffix}`);
+        const res = await apiClient.get<{ items: SupportFaq[]; total: number }>(`${apiRoutes.support.faqs}${suffix}`, options);
         return res.items ?? [];
     },
 
-    async listArticles(params?: { category?: string; search?: string; sort?: string; limit?: number }): Promise<{ data: SupportArticleSummary[]; total: number }> {
+    async listArticles(params?: { category?: string; search?: string; sort?: string; limit?: number }, options?: SupportRequestOptions): Promise<{ data: SupportArticleSummary[]; total: number }> {
         const q = new URLSearchParams();
         if (params?.category) q.set('category', params.category);
         if (params?.search) q.set('search', params.search);
         if (params?.sort) q.set('sort', params.sort);
         q.set('limit', String(params?.limit ?? 20));
-        const res = await apiClient.get<unknown>(`${apiRoutes.support.articles}?${q.toString()}`);
+        const res = await apiClient.get<unknown>(`${apiRoutes.support.articles}?${q.toString()}`, options);
         return unwrapList<SupportArticleSummary>(res, 'items');
     },
 
-    async getArticle(slug: string): Promise<SupportArticle> {
-        const res = await apiClient.get<{ article: SupportArticle }>(apiRoutes.support.article(slug));
+    async getArticle(slug: string, options?: SupportRequestOptions): Promise<SupportArticle> {
+        const res = await apiClient.get<{ article: SupportArticle }>(apiRoutes.support.article(slug), options);
         return res.article;
     },
 
@@ -151,12 +166,12 @@ export const supportService = {
         await apiClient.postJson(apiRoutes.support.articleVote(slug), { helpful, reason });
     },
 
-    async getStatus(): Promise<{ overall: string; services: SupportServiceStatus[] }> {
-        return apiClient.get(apiRoutes.support.status);
+    async getStatus(options?: SupportRequestOptions): Promise<{ overall: string; services: SupportServiceStatus[] }> {
+        return apiClient.get(apiRoutes.support.status, options);
     },
 
-    async listIncidents(): Promise<SupportIncident[]> {
-        const res = await apiClient.get<{ items: SupportIncident[]; total: number }>(apiRoutes.support.incidents);
+    async listIncidents(options?: SupportRequestOptions): Promise<SupportIncident[]> {
+        const res = await apiClient.get<{ items: SupportIncident[]; total: number }>(apiRoutes.support.incidents, options);
         return res.items ?? [];
     },
 
@@ -182,18 +197,18 @@ export const supportService = {
         return res.ticket;
     },
 
-    async listMyTickets(params?: { status?: string; search?: string; limit?: number; offset?: number }): Promise<{ data: SupportTicket[]; total: number }> {
+    async listMyTickets(params?: { status?: string; search?: string; limit?: number; offset?: number }, options?: SupportRequestOptions): Promise<{ data: SupportTicket[]; total: number }> {
         const q = new URLSearchParams();
         if (params?.status) q.set('status', params.status);
         if (params?.search) q.set('search', params.search);
         q.set('limit', String(params?.limit ?? 20));
         q.set('offset', String(params?.offset ?? 0));
-        const res = await apiClient.get<unknown>(`${apiRoutes.support.myTickets}?${q.toString()}`);
+        const res = await apiClient.get<unknown>(`${apiRoutes.support.myTickets}?${q.toString()}`, options);
         return unwrapList<SupportTicket>(res, 'tickets');
     },
 
-    async getMyTicket(id: string): Promise<SupportTicket> {
-        const res = await apiClient.get<{ ticket: SupportTicket }>(apiRoutes.support.myTicket(id));
+    async getMyTicket(id: string, options?: SupportRequestOptions): Promise<SupportTicket> {
+        const res = await apiClient.get<{ ticket: SupportTicket }>(apiRoutes.support.myTicket(id), options);
         return res.ticket;
     },
 

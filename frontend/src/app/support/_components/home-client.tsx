@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supportService, type SupportArticleSummary, type SupportServiceStatus } from '@/services/api/support-service';
+import { useSupportPopularArticles, useSupportStatus } from '@/hooks/use-support-queries';
+import type { SupportArticleSummary, SupportServiceStatus } from '@/services/api/support-service';
 import { S } from './support-design';
-import { StatusBadge } from './support-ui';
+import { StatusBadge, SupportSkeleton } from './support-ui';
 
 const CATEGORY_LABELS: Record<string, string> = {
     technical: 'مشاكل تقنية',
@@ -14,32 +14,32 @@ const CATEGORY_LABELS: Record<string, string> = {
     other: 'أخرى',
 };
 
-export function SupportHomeClient() {
-    const [popular, setPopular] = useState<SupportArticleSummary[]>([]);
-    const [services, setServices] = useState<SupportServiceStatus[]>([]);
-    const [overall, setOverall] = useState('operational');
-    const [statusFailed, setStatusFailed] = useState(false);
+export interface SupportHomeClientProps {
+    /** Popular articles rendered on the server (SEO + first paint); null when the SSR read failed. */
+    initialPopular?: { data: SupportArticleSummary[]; total: number } | null;
+    /** Live service status rendered on the server; null when the SSR read failed. */
+    initialStatus?: { overall: string; services: SupportServiceStatus[] } | null;
+}
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const [articles, status] = await Promise.all([
-                    supportService.listArticles({ limit: 6, sort: 'popular' }),
-                    supportService.getStatus(),
-                ]);
-                if (cancelled) return;
-                setPopular(articles.data);
-                setServices(status.services.slice(0, 6));
-                setOverall(status.overall);
-            } catch {
-                if (!cancelled) setStatusFailed(true);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+/**
+ * Help Center landing data layer.
+ *
+ * The two widgets own INDEPENDENT queries on purpose: the previous single
+ * `Promise.all` meant a status outage also blanked the popular-articles list
+ * (and vice versa). Each widget also starts from the server-rendered payload,
+ * so content is visible before any client request is issued.
+ */
+export function SupportHomeClient({ initialPopular, initialStatus }: SupportHomeClientProps) {
+    const popularQuery = useSupportPopularArticles(initialPopular);
+    const statusQuery = useSupportStatus(initialStatus);
+
+    // `isError && !data` — a failed *refresh* must never wipe good content that
+    // is already on screen (server-rendered or previously fetched).
+    const popularFailed = popularQuery.isError && !popularQuery.data;
+    const statusFailed = statusQuery.isError && !statusQuery.data;
+    const popular = popularQuery.data?.data ?? [];
+    const services = statusQuery.data?.services?.slice(0, 6) ?? [];
+    const overall = statusQuery.data?.overall ?? 'operational';
 
     return (
         <section className={S.section} aria-label="المحتوى الشائع وحالة النظام">
@@ -54,7 +54,22 @@ export function SupportHomeClient() {
                             عرض الكل ←
                         </Link>
                     </div>
-                    {popular.length === 0 ? (
+
+                    {popularQuery.isPending ? (
+                        <SupportSkeleton lines={3} />
+                    ) : popularFailed ? (
+                        <div className={`${S.card} ${S.cardPad}`}>
+                            <p className="text-sm font-bold text-[#1E293B] dark:text-white">تعذّر تحميل المقالات الشائعة.</p>
+                            <p className={`${S.caption} mt-1`}>
+                                يمكنك تصفّح{' '}
+                                <Link className="font-bold text-[#0F766E] dark:text-orange-500" href="/support/faq">الأسئلة الشائعة</Link>{' '}
+                                أو <Link className="font-bold text-[#0F766E] dark:text-orange-500" href="/support/tickets/new">فتح تذكرة</Link>.
+                            </p>
+                            <button type="button" onClick={() => void popularQuery.refetch()} className={`${S.btnSecondary} mt-3`}>
+                                إعادة المحاولة
+                            </button>
+                        </div>
+                    ) : popular.length === 0 ? (
                         <div className={`${S.card} ${S.cardPad}`}>
                             <p className="text-sm text-[#64748B] dark:text-slate-400 font-medium">
                                 لا توجد مقالات منشورة بعد. جرّب{' '}
@@ -91,11 +106,18 @@ export function SupportHomeClient() {
                         </div>
                     </div>
                     <div className={`${S.card} ${S.cardPad}`}>
-                        {statusFailed ? (
-                            <p className="text-sm text-[#64748B] dark:text-slate-400 font-medium">
-                                تعذّر تحميل الحالة حالياً.{' '}
-                                <Link className="font-bold text-[#0F766E] dark:text-orange-500" href="/support/status">حاول مجدداً</Link>.
-                            </p>
+                        {statusQuery.isPending ? (
+                            <SupportSkeleton lines={3} />
+                        ) : statusFailed ? (
+                            <>
+                                <p className="text-sm text-[#64748B] dark:text-slate-400 font-medium">
+                                    تعذّر تحميل الحالة حالياً.{' '}
+                                    <Link className="font-bold text-[#0F766E] dark:text-orange-500" href="/support/status">صفحة الحالة</Link>.
+                                </p>
+                                <button type="button" onClick={() => void statusQuery.refetch()} className={`${S.btnSecondary} mt-3`}>
+                                    إعادة المحاولة
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <StatusBadge status={overall} />
@@ -121,3 +143,4 @@ export function SupportHomeClient() {
         </section>
     );
 }
+

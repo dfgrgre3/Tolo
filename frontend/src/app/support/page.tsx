@@ -11,12 +11,15 @@ import {
     CircleHelp,
 } from 'lucide-react';
 import { SITE } from '@thanawy/shared/site-config';
+import { loadSupportHomeData } from '@/lib/support/support-server';
+import { SUPPORT_SEARCH_MAX_LENGTH } from '@/lib/support/validation';
 import { S } from './_components/support-design';
 import { SupportHomeClient } from './_components/home-client';
 
 export const metadata: Metadata = {
     title: `الدعم والمساعدة | ${SITE.name}`,
     description: `مركز المساعدة: إجابات فورية، مقالات، تذاكر دعم، وحالة النظام في ${SITE.name}.`,
+    alternates: { canonical: `${SITE.url}/support` },
 };
 
 const QUICK_ACTIONS = [
@@ -30,7 +33,11 @@ const QUICK_ACTIONS = [
     { href: '/contact', icon: <LifeBuoy className="h-6 w-6" />, title: 'اتصل بنا', desc: 'قنوات التواصل المباشر' },
 ];
 
-export default function SupportHomePage() {
+export default async function SupportHomePage() {
+    // The landing page ships with its content already in the HTML (SEO + faster
+    // first paint); the client queries only refresh it in the background.
+    const { popular, status } = await loadSupportHomeData();
+
     return (
         <div className={S.page} dir="rtl">
             {/* Hero — same language as the homepage hero */}
@@ -57,6 +64,8 @@ export default function SupportHomePage() {
                                     type="search"
                                     placeholder="ابحث عن إجابة… (مثال: استرداد، شهادة، كلمة المرور)"
                                     className={S.searchInput}
+                                    maxLength={SUPPORT_SEARCH_MAX_LENGTH}
+                                    autoComplete="off"
                                 />
                             </div>
                             <button type="submit" className={S.searchBtn}>
@@ -87,7 +96,7 @@ export default function SupportHomePage() {
                     </div>
                 </section>
 
-                <SupportHomeClient />
+                <SupportHomeClient initialPopular={popular} initialStatus={status} />
             </div>
         </div>
     );

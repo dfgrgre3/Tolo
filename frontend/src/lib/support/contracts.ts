@@ -29,6 +29,21 @@ export const SUPPORT_ROUTES = {
   legacyContact: '/contact',
 } as const;
 
+/**
+ * Per-call transport controls for read endpoints, shared by the API service and
+ * the React Query hooks:
+ *
+ *  - `signal`  — forwarded to fetch so a superseded navigation/filter change
+ *    cancels the in-flight request instead of landing on an unmounted tree.
+ *  - `timeout` / `retries` — overridden by server-side loaders, which must fail
+ *    fast so a slow backend can never stall SSR (the client retries instead).
+ */
+export interface SupportRequestOptions {
+  signal?: AbortSignal;
+  timeout?: number;
+  retries?: number;
+}
+
 export const SUPPORT_TICKET_SUBJECT_MIN = 8;
 export const SUPPORT_TICKET_SUBJECT_MAX = 200;
 export const SUPPORT_TICKET_BODY_MIN = 20;

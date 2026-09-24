@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supportService } from '@/services/api/support-service';
 import { supportBugReportSchema } from '@/lib/support/contracts';
+import { isSupportAuthFailure } from '@/lib/support/validation';
 import { S } from '../_components/support-design';
 
 export default function BugReportPage() {
@@ -54,8 +55,7 @@ export default function BugReportPage() {
             });
             router.push(`/support/tickets/${encodeURIComponent(ticket.id)}`);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : '';
-            setError(msg.includes('401') ? 'يجب تسجيل الدخول أولاً للإبلاغ عن مشكلة.' : 'تعذّر إرسال البلاغ. حاول مجدداً.');
+            setError(isSupportAuthFailure(err) ? 'يجب تسجيل الدخول أولاً للإبلاغ عن مشكلة.' : 'تعذّر إرسال البلاغ. حاول مجدداً.');
         } finally {
             setSending(false);
         }

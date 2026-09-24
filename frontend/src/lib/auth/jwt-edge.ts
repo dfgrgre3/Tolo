@@ -376,7 +376,24 @@ export async function attemptTokenRefresh(
 
     // Non-OK refresh: 5xx/429 are transient (retryable); 400/401/403/404 are
     // definitive (unknown, expired, or revoked refresh token — safe to clear).
-    const transient = refreshRes.status >= 500 || refreshRes.status === 429;
+    //
+    // EXCEPTION — concurrent-refresh rotation race: when two parallel requests
+    // (e.g. a cold-open fan-out of /auth/me + RSC prefetches) both attempt a
+    // refresh, the backend rotates on the first and answers the second with
+    // 401 "refresh token was rotated; please retry with the current token"
+    // (grace path in doRefreshToken). The browser already received the fresh
+    // cookie from the winning response — treating this as definitive would
+    // wipe BOTH auth cookies and force-logout a perfectly live session, which
+    // is exactly the "close the site and reopen → logged out" bug. Classify it
+    // as transient so callers preserve cookies; the client's retry then lands
+    // on the rotated token. Any OTHER 401 (expired/revoked) stays definitive.
+    let transient = refreshRes.status >= 500 || refreshRes.status === 429;
+    if (!transient && refreshRes.status === 401 && typeof refreshRes.text === 'function') {
+      const body = await refreshRes.text().catch(() => '');
+      if (body.includes('please retry with the current token')) {
+        transient = true;
+      }
+    }
     return { payload: null, cookies: [], transient, status: refreshRes.status };
   } catch (_err) {
     Sentry.captureException(_err, { tags: { source: "jwt-edge:refresh" } });

@@ -1,56 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supportService, type SupportIncident, type SupportServiceStatus } from '@/services/api/support-service';
+import { useSupportIncidents, useSupportStatus } from '@/hooks/use-support-queries';
+import type { SupportIncident, SupportServiceStatus } from '@/services/api/support-service';
 import { S } from './support-design';
-import { StatusBadge } from './support-ui';
-import { SupportErrorState, SupportSkeleton } from './support-ui';
+import { StatusBadge, SupportErrorState, SupportSkeleton } from './support-ui';
 
-export function StatusClient() {
-    const [overall, setOverall] = useState('operational');
-    const [services, setServices] = useState<SupportServiceStatus[]>([]);
-    const [incidents, setIncidents] = useState<SupportIncident[]>([]);
-    const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
+export interface StatusClientProps {
+    /** Server-rendered status payload; null when the SSR read failed. */
+    initialStatus?: { overall: string; services: SupportServiceStatus[] } | null;
+    /** Server-rendered incident history; null when the SSR read failed. */
+    initialIncidents?: SupportIncident[] | null;
+}
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const [status, inc] = await Promise.all([
-                    supportService.getStatus(),
-                    supportService.listIncidents(),
-                ]);
-                if (cancelled) return;
-                setOverall(status.overall);
-                setServices(status.services);
-                setIncidents(inc);
-                setState('ready');
-            } catch {
-                if (!cancelled) setState('failed');
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+/**
+ * Operational status + incident history.
+ *
+ * Status and incidents are separate queries so an incident-history hiccup never
+ * blanks the live service table (the previous implementation shared one
+ * `Promise.all` failure path). The dashboard profile keeps both reasonably
+ * fresh while the tab stays open, and retries stop immediately on 401.
+ */
+export function StatusClient({ initialStatus, initialIncidents }: StatusClientProps) {
+    const statusQuery = useSupportStatus(initialStatus);
+    const incidentsQuery = useSupportIncidents(initialIncidents);
 
-    if (state === 'loading') return <SupportSkeleton lines={6} />;
+    const statusFailed = statusQuery.isError && !statusQuery.data;
+    const incidentsFailed = incidentsQuery.isError && !incidentsQuery.data;
+    const services = statusQuery.data?.services ?? [];
+    const overall = statusQuery.data?.overall ?? 'operational';
+    const incidents = incidentsQuery.data ?? [];
 
-    if (state === 'failed') {
+    if (statusQuery.isPending || incidentsQuery.isPending) {
+        return <SupportSkeleton lines={6} />;
+    }
+
+    if (statusFailed) {
         return (
             <SupportErrorState
                 message="تعذّر تحميل حالة النظام حالياً."
                 onRetry={() => {
-                    setState('loading');
-                    Promise.all([supportService.getStatus(), supportService.listIncidents()])
-                        .then(([status, inc]) => {
-                            setOverall(status.overall);
-                            setServices(status.services);
-                            setIncidents(inc);
-                            setState('ready');
-                        })
-                        .catch(() => setState('failed'));
+                    void statusQuery.refetch();
+                    void incidentsQuery.refetch();
                 }}
             />
         );
@@ -84,8 +75,17 @@ export function StatusClient() {
             </div>
 
             <h2 className="mt-8 mb-4 text-xl font-black">الأعطال والتحديثات</h2>
-            {incidents.length === 0 ? (
-                <p className={`${S.card} p-6 text-sm text-[#64748B] dark:text-slate-400 font-medium`}>لا توجد أعطال مُعلنة. جميع الأنظمة تعمل بشكل طبيعي.</p>
+            {incidentsFailed ? (
+                <div className={`${S.card} p-6`}>
+                    <p className="text-sm text-[#64748B] dark:text-slate-400 font-medium">تعذّر تحميل سجل الأعطال.</p>
+                    <button type="button" onClick={() => void incidentsQuery.refetch()} className={`${S.btnSecondary} mt-3`}>
+                        إعادة المحاولة
+                    </button>
+                </div>
+            ) : incidents.length === 0 ? (
+                <p className={`${S.card} p-6 text-sm text-[#64748B] dark:text-slate-400 font-medium`}>
+                    لا توجد أعطال مُعلنة. جميع الأنظمة تعمل بشكل طبيعي.
+                </p>
             ) : (
                 <ul className="space-y-4">
                     {incidents.map((inc) => (
@@ -109,7 +109,9 @@ export function StatusClient() {
                     ))}
                 </ul>
             )}
-            <Link href="/support" className="mt-8 inline-block text-sm font-bold text-[#0F766E] dark:text-orange-500">العودة لمركز المساعدة</Link>
+            <Link href="/support" className="mt-8 inline-block text-sm font-bold text-[#0F766E] dark:text-orange-500">
+                العودة لمركز المساعدة
+            </Link>
         </>
     );
 }

@@ -5,16 +5,12 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, LogIn, UserPlus } from "lucide-react";
-import { TimeTrackerHeaderWidget } from "./TimeTrackerHeaderWidget";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HeaderLogo } from "./HeaderLogo";
-import { HeaderSearch } from "./HeaderSearch";
 import { HeaderNavigation } from "./HeaderNavigation";
-import { HeaderNotifications } from "./HeaderNotifications";
-import { HeaderCartIcon } from "./HeaderCartIcon";
 import { useMegaMenuState } from "./useMegaMenuState";
 import { MegaMenu } from "@/components/mega-menu";
 import { utilityNavItems } from "@/components/mega-menu/navData";
@@ -34,7 +30,37 @@ import {
 	useHeaderWidgets
 } from "./useHeaderOptimizations";
 
-// ─── Dynamic Imports ─────────────────────────────────────────────
+// ─── Cold-open budget: everything below is NOT needed for first paint.
+// Search + notifications + cart + time-tracker each pull their own data
+// layer (debounce hooks, discovery gateway, notifications context). Load
+// them after hydration so the header shell paints instantly.
+const HeaderSearch = dynamic(
+	() =>
+		import("./HeaderSearch").then((mod) => ({ default: mod.HeaderSearch })),
+	{ ssr: false, loading: () => null },
+);
+
+const HeaderNotifications = dynamic(
+	() =>
+		import("./HeaderNotifications").then((mod) => ({
+			default: mod.HeaderNotifications,
+		})),
+	{ ssr: false, loading: () => null },
+);
+
+const HeaderCartIcon = dynamic(
+	() =>
+		import("./HeaderCartIcon").then((mod) => ({ default: mod.HeaderCartIcon })),
+	{ ssr: false, loading: () => null },
+);
+
+const TimeTrackerHeaderWidget = dynamic(
+	() =>
+		import("./TimeTrackerHeaderWidget").then((mod) => ({
+			default: mod.TimeTrackerHeaderWidget,
+		})),
+	{ ssr: false, loading: () => null },
+);
 
 const CommandPalette = dynamic(
 	() =>

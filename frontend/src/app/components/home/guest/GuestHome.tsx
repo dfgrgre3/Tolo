@@ -1,6 +1,8 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useGuestHomeData } from './hooks/useGuestHomeData';
+import { AchievementStrip } from './sections/StatsStrip';
 import './homepage-flat.css';
 import { HeroSection } from './sections/HeroSection';
 import { WhyUsSection } from './sections/WhyUsSection';
@@ -8,23 +10,75 @@ import { CategoriesSection } from './sections/CategoriesSection';
 import { FeaturedCoursesSection } from './sections/FeaturedCoursesSection';
 import { CoursesSection } from './sections/CoursesSection';
 import { NewCoursesSection } from './sections/NewCoursesSection';
-import { BestTeachersSection } from './sections/BestTeachersSection';
-import { ExamPreparationSection } from './sections/ExamPreparationSection';
-import { HowItWorksSection } from './sections/HowItWorksSection';
-import { InstructorsSection } from './sections/InstructorsSection';
-import { PromotionalCTASection } from './sections/PromotionalCTASection';
-import { PlatformStatsSection } from './sections/PlatformStatsSection';
-import { LearningPathsSection } from './sections/LearningPathsSection';
-import { TestimonialsSection } from './sections/TestimonialsSection';
-import { TrendingTopicsSection } from './sections/TrendingTopicsSection';
-import { FreeResourcesSection } from './sections/FreeResourcesSection';
-import { SpecializationTracksSection } from './sections/SpecializationTracksSection';
-import { PartnersSection } from './sections/PartnersSection';
-import { FAQSection } from './sections/FAQSection';
-import { AchievementStrip } from './sections/StatsStrip';
-import { BlogSection } from './sections/BlogSection';
-import { InstructorCtaSection } from './sections/InstructorCtaSection';
-import { NewsletterSection } from './sections/NewsletterSection';
+
+// ── Below-the-fold: split into separate chunks so the cold-open bundle only
+// contains hero + catalog. Each renders nothing until scrolled near (the
+// section components are static content; a blank div reserves no layout
+// because they sit far below the fold).
+const BestTeachersSection = dynamic(
+  () => import('./sections/BestTeachersSection').then((m) => ({ default: m.BestTeachersSection })),
+  { ssr: false, loading: () => null },
+);
+const ExamPreparationSection = dynamic(
+  () => import('./sections/ExamPreparationSection').then((m) => ({ default: m.ExamPreparationSection })),
+  { ssr: false, loading: () => null },
+);
+const HowItWorksSection = dynamic(
+  () => import('./sections/HowItWorksSection').then((m) => ({ default: m.HowItWorksSection })),
+  { ssr: false, loading: () => null },
+);
+const InstructorsSection = dynamic(
+  () => import('./sections/InstructorsSection').then((m) => ({ default: m.InstructorsSection })),
+  { ssr: false, loading: () => null },
+);
+const PromotionalCTASection = dynamic(
+  () => import('./sections/PromotionalCTASection').then((m) => ({ default: m.PromotionalCTASection })),
+  { ssr: false, loading: () => null },
+);
+const PlatformStatsSection = dynamic(
+  () => import('./sections/PlatformStatsSection').then((m) => ({ default: m.PlatformStatsSection })),
+  { ssr: false, loading: () => null },
+);
+const LearningPathsSection = dynamic(
+  () => import('./sections/LearningPathsSection').then((m) => ({ default: m.LearningPathsSection })),
+  { ssr: false, loading: () => null },
+);
+const TestimonialsSection = dynamic(
+  () => import('./sections/TestimonialsSection').then((m) => ({ default: m.TestimonialsSection })),
+  { ssr: false, loading: () => null },
+);
+const TrendingTopicsSection = dynamic(
+  () => import('./sections/TrendingTopicsSection').then((m) => ({ default: m.TrendingTopicsSection })),
+  { ssr: false, loading: () => null },
+);
+const FreeResourcesSection = dynamic(
+  () => import('./sections/FreeResourcesSection').then((m) => ({ default: m.FreeResourcesSection })),
+  { ssr: false, loading: () => null },
+);
+const SpecializationTracksSection = dynamic(
+  () => import('./sections/SpecializationTracksSection').then((m) => ({ default: m.SpecializationTracksSection })),
+  { ssr: false, loading: () => null },
+);
+const PartnersSection = dynamic(
+  () => import('./sections/PartnersSection').then((m) => ({ default: m.PartnersSection })),
+  { ssr: false, loading: () => null },
+);
+const FAQSection = dynamic(
+  () => import('./sections/FAQSection').then((m) => ({ default: m.FAQSection })),
+  { ssr: false, loading: () => null },
+);
+const BlogSection = dynamic(
+  () => import('./sections/BlogSection').then((m) => ({ default: m.BlogSection })),
+  { ssr: false, loading: () => null },
+);
+const InstructorCtaSection = dynamic(
+  () => import('./sections/InstructorCtaSection').then((m) => ({ default: m.InstructorCtaSection })),
+  { ssr: false, loading: () => null },
+);
+const NewsletterSection = dynamic(
+  () => import('./sections/NewsletterSection').then((m) => ({ default: m.NewsletterSection })),
+  { ssr: false, loading: () => null },
+);
 
 export default function GuestHome() {
   const {

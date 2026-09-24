@@ -313,6 +313,25 @@ class ApiClient {
                     continue;
                 }
 
+                // Rotation-race recovery: backend rotates refresh token on first
+                // use, so parallel session probes on cold open race and the loser
+                // gets 401 while the browser already holds the fresh cookie.
+                // One delayed retry with the new cookie succeeds instead of a
+                // logout. Scoped to session-probe GETs only, and only once.
+                if (
+                    response.status === 401 &&
+                    (method.toUpperCase() === 'GET') &&
+                    (endpoint.includes('/auth/me') || endpoint.includes('/auth/refresh')) &&
+                    retryCount < 1
+                ) {
+                    retryCount++;
+                    // Must exceed the edge middleware's failedRefreshes cooldown
+                    // (2s in proxy-pipeline/auth.ts) — a shorter delay would hit
+                    // the cooldown and re-401 without ever reaching the backend.
+                    await sleep(2500);
+                    continue;
+                }
+
                 return response;
             } catch (error: unknown) {
                 // Recover the reason we stamped on the controller. `fetch`
