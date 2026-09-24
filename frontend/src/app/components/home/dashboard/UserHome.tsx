@@ -16,7 +16,6 @@ import {
   IntelligentRecommendationsSection,
   RecommendedForYouSection,
   SocialFeaturesSection,
-  TipsSection,
   BrowseCategoriesSection,
   ExploreCoursesSection,
   TrendingTopicsDashboardSection,
@@ -134,7 +133,7 @@ export function UserHome({ user }: UserHomeProps) {
             <AnalyticsSection />
           </LazySection>
 
-          {/* Tips and community */}
+          {/* Community */}
           <LazySection
             className="flex flex-col gap-6 sm:gap-8 w-full"
             rootMargin="400px"
@@ -146,7 +145,6 @@ export function UserHome({ user }: UserHomeProps) {
             }
           >
             <IntelligentRecommendationsSection />
-            <TipsSection />
             <SocialFeaturesSection />
           </LazySection>
 

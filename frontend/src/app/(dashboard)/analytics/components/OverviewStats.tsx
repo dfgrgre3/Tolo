@@ -15,18 +15,18 @@ import {
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { useIsMounted } from '@/lib/safe-client-utils';
-
-type WeeklyData = { 
-	bySubject: Record<string, number>; 
-	byDay: { date: string | Date; minutes: number }[] 
-};
-
-type SummaryData = {
-	totalMinutes: number;
-	averageFocus: number;
-	tasksCompleted: number;
-	streakDays: number;
-};
+import { useMemo } from 'react';
+import {
+  activeDaysCount,
+  calcConsistency,
+  calcGrowthRate,
+  dailySeries,
+  totalWeeklyMinutes,
+} from "@/features/analytics/lib/performance-calculations";
+import type {
+  SummaryData,
+  WeeklyData,
+} from "@/features/analytics/lib/types";
 
 interface OverviewStatsProps {
 	summary: SummaryData | null;
@@ -35,28 +35,20 @@ interface OverviewStatsProps {
 
 export default function OverviewStats({ summary, weekly }: OverviewStatsProps) {
 	const isMounted = useIsMounted();
-	
-	const calculateImprovement = () => {
-		if (!summary) return 0;
-		const hours = summary.totalMinutes / 60;
-		return Math.min(100, Math.max(0, Math.round((hours % 100))));
-	};
 
-	const calculateDailyAverage = () => {
-		if (!summary || !weekly?.byDay) return 0;
-		const days = (weekly.byDay || []).filter(d => {
-			const date = new Date(d.date);
-			return date <= new Date();
-		}).length || 7;
-		return Math.round((summary.totalMinutes / days) / 60);
-	};
+	// Real improvement signal: second-half vs first-half growth, blended with
+	// consistency — replaces the old `(hours % 100)` placeholder.
+	const improvement = useMemo(() => {
+		const growth = calcGrowthRate(dailySeries(weekly));
+		const consistency = calcConsistency(weekly);
+		// Map growth [-100,+100] to [0,100], then blend 50/50 with consistency.
+		const growthNorm = Math.min(100, Math.max(0, 50 + growth / 2));
+		return Math.round(growthNorm * 0.5 + consistency * 0.5);
+	}, [weekly]);
 
 	const totalStudyHours = summary ? summary.totalMinutes / 60 : 0;
-	const weeklyTotal = weekly?.bySubject 
-		? Object.values(weekly.bySubject).reduce((a, b) => a + (b || 0), 0) / 60 
-		: 0;
-	const improvement = calculateImprovement();
-	const dailyAverage = calculateDailyAverage();
+	const weeklyTotal = totalWeeklyMinutes(weekly) / 60;
+	const dailyAverage = summary ? Math.round(summary.totalMinutes / Math.max(1, activeDaysCount(weekly) || 7) / 60 * 10) / 10 : 0;
 	const streakDays = summary?.streakDays || 0;
 	const tasksCompleted = summary?.tasksCompleted || 0;
 	const averageFocus = summary?.averageFocus || 0;

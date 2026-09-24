@@ -41,6 +41,19 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
 
     const docMetricsRef = useRef({ scrollableHeight: 0 });
 
+    /**
+     * scrollY / scrollProgress / scrollDirection change on (almost) every
+     * scroll frame, so they must NEVER trigger a React re-render on their own.
+     * They are snapshotted into state only when one of the boolean thresholds
+     * (isScrolled / isShrunk / isHidden) actually flips.
+     *
+     * Background: Header.tsx consumes only the booleans. Previously scrollY /
+     * scrollProgress lived in state and the "did it change?" guard used a 10px
+     * delta, so continuous scrolling re-rendered the entire Header subtree
+     * roughly every 10px — wasted work for values nobody read.
+     */
+    const hiddenRef = useRef(false);
+
     const updateMetrics = useCallback(() => {
         if (typeof document === "undefined") return;
         const docHeight = document.documentElement.scrollHeight;
@@ -81,20 +94,24 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
                 isHidden = true;
             } else if (scrollDirection === "up") {
                 isHidden = false;
+            } else {
+                // Direction unchanged (shouldn't happen past the delta guard) —
+                // keep the previous visibility instead of snapping back.
+                isHidden = hiddenRef.current;
             }
         }
+        hiddenRef.current = isHidden;
 
         const scrollProgress = opts.enableProgress ? calculateProgress(currentScrollY) : 0;
 
-        // Optimization: Only update state if values have changed significantly
+        // Optimization: only update state (i.e. re-render subscribers) when a
+        // boolean threshold flips. scrollY / scrollProgress / scrollDirection
+        // ride along as a snapshot but never cause an update on their own.
         setState(prev => {
             if (
                 prev.isScrolled === isScrolled &&
                 prev.isShrunk === isShrunk &&
-                prev.isHidden === isHidden &&
-                Math.abs(prev.scrollY - currentScrollY) < 10 &&
-                prev.scrollDirection === scrollDirection &&
-                Math.abs(prev.scrollProgress - scrollProgress) < 1
+                prev.isHidden === isHidden
             ) {
                 return prev;
             }

@@ -31,6 +31,11 @@ const AUTH_ENDPOINT_MARKERS = [
     '/auth/me',
     '/auth/mfa',
     '/auth/csrf',
+    // Endpoints that surface errors inside their own flow: a 401 from
+    // logout (expired session) must not race the explicit logout redirect,
+    // and magic-link/password-reset are guest flows with in-form errors.
+    '/auth/logout',
+    '/auth/magic-link',
 ] as const;
 
 /** Pages that already are the login destination — never redirect onto ourselves. */

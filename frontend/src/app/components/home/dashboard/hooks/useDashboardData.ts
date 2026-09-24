@@ -8,13 +8,10 @@ import type {
   PerformanceMetric,
   Prediction,
   Recommendation,
-  Tip,
   CourseProgress,
 } from "../shared/types";
 
-/** Centralized API endpoints to avoid magic strings and improve maintainability.
- * NOTE: GET /api/ai/tips does not exist on the backend (only POST for generation).
- * TIPS is intentionally omitted until the backend ships a GET feed — see useTips below. */
+/** Centralized API endpoints to avoid magic strings and improve maintainability. */
 const API_ENDPOINTS = {
   PERFORMANCE: "/api/analytics/performance",
   PREDICTIONS: "/api/analytics/predictions",
@@ -37,11 +34,6 @@ type CourseProgressResponse = {
 const EMPTY_METRICS = [] as const satisfies readonly PerformanceMetric[];
 const EMPTY_PREDICTIONS = [] as const satisfies readonly Prediction[];
 const EMPTY_RECOMMENDATIONS = [] as const satisfies readonly Recommendation[];
-// An annotated empty array, not "[] as const": the literal empty-tuple type has
-// no element type, so .map() in TipsSection would infer its item as `never`.
-// The other empties are always unioned with the real response type below, which
-// supplies the element type; this one is returned on its own.
-const EMPTY_TIPS: readonly Tip[] = [];
 const EMPTY_COURSES = [] as const satisfies readonly CourseProgress[];
 
 /**
@@ -113,24 +105,6 @@ export function useRecommendations() {
       refetch,
     }),
     [data?.recommendations, loading, error, refetch]
-  );
-}
-
-/** Study tips personalized from the learner's own habits.
- * The backend currently only exposes POST /api/ai/tips (on-demand generation
- * via TipsGenerator). There is no GET feed, so a GET here 404s through the
- * /api/[...path] proxy on every dashboard visit. Return a stable empty state
- * (the "سجّل جلسات مذاكرة" empty UI) without any network request until the
- * backend ships `GET /api/ai/tips`. */
-export function useTips() {
-  return useMemo(
-    () => ({
-      tips: EMPTY_TIPS,
-      loading: false as boolean,
-      error: null as string | null,
-      refetch: () => {},
-    }),
-    []
   );
 }
 

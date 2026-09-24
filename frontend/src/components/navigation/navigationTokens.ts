@@ -11,7 +11,7 @@ export const navLinkStyles = cva("relative no-underline decoration-transparent u
   },
   compoundVariants: [
     { variant: "desktop", active: true, className: "bg-primary/10 text-primary border border-primary/20" },
-    { variant: "desktop", active: false, className: "text-gray-400 border border-transparent hover:text-primary" },
+    { variant: "desktop", active: false, className: "text-gray-400 border border-transparent hover:text-primary hover:bg-primary/5" },
     { variant: "mobile", active: true, className: "bg-primary/10 text-primary font-bold shadow-sm border-primary/10" },
     { variant: "mobile", active: false, className: "hover:bg-muted font-medium text-foreground/80 hover:text-foreground" },
     { variant: "search", active: true, className: "bg-primary/10 text-primary border-primary/20" },

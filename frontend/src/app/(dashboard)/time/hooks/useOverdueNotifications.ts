@@ -1,4 +1,4 @@
-﻿import { useEffect, useCallback } from 'react';
+﻿import { useEffect, useCallback, useRef } from 'react';
 import type { Task } from '../types';
 import { isPast, differenceInHours } from 'date-fns';
 
@@ -13,6 +13,8 @@ export function useOverdueNotifications({
   onNotification,
   checkInterval = 60000 // Check every minute
 }: UseOverdueNotificationsProps) {
+  /** Signature of the last notified situation — avoids re-firing identical toasts. */
+  const lastNotifiedRef = useRef<string>('initial');
   const checkOverdueTasks = useCallback(() => {
     const now = new Date();
     const overdueTasks = tasks.filter(task => 
@@ -32,6 +34,17 @@ export function useOverdueNotifications({
       !isPast(new Date(task.dueAt)) &&
       differenceInHours(new Date(task.dueAt), now) <= 3
     );
+
+    // Dedup: the 60s interval would otherwise re-fire the SAME message on every
+    // tick. Only notify when the situation's signature (kind + count) changes.
+    const signature =
+      urgentTasks.length > 0
+        ? `urgent:${urgentTasks.length}`
+        : upcomingDeadlines.length > 0
+          ? `upcoming:${upcomingDeadlines.length}`
+          : 'clear';
+    if (signature === lastNotifiedRef.current) return;
+    lastNotifiedRef.current = signature;
 
     if (urgentTasks.length > 0 && onNotification) {
       onNotification(

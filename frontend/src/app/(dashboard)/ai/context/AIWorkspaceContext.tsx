@@ -13,7 +13,6 @@ interface AIWorkspaceValue {
   generateStudyPlan: typeof aiClient.generateStudyPlan;
   summarize: typeof aiClient.summarize;
   gradeEssay: typeof aiClient.gradeEssay;
-  tips: typeof aiClient.tips;
   teachers: typeof aiClient.teachers;
   streamChat: typeof aiClient.streamChat;
   poll: typeof aiClient.poll;
@@ -74,7 +73,6 @@ export function AIWorkspaceProvider({ children }: { children: ReactNode }) {
     generateStudyPlan: (body, options) => aiClient.generateStudyPlan(withContext(body, 'study-planner'), options),
     summarize: (body, options) => aiClient.summarize(withContext(body, 'summarize'), options),
     gradeEssay: (body, options) => aiClient.gradeEssay(withContext(body, 'grade-essay'), options),
-    tips: (body, options) => aiClient.tips(withContext(body, 'tips'), options),
     teachers: (body, options) => aiClient.teachers(withContext(body, 'teachers'), options),
     streamChat: (options) => aiClient.streamChat(options),
     poll: aiClient.poll,

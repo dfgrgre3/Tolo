@@ -58,6 +58,7 @@ export default function LoginCredentialsFields({
           </span>
           <Input
             id="email"
+            name="email"
             type="email"
             autoComplete="email"
             placeholder="name@example.com"
@@ -96,6 +97,7 @@ export default function LoginCredentialsFields({
           </span>
           <Input
             id="password"
+            name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"

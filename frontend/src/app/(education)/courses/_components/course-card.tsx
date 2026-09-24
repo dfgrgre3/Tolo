@@ -23,10 +23,10 @@ import { formatPrice, formatHours } from "./utils";
 import type { CourseSummary } from "./types";
 import { ApiError } from "@/lib/api/api-client";
 import {
-  addCartItemRaw,
   addWishlistItemRaw,
   removeWishlistItemRaw,
 } from "@/features/courses/api/courses-gateway";
+import { useAddToCart } from "@/features/cart";
 
 export function CourseCard({
   course,
@@ -39,7 +39,7 @@ export function CourseCard({
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
   const [inCart, setInCart] = useState(false);
-  const [cartBusy, setCartBusy] = useState(false);
+  const { add: addToCartUnified, isPending: cartBusy } = useAddToCart();
 
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,19 +69,15 @@ export function CourseCard({
     e.preventDefault();
     e.stopPropagation();
     if (cartBusy || inCart) return;
-    setCartBusy(true);
     try {
-      await addCartItemRaw(course.id);
+      addToCartUnified(course.id);
       setInCart(true);
-      toast.success("تمت الإضافة للسلة");
     } catch (error) {
       if (error instanceof ApiError && error.isUnauthorized) {
         toast.error("سجّل الدخول أولاً");
       } else {
         toast.error("حدث خطأ، حاول مرة أخرى");
       }
-    } finally {
-      setCartBusy(false);
     }
   };
 

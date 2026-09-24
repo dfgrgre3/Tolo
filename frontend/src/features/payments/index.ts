@@ -2,9 +2,7 @@
  * Payments Feature — Public API
  *
  * الواجهة العامة لنطاق المدفوعات والمحفظة والاشتراكات.
- * استورد دائماً من هنا بدلاً من المسارات الداخلية.
- *
- * Backward compatibility: `@/lib/payments` re-exports from here.
+ * استورد دائماً من هنا. (الـ deprecated facade `@/lib/payments` حُذف.)
  */
 
 // Domain types

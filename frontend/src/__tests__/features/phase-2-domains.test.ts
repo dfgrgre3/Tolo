@@ -68,14 +68,6 @@ describe("features/payments Domain Boundary (P0-12 / P0-14)", () => {
     expect(typeof mod.useValidateCouponMutation).toBe("function");
     expect(mod.paymentKeys).toBeDefined();
   });
-
-  it("backward compat: lib/payments re-exports from features/payments", async () => {
-    const legacy = await import("@/lib/payments");
-    const feature = await import("@/features/payments");
-    expect(legacy.resolvePaymentAction).toBe(feature.resolvePaymentAction);
-    expect(legacy.formatEGP).toBe(feature.formatEGP);
-    expect(legacy.validateCoupon).toBe(feature.validateCoupon);
-  });
 });
 
 describe("features/gamification Domain Boundary (P0-12 / P0-14)", () => {

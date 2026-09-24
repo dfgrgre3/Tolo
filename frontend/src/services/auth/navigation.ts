@@ -54,8 +54,15 @@ export function sanitizeRedirectPath(
   }
 
   // Only allow relative paths starting with a single "/" (not "//" which
-  // could be an external URL such as //evil.com).
-  if (path.startsWith("/") && !path.startsWith("//")) {
+  // could be an external URL such as //evil.com). Auth pages themselves are
+  // rejected: redirecting a signed-in user to /login (e.g. via
+  // ?redirect=/login) is a wasted hop the middleware must undo — send them
+  // to the authenticated default instead.
+  if (
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    !isAuthPublicRoute(path)
+  ) {
     return path;
   }
 

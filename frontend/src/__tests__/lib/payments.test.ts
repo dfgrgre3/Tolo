@@ -5,7 +5,7 @@ import {
   buildWalletCheckoutUrl,
   getFawryCode,
   resolvePaymentAction,
-} from "@/lib/payments";
+} from "@/features/payments";
 
 describe("resolvePaymentAction", () => {
   it("يفضل رابط التحويل الصريح مهما كانت الطريقة", () => {

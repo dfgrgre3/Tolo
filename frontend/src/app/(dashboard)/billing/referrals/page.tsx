@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { m } from "framer-motion";
 import {
   Users,
   Gift,
@@ -152,7 +151,7 @@ export default function ReferralsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-transparent py-12 px-4 md:px-8 xl:px-12" dir="rtl">
-        <div className="max-w-7xl mx-auto space-y-8 animate-pulse">
+        <div className="max-w-7xl mx-auto space-y-8">
           <div className="h-10 w-64 bg-gray-200 dark:bg-white/10 rounded-full" />
           <div className="h-20 w-2/3 bg-gray-50 dark:bg-white/5 rounded-[2rem]" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -176,7 +175,7 @@ export default function ReferralsPage() {
             action={
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-primary text-white rounded-2xl text-sm font-black hover:bg-primary/90 transition-all"
+                className="px-6 py-3 bg-primary text-white rounded-2xl text-sm font-black hover:bg-primary/90"
               >
                 إعادة المحاولة
               </button>
@@ -208,19 +207,19 @@ export default function ReferralsPage() {
       <div className="max-w-7xl mx-auto space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] relative overflow-hidden group shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-            <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-primary/15 rounded-full blur-[100px] group-hover:scale-110 transition-transform" />
+            <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-primary/15 rounded-full blur-[100px]" />
             <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2 relative">
               <Share2 size={20} className="text-primary" />
               كود الإحالة الخاص بك
             </h3>
             <div className="flex flex-col sm:flex-row gap-4 relative">
-              <div className="flex-1 bg-black/40 border border-white/10 p-4 rounded-2xl flex items-center justify-between hover:border-primary/40 transition-all">
+              <div className="flex-1 bg-black/40 border border-white/10 p-4 rounded-2xl flex items-center justify-between hover:border-primary/40">
                 <span className="text-2xl font-black text-white tracking-widest uppercase" dir="ltr">
                   {stats.referralCode}
                 </span>
                 <button
                   onClick={copyCode}
-                  className="p-2 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white"
                   title="نسخ الكود"
                   aria-label="نسخ كود الإحالة"
                 >
@@ -232,7 +231,7 @@ export default function ReferralsPage() {
                   navigator.clipboard.writeText(referralLink);
                   toast.success("تم نسخ رابط الدعوة");
                 }}
-                className="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black transition-all shadow-[0_20px_50px_rgba(var(--primary-rgb),0.4)] active:scale-95 flex items-center justify-center gap-2"
+                className="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black shadow-[0_20px_50px_rgba(var(--primary-rgb),0.4)] flex items-center justify-center gap-2"
               >
                 نسخ رابط الدعوة
                 <ArrowRight size={18} className="rotate-180" />
@@ -243,7 +242,7 @@ export default function ReferralsPage() {
                 href={`https://wa.me/?text=${encodeURIComponent(`انضم لمنصة ثانوي بكودي ${stats.referralCode}: ${referralLink}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500 hover:text-white transition-all"
+                className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500 hover:text-white"
               >
                 مشاركة واتساب
               </a>
@@ -251,7 +250,7 @@ export default function ReferralsPage() {
                 href={`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(`انضم بكودي ${stats.referralCode}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-black hover:bg-sky-500 hover:text-white transition-all"
+                className="px-5 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-black hover:bg-sky-500 hover:text-white"
               >
                 مشاركة تيليجرام
               </a>
@@ -259,7 +258,7 @@ export default function ReferralsPage() {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-black hover:bg-blue-500 hover:text-white transition-all"
+                className="px-5 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-black hover:bg-blue-500 hover:text-white"
               >
                 مشاركة فيسبوك
               </a>
@@ -291,7 +290,6 @@ export default function ReferralsPage() {
             topLabel="قيد الانتظار"
             value={stats.pendingRewards ?? 0}
             hint="مكافآت لم تُصرف بعد"
-            delay={0.05}
           />
         </div>
 
@@ -331,7 +329,7 @@ export default function ReferralsPage() {
             <>
             <BillingTableShell headers={["الصديق", "القيمة", "الحالة", "التاريخ"]}>
               {pagedHistory.map((reward) => (
-                <tr key={reward.id} className="hover:bg-primary/5 transition-colors border-l-2 border-transparent hover:border-primary/40">
+                <tr key={reward.id} className="hover:bg-primary/5 border-l-2 border-transparent hover:border-primary/40">
                   <td className="text-start px-6 py-4 font-black text-gray-900 dark:text-white">{reward.referred?.name || "طالب جديد"}</td>
                   <td className="px-6 py-4 text-emerald-400 font-black text-center whitespace-nowrap">+{reward.amount} ج.م</td>
                   <td className="px-6 py-4 text-center">
@@ -348,15 +346,13 @@ export default function ReferralsPage() {
           )}
         </div>
 
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="rounded-[2.5rem] border border-primary/20 bg-primary/5 p-8 text-center"
         >
           <p className="text-gray-600 dark:text-gray-300 font-bold">
             كل صديق يشترك بكودك يمنحك <span className="text-emerald-400 font-black">20 ج.م</span> — بلا حد أقصى.
           </p>
-        </m.div>
+        </div>
       </div>
     </div>
   );

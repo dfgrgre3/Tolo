@@ -11,6 +11,12 @@
 import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw } from "lucide-react";
+import type {
+  PerformanceRaw,
+  Prediction,
+  SummaryData,
+  WeeklyData,
+} from "@/features/analytics/lib/types";
 import {
   Activity,
   BookOpen,
@@ -21,25 +27,8 @@ import {
   Zap,
 } from "lucide-react";
 
-type WeeklyData = {
-  bySubject: Record<string, number>;
-  byDay: { date: string | Date; minutes: number }[];
-};
-
-type SummaryData = {
-  totalMinutes: number;
-  averageFocus: number;
-  tasksCompleted: number;
-  streakDays: number;
-};
-
-type PredictionsData = {
-  period: string;
-  predictedScore: number;
-  confidence: number;
-  milestones: Array<{ date: string; goal: string; status: string }>;
-  recommendations: string[];
-};
+// Local aliases kept for minimal diff; canonical types live in features/analytics.
+type PredictionsData = Prediction;
 
 const LoadingFallback = () => (
   <div className="w-full h-64 bg-card/20 animate-pulse rounded-[2rem] border border-white/5 flex items-center justify-center">
@@ -65,7 +54,7 @@ const PerformanceMetrics = dynamic(
 ) as React.ComponentType<{
   summary: SummaryData | null;
   weekly: WeeklyData | null;
-  performanceMetrics: Record<string, unknown> | null;
+  performanceMetrics: PerformanceRaw | null;
 }>;
 
 const PredictionsSection = dynamic(
@@ -88,11 +77,16 @@ const StudyPatterns = dynamic(
   { ssr: false, loading: LoadingFallback }
 );
 
+const SubjectStrengths = dynamic(
+  () => import("./components/SubjectStrengths"),
+  { ssr: false, loading: LoadingFallback }
+);
+
 interface AnalyticsTabsProps {
   summary: SummaryData | null;
   weekly: WeeklyData | null;
   predictions: PredictionsData[];
-  performance: Record<string, unknown> | null;
+  performance: PerformanceRaw | null;
 }
 
 export default function AnalyticsTabs({
@@ -149,6 +143,7 @@ export default function AnalyticsTabs({
       </TabsContent>
       <TabsContent value="subjects" className="space-y-6">
         <SubjectDistribution weekly={weekly} />
+        <SubjectStrengths weekly={weekly} performance={performance} />
       </TabsContent>
       <TabsContent value="trends" className="space-y-6">
         <TimeTrends weekly={weekly} />

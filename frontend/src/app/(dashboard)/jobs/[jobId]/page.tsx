@@ -23,7 +23,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useJob, useSimilarJobs, useToggleSaveJob } from '@/hooks/use-jobs';
 import { JobCard } from '@/features/jobs/components/JobCard';
 import { JobsErrorState } from '@/features/jobs/components/JobStates';
-import { formatDate, formatLocation, formatRelativeDate, formatSalary } from '@/features/jobs/format';
+import {
+  formatDate,
+  formatLocation,
+  formatMatchScore,
+  formatRelativeDate,
+  formatSalary,
+} from '@/features/jobs/format';
 import {
   employmentTypeLabels,
   experienceLevelLabels,
@@ -221,6 +227,7 @@ export default function JobDetailPage() {
 
   const posted = formatRelativeDate(job.publishedAt);
   const location = formatLocation(job);
+  const matchScore = formatMatchScore(job.matchScore);
 
   return (
     <div className="space-y-6">
@@ -283,6 +290,9 @@ export default function JobDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              {matchScore ? (
+                <Badge className="bg-primary/10 text-primary">{matchScore}</Badge>
+              ) : null}
               <Badge variant="outline">{workplaceTypeLabels[job.workplaceType]}</Badge>
               <Badge variant="outline">{employmentTypeLabels[job.employmentType]}</Badge>
               <Badge variant="outline">{experienceLevelLabels[job.experienceLevel]}</Badge>

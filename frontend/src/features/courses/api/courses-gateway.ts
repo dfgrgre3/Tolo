@@ -2,8 +2,11 @@
  * Courses API Gateway
  *
  * المالك الوحيد لاستدعاءات الكورسات: كتالوج، تفاصيل، تسجيل (خام)،
- * تقييمات، أسئلة، ملاحظات الدروس، سلة، مفضلة، مكتبة، موارد، مدرسون، امتحانات.
+ * تقييمات، أسئلة، ملاحظات الدروس، مفضلة، مكتبة، موارد، مدرسون، امتحانات.
  * يستخدم apiClient كـ transport خالص ولا يحمل منطق UI.
+ *
+ * NOTE: السلة انتقلت بالكامل إلى `@/features/cart` — لا تضف دوال سلة هنا.
+ * NOTE: المحفظة/المدفوعات في `@/features/payments` — لا تضف دوال دفع هنا.
  *
  * Raw 1:1 mirrors (حد ترحيل الواجهات F-018): نفس المسار والطريقة
  * والحمولة التي استخدمتها الواجهة — صفر تغيير سلوكي بالتصميم.
@@ -17,7 +20,7 @@ import { apiRoutes } from "@/lib/api/routes";
 type RawPayload = Record<string, unknown>;
 type RequestOptions = { signal?: AbortSignal; retries?: number };
 
-// ─── المفضلة والسلة ──────────────────────────────────────────────────
+// ─── المفضلة ───────────────────────────────────────────────────────
 
 export function fetchWishlistRaw<T>(): Promise<T> {
   return apiClient.get<T>(apiRoutes.courses.wishlistList);
@@ -29,29 +32,6 @@ export function addWishlistItemRaw(id: string): Promise<unknown> {
 
 export function removeWishlistItemRaw(id: string): Promise<unknown> {
   return apiClient.delete(apiRoutes.courses.wishlist(id));
-}
-
-export function fetchCartRaw<T>(): Promise<T> {
-  return apiClient.get<T>(apiRoutes.cart.get);
-}
-
-export function removeCartItemRaw(subjectId: string): Promise<unknown> {
-  return apiClient.delete(apiRoutes.cart.item(subjectId));
-}
-
-export function addCartItemRaw(subjectId: string): Promise<unknown> {
-  return apiClient.postJson(apiRoutes.cart.items, { subjectId });
-}
-
-export function checkoutCartRaw<T>(paymentMethod: string, couponCode?: string): Promise<T> {
-  return apiClient.postJson<T>(apiRoutes.cart.checkout, {
-    paymentMethod,
-    couponCode: couponCode || undefined,
-  });
-}
-
-export function fetchWalletBalanceRaw<T>(): Promise<T> {
-  return apiClient.get<T>(apiRoutes.billing.wallet);
 }
 
 // ─── الكتالوج والقوائم ───────────────────────────────────────────────

@@ -22,11 +22,6 @@ export const IntelligentRecommendationsSection = dynamic(
   { loading: () => <SectionLoadingFallback /> }
 );
 
-export const TipsSection = dynamic(
-  () => import("./TipsSection").then((mod) => mod.TipsSection),
-  { loading: () => <SectionLoadingFallback /> }
-);
-
 export const SocialFeaturesSection = dynamic(
   () => import("./SocialFeaturesSection").then((mod) => mod.SocialFeaturesSection),
   { loading: () => <SectionLoadingFallback /> }

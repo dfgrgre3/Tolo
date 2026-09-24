@@ -21,6 +21,7 @@ import {
   applicationStatusStyles,
   jobsStrings,
 } from '@/features/jobs/labels';
+import { formatApplicationAnswers } from '@/features/jobs/format';
 import type { JobApplicationStatus } from '@/types/job';
 
 /**
@@ -49,6 +50,13 @@ export default function ApplicantDetailPage({
   if (!application) return null;
 
   const applicant = application.applicant;
+  // Screening answers keyed by question id; the prompt is resolved from the
+  // preloaded job's current question set. An answer whose question was deleted
+  // after submission falls back to its bare id with a "removed" hint.
+  const answerRows = formatApplicationAnswers(
+    application.answers,
+    application.job?.questions
+  );
 
   return (
     <div className="space-y-5">
@@ -183,6 +191,44 @@ export default function ApplicantDetailPage({
             <p className="whitespace-pre-line text-sm text-muted-foreground">
               {application.coverLetter}
             </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/*
+        Only rendered when at least one question was actually answered: an empty
+        card would read as "this applicant skipped everything", which is not
+        something the payload says.
+      */}
+      {answerRows.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{jobsStrings.applicationAnswers}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {answerRows.map((row) => (
+              <div key={row.id} className="border-b border-border/60 pb-2 last:border-0">
+                {row.prompt !== undefined ? (
+                  <p className="text-xs text-muted-foreground">
+                    {row.prompt}
+                    {row.required ? (
+                      <span> ({jobsStrings.questionRequired})</span>
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {jobsStrings.questionId}:{' '}
+                    <span dir="ltr" className="font-mono text-[11px]">
+                      {row.id}
+                    </span>{' '}
+                    · {jobsStrings.questionRemoved}
+                  </p>
+                )}
+                {/* Applicant-authored text: plain text with preserved line
+                    breaks, never markup. */}
+                <p className="whitespace-pre-line break-words">{row.answer}</p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       ) : null}

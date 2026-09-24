@@ -98,7 +98,12 @@ export function applyCsp(response: NextResponse, nonce: string): NextResponse {
     "base-uri 'self'",
     "form-action 'self' https://*.paymob.com",
     "object-src 'none'",
-    "upgrade-insecure-requests",
+    // upgrade-insecure-requests يجبر المتصفح على تحويل كل طلبات http:// إلى
+    // https:// — صالح في الإنتاج فقط. في التطوير يكسر الوصول عبر IP الشبكة
+    // المحلية (مثل http://192.168.1.15:3000) لأن المتصفح يحوّل طلبات
+    // ملفات CSS/JS إلى https:// فيفشل تحميلها فتظهر الصفحة بدون تنسيق.
+    // (localhost مستثنى من التحويل تلقائياً لذلك لم تكن المشكلة تظهر عليه).
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
     // Add CSP reporting for security monitoring and detection of violations
     "report-uri /api/csp-report",
     "report-to csp-endpoint",

@@ -6,9 +6,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 
-const isDev = process.env.NODE_ENV === 'development';
+const isDev =
+  process.env.NODE_ENV === 'development' || process.argv.includes('dev');
 
 const nextConfig = {
+  // السماح بالوصول لخادم التطوير من أجهزة أخرى على الشبكة المحلية
+  // (مثلاً http://192.168.1.15:3000 من موبايل أو جهاز تاني على نفس الراوتر).
+  allowedDevOrigins: ["192.168.1.15", "localhost", "127.0.0.1"],
   turbopack: {
     // Monorepo root so Turbopack can resolve files outside the frontend app
     root: path.resolve(__dirname, '..'),
@@ -59,6 +63,16 @@ const nextConfig = {
   // في التطوير يُكلّف Next.js بمسح كامل شجرة الـ monorepo في كل تحميل
   // للإعدادات — نعطّله لتسريع الإقلاع من دقيقتين إلى ثوانٍ.
   ...(isDev ? {} : { outputFileTracingRoot: path.resolve(__dirname, '..') }),
+
+  // distDir قابل للتجاوز عبر NEXT_DIST_DIR للبناء في بيئة معزولة دون التعارض
+  // مع خادم التطوير الذي يمسك قفل .next (الافتراضي يبقى .next).
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+
+  // React Compiler (مستقر في Next 16): memoization تلقائي لكل المكونات —
+  // يقلل إعادة الرسم (re-renders) دون useMemo/useCallback يدوي.
+  // Next يطبّقه عبر SWC فقط على الملفات التي تحتوي JSX/Hooks فلا يبطئ البناء.
+  reactCompiler: true,
+
   // ─── Experimental ──────────────────────────────────────────────────────────
   experimental: {
     // Tree-shake heavy packages — avoids importing the full library
@@ -78,6 +92,14 @@ const nextConfig = {
       'date-fns',
       'sonner',
     ],
+    // Client-side Router Cache: الافتراضي في Next 15+/16 هو dynamic: 0 مما يجعل
+    // كل تنقّل يعيد طلب RSC payload من الخادم. تخزينه 30 ثانية يجعل التنقل
+    // المتكرر والرجوع/التقدم فوريًا، والبيانات الحساسة تُحدَّث عبر React Query
+    // (staleTime: 0) عند كل mount على أي حال.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
   },
 
   // ─── HTTP Headers ──────────────────────────────────────────────────────────
@@ -99,6 +121,55 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=2592000, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      // صور public/images (hero images حتى ~214KB) — كانت تُخدَّم بلا أي
+      // Cache-Control فيُعاد تحميلها في كل زيارة. أسبوع + SWR يوم.
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/icons/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/logo-tolo.webp',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      // سكريبتات public المحمّلة عبر next/script في كل صفحة (perf-detect يعمل
+      // قبل أول رسم). ساعة + SWR يوم كي تنتشر التحديثات سريعًا عند النشر.
+      {
+        source: '/:script(perf-detect\\.js|hydration-fix\\.js)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
           },
         ],
       },
@@ -136,10 +207,15 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
+          // HSTS must NEVER be sent on http://localhost in dev: browsers cache
+          // it for the hostname and then upgrade all future RSC fetches to
+          // https://localhost:3000 (no TLS in dev) -> ERR_SSL_PROTOCOL_ERROR.
+          ...(isDev ? [] : [
+            {
+              key: 'Strict-Transport-Security',
+              value: 'max-age=63072000; includeSubDomains; preload',
+            },
+          ]),
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
@@ -299,6 +375,14 @@ const nextConfig = {
   // returning 404/502 at the edge.
   async redirects() {
     return [
+      // Some clients (older browsers, crawlers, embedded webviews) hardcode
+      // /favicon.ico. The site ships an SVG favicon only, so alias it to
+      // avoid a 404 in the console/network logs.
+      {
+        source: "/favicon.ico",
+        destination: "/favicon.svg",
+        permanent: false,
+      },
       // Auth lives at /login (route group (auth) is a non-routing group).
       {
         source: "/auth/login",
@@ -325,13 +409,8 @@ const nextConfig = {
         permanent: false,
       },
       // The teacher app lives at /teaching. Legacy/internal links point at
-      // /teach — alias it so existing links resolve on a single canonical
-      // URL (also lets Footer's startsWith("/teaching") hide rule work).
-      {
-        source: "/teach",
-        destination: "/teaching",
-        permanent: false,
-      },
+      // /teach — handled by client-side redirect page at src/app/teach/page.tsx
+      // to avoid RSC payload fetch errors during navigation.
       // The bundled-package / promotion claim flow lives on the billing
       // page's "plans" tab. Alias /plans there so the plans entry point
       // and any bookmarked/deep links resolve instead of 404ing.

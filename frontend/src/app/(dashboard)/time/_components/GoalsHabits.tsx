@@ -7,6 +7,16 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Target, Flame, Plus, Trash2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  habitStats,
+  habitWeekCells,
+  migrateV1Habit,
+  toggleHabitDate,
+  type HabitEntry,
+} from '@/features/time/domain';
+import { createHabit, deleteHabit, fetchHabits, updateHabit } from '@/features/time/api/time-gateway';
+import { mergeById } from '@/features/time/api/sync-merge';
+import { logger } from '@/lib/logger';
 
 interface Goal {
   id: string;
@@ -16,15 +26,10 @@ interface Goal {
   unit: string;
   deadline?: string;
 }
-interface Habit {
-  id: string;
-  title: string;
-  weekLog: boolean[]; // last 7 days
-  streak: number;
-}
 
 const GOALS_KEY = 'time-goals-v1';
-const HABITS_KEY = 'time-habits-v1';
+const HABITS_V1_KEY = 'time-habits-v1';
+const HABITS_V2_KEY = 'time-habits-v2';
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -33,28 +38,74 @@ function load<T>(key: string, fallback: T): T {
   } catch { return fallback; }
 }
 
+/**
+ * Fire-and-forget sync failure: the localStorage copy stays authoritative
+ * for this session and every mutation the user repeats retries the server
+ * write. Logged (not toasted) so an offline session isn't spammed.
+ */
+function syncWarn(scope: string, err: unknown): void {
+  logger.warn(`[time/${scope}] server sync failed`, err);
+}
+
 export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: number }) {
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habits, setHabits] = useState<HabitEntry[]>([]);
+  const [now, setNow] = useState(() => new Date());
   const [ready, setReady] = useState(false);
   const [gTitle, setGTitle] = useState('');
   const [gTarget, setGTarget] = useState('600');
   const [hTitle, setHTitle] = useState('');
+
+  // `now` ticks per minute so streaks/day cells stay correct across midnight
+  // (same cadence as useDailyPlan).
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     setGoals(load<Goal[]>(GOALS_KEY, [
       { id: 'g1', title: 'ساعات المذاكرة الأسبوعية', target: 600, current: 0, unit: 'دقيقة' },
       { id: 'g2', title: 'جلسات بومودورو', target: 20, current: 0, unit: 'جلسة' },
     ]));
-    setHabits(load<Habit[]>(HABITS_KEY, [
-      { id: 'h1', title: 'مراجعة يومية', weekLog: [true, true, false, true, false, false, false], streak: 2 },
-      { id: 'h2', title: 'قراءة 30 دقيقة', weekLog: [true, false, true, false, false, false, false], streak: 1 },
-    ]));
+    // v2 (date-anchored) wins; otherwise migrate v1 weekLogs onto real dates.
+    const v2 = load<HabitEntry[] | null>(HABITS_V2_KEY, null);
+    let localHabits: HabitEntry[];
+    if (v2 && Array.isArray(v2)) {
+      localHabits = v2;
+    } else {
+      const v1 = load<Array<{ id: string; title: string; weekLog: boolean[] }>>(HABITS_V1_KEY, [
+        { id: 'h1', title: 'مراجعة يومية', weekLog: [true, true, false, true, false, false, false] },
+        { id: 'h2', title: 'قراءة 30 دقيقة', weekLog: [true, false, true, false, false, false, false] },
+      ]);
+      localHabits = v1.map(h => migrateV1Habit(h, new Date()));
+      localStorage.setItem(HABITS_V2_KEY, JSON.stringify(localHabits));
+    }
+    setHabits(localHabits);
     setReady(true);
+
+    // Server hydration: paint from localStorage first (instant + offline),
+    // then merge the server collection. Empty server + local rows means
+    // first run — bootstrap the server from local; the endpoint upserts by
+    // id (409 on replay), so a StrictMode double effect stays idempotent.
+    void (async () => {
+      try {
+        const server = await fetchHabits();
+        if (server.length === 0) {
+          if (localHabits.length > 0) {
+            await Promise.allSettled(localHabits.map(h => createHabit(h)));
+          }
+          return;
+        }
+        setHabits(prev => mergeById(prev, server));
+      } catch (err) {
+        logger.warn('[time/habits] server hydration skipped (offline?)', err);
+      }
+    })();
   }, []);
 
   useEffect(() => { if (ready) localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }, [goals, ready]);
-  useEffect(() => { if (ready) localStorage.setItem(HABITS_KEY, JSON.stringify(habits)); }, [habits, ready]);
+  useEffect(() => { if (ready) localStorage.setItem(HABITS_V2_KEY, JSON.stringify(habits)); }, [habits, ready]);
 
   const syncedGoals = useMemo(() => goals.map(g =>
     g.id === 'g1' ? { ...g, current: Math.min(g.target, studyMinutesWeek) } : g
@@ -71,23 +122,24 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
 
   const addHabit = () => {
     if (!hTitle.trim()) { toast.error('اكتب اسم العادة'); return; }
-    setHabits(p => [...p, { id: `h${Date.now()}`, title: hTitle.trim(), weekLog: [false, false, false, false, false, false, false], streak: 0 }]);
+    const entry: HabitEntry = { id: `h${Date.now()}`, title: hTitle.trim(), doneDates: [] };
+    setHabits(p => [...p, entry]);
     setHTitle('');
+    void createHabit(entry).catch(err => syncWarn('habits', err));
     toast.success('تمت إضافة العادة');
   };
 
-  const toggleHabitDay = (id: string, day: number) => {
-    setHabits(p => p.map(h => {
-      if (h.id !== id) return h;
-      const weekLog = [...h.weekLog];
-      weekLog[day] = !weekLog[day];
-      // streak = consecutive true from end
-      let streak = 0;
-      for (let i = weekLog.length - 1; i >= 0; i--) {
-        if (weekLog[i]) streak++; else break;
-      }
-      return { ...h, weekLog, streak };
-    }));
+  const toggleHabitDay = (id: string, dateKey: string) => {
+    const current = habits.find(h => h.id === id);
+    if (!current) return;
+    const next = toggleHabitDate(current, dateKey);
+    setHabits(p => p.map(h => (h.id === id ? next : h)));
+    void updateHabit(id, { doneDates: next.doneDates }).catch(err => syncWarn('habits', err));
+  };
+
+  const removeHabit = (id: string) => {
+    setHabits(p => p.filter(x => x.id !== id));
+    void deleteHabit(id).catch(err => syncWarn('habits', err));
   };
 
   return (
@@ -139,32 +191,43 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
             <Input placeholder="عادة جديدة... مثال: استيقاظ مبكر" value={hTitle} onChange={e => setHTitle(e.target.value)} />
             <Button onClick={addHabit} size="sm"><Plus className="h-4 w-4" /></Button>
           </div>
-          <p className="text-[11px] text-muted-foreground">علّم على أيام الأسبوع (آخر 7 أيام) — السبت أولاً</p>
-          {habits.map(h => (
-            <div key={h.id} className="py-3 border-b border-border">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-bold text-foreground">{h.title}</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[11px] text-orange-600 dark:text-orange-300">🔥 {h.streak}</Badge>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-400" onClick={() => setHabits(p => p.filter(x => x.id !== h.id))}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+          <p className="text-[11px] text-muted-foreground">آخر 7 أيام (ح ن ث ر خ ج س حسب يومك) — انقر خلية لتعليم اليوم</p>
+          {habits.map(h => {
+            const stats = habitStats(h, now);
+            const cells = habitWeekCells(h, now);
+            return (
+              <div key={h.id} className="py-3 border-b border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold text-foreground">{h.title}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[11px] text-orange-600 dark:text-orange-300">🔥 {stats.streak}</Badge>
+                    {stats.bestStreak > stats.streak && (
+                      <Badge variant="outline" className="text-[11px] text-muted-foreground">🏆 {stats.bestStreak}</Badge>
+                    )}
+                    <Badge variant="outline" className="text-[11px] text-muted-foreground">{stats.consistencyPct}%</Badge>
+                    {stats.perfectWeek && (
+                      <Badge variant="outline" className="text-[11px] text-emerald-600 dark:text-emerald-400">أسبوع كامل</Badge>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-400" onClick={() => removeHabit(h.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  {cells.map(cell => (
+                    <button
+                      key={cell.key}
+                      onClick={() => toggleHabitDay(h.id, cell.key)}
+                      className={`h-9 flex-1 rounded-lg border text-xs font-bold ${cell.done ? 'bg-orange-500/20 border-orange-500/50 text-orange-600 dark:text-orange-300' : 'bg-muted/60 border-border text-muted-foreground'} ${cell.isToday ? 'ring-2 ring-primary-strong/60' : ''}`}
+                      title={cell.isToday ? 'اليوم' : cell.key}
+                    >
+                      {cell.done ? <Check className="h-4 w-4 mx-auto" /> : cell.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="flex gap-1.5">
-                {h.weekLog.map((done, i) => (
-                  <button
-                    key={i}
-                    onClick={() => toggleHabitDay(h.id, i)}
-                    className={`h-9 flex-1 rounded-lg border text-xs font-bold ${done ? 'bg-orange-500/20 border-orange-500/50 text-orange-600 dark:text-orange-300' : 'bg-muted/60 border-border text-muted-foreground'}`}
-                    title={`يوم ${i + 1}`}
-                  >
-                    {done ? <Check className="h-4 w-4 mx-auto" /> : `ي${i + 1}`}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

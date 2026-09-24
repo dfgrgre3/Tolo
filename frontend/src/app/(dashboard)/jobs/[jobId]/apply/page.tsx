@@ -10,11 +10,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useProfileData } from '@/app/(dashboard)/profile/_components/useProfileData';
 import { useAuth } from '@/hooks/use-auth';
 import { useApplyToJob, useJob } from '@/hooks/use-jobs';
 import { JobsErrorState } from '@/features/jobs/components/JobStates';
 import { jobsStrings } from '@/features/jobs/labels';
+import {
+  isValidHttpUrl,
+  loadResumeUrl,
+  prefillApplyForm,
+  type ApplyPrefill,
+} from '@/features/jobs/profile';
+import {
+  collectAnswers,
+  findMissingRequiredAnswers,
+} from '@/features/jobs/questions';
 import { ApiError } from '@/lib/api/api-client';
+import type { Job, JobQuestion } from '@/types/job';
 
 type Step = 'details' | 'review';
 
@@ -23,11 +35,15 @@ interface FormState {
   phone: string;
   resumeUrl: string;
   coverLetter: string;
+  /** Screening answers keyed by question id; one entry per rendered question. */
+  answers: Record<string, string>;
 }
 
 interface FieldErrors {
   email?: string;
   resumeUrl?: string;
+  /** Per-question error, keyed by question id. */
+  answers?: Record<string, string>;
 }
 
 /** Server-side cap on the cover letter. Mirrors the backend validation. */
@@ -38,27 +54,36 @@ const COVER_LETTER_MAX = 20000;
  * authority) purely so the user gets immediate, in-field feedback instead of a
  * round-trip and a toast.
  */
-function validate(form: FormState): FieldErrors {
+function validate(form: FormState, questions: readonly JobQuestion[]): FieldErrors {
   const errors: FieldErrors = {};
 
   if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
     errors.email = 'البريد الإلكتروني غير صالح';
   }
 
-  if (form.resumeUrl) {
-    try {
-      const url = new URL(form.resumeUrl);
-      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-        errors.resumeUrl = 'الرابط غير صالح';
-      }
-    } catch {
-      errors.resumeUrl = 'الرابط غير صالح';
-    }
+  // Shared with /jobs/profile so both surfaces accept exactly the same URLs.
+  if (!isValidHttpUrl(form.resumeUrl)) {
+    errors.resumeUrl = jobsStrings.invalidUrl;
+  }
+
+  // The server accepts an application with missing required answers only to
+  // reject it — blocking here gives the seeker the field-level error instead.
+  const missing = findMissingRequiredAnswers(questions, form.answers);
+  if (missing.length > 0) {
+    errors.answers = Object.fromEntries(
+      missing.map((id) => [id, jobsStrings.answerRequired])
+    );
   }
 
   return errors;
 }
 
+/**
+ * Apply entry point.
+ *
+ * Owns auth, data loading and the redirect, then hands a settled world to
+ * ApplyForm so the form can mount already prefilled.
+ */
 export default function JobApplyPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params?.jobId ?? '';
@@ -66,17 +91,9 @@ export default function JobApplyPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const { data: job, isLoading, isError, refetch } = useJob(jobId);
-  const apply = useApplyToJob();
-
-  const [step, setStep] = React.useState<Step>('details');
-  const [submitted, setSubmitted] = React.useState<string | null>(null);
-  const [form, setForm] = React.useState<FormState>({
-    email: '',
-    phone: '',
-    resumeUrl: '',
-    coverLetter: '',
-  });
-  const [errors, setErrors] = React.useState<FieldErrors>({});
+  // Profile runs in parallel with the job fetch; it feeds the prefill (email,
+  // phone, and the device-local CV link) that the form starts with.
+  const { profile, isLoading: profileLoading } = useProfileData();
 
   // Applying requires an account; bounce to login while preserving the
   // destination so the user lands back on this form.
@@ -86,7 +103,12 @@ export default function JobApplyPage() {
     }
   }, [authLoading, isAuthenticated, jobId, router]);
 
-  if (isLoading || authLoading) {
+  // Waiting for the profile here — not later — is what lets the form mount
+  // already filled: a warm query cache (the usual case when arriving from the
+  // dashboard) costs nothing, a cold one costs one parallel request. Patching
+  // the fields from an effect afterwards would flicker empty→filled and could
+  // overwrite whatever the user had already started typing.
+  if (isLoading || authLoading || profileLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
@@ -109,6 +131,51 @@ export default function JobApplyPage() {
   if (isError || !job) {
     return <JobsErrorState onRetry={() => refetch()} />;
   }
+
+  return (
+    <ApplyForm job={job} jobId={jobId} prefill={prefillApplyForm(profile, loadResumeUrl())} />
+  );
+}
+
+/**
+ * The two-step form itself.
+ *
+ * Mounts only after the profile query has settled, so `form` is *born* at its
+ * prefill value — no effect patches it afterwards (the lint rules forbid that,
+ * and it would race whatever the user had already started typing).
+ */
+function ApplyForm({
+  job,
+  jobId,
+  prefill,
+}: {
+  job: Job;
+  jobId: string;
+  prefill: ApplyPrefill;
+}) {
+  const apply = useApplyToJob();
+
+  // The posting's screening questions, in the employer's stored order. Empty
+  // for most jobs — the sections below render only when there is something
+  // to ask.
+  const questions = job.questions ?? [];
+
+  const [step, setStep] = React.useState<Step>('details');
+  const [submitted, setSubmitted] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState<FormState>(() => ({
+    email: prefill.email,
+    phone: prefill.phone,
+    resumeUrl: prefill.resumeUrl,
+    coverLetter: '',
+    answers: {},
+  }));
+  const [errors, setErrors] = React.useState<FieldErrors>({});
+
+  const setAnswer = (id: string, value: string) =>
+    setForm((current) => ({
+      ...current,
+      answers: { ...current.answers, [id]: value },
+    }));
 
   // Success state — the application id is the anchor to the tracking page.
   if (submitted) {
@@ -149,12 +216,15 @@ export default function JobApplyPage() {
   }
 
   const handleContinue = () => {
-    const found = validate(form);
+    const found = validate(form, questions);
     setErrors(found);
     if (Object.keys(found).length === 0) setStep('review');
   };
 
   const handleSubmit = () => {
+    // Stray ids (e.g. a question the employer deleted while this form was
+    // open) are dropped here rather than stored as unanswerable orphans.
+    const answers = collectAnswers(questions, form.answers);
     apply.mutate(
       {
         jobId: job.id,
@@ -163,6 +233,7 @@ export default function JobApplyPage() {
           phone: form.phone || undefined,
           resumeUrl: form.resumeUrl || undefined,
           coverLetter: form.coverLetter || undefined,
+          answers: Object.keys(answers).length > 0 ? answers : undefined,
         },
       },
       {
@@ -286,6 +357,48 @@ export default function JobApplyPage() {
                 </p>
               </div>
 
+              {questions.length > 0 ? (
+                <fieldset className="space-y-3 border-t pt-4">
+                  <legend className="px-0 text-sm font-medium">
+                    {jobsStrings.screeningQuestions}
+                  </legend>
+                  {questions.map((question) => (
+                    <div key={question.id} className="space-y-1.5">
+                      <Label htmlFor={`apply-answer-${question.id}`}>
+                        {question.prompt}{' '}
+                        <span className="text-xs text-muted-foreground">
+                          (
+                          {question.required
+                            ? jobsStrings.questionRequired
+                            : jobsStrings.questionOptional}
+                          )
+                        </span>
+                      </Label>
+                      <Textarea
+                        id={`apply-answer-${question.id}`}
+                        rows={3}
+                        value={form.answers[question.id] ?? ''}
+                        aria-invalid={!!errors.answers?.[question.id]}
+                        aria-describedby={
+                          errors.answers?.[question.id]
+                            ? `apply-answer-${question.id}-error`
+                            : undefined
+                        }
+                        onChange={(event) => setAnswer(question.id, event.target.value)}
+                      />
+                      {errors.answers?.[question.id] ? (
+                        <p
+                          id={`apply-answer-${question.id}-error`}
+                          className="text-xs text-destructive"
+                        >
+                          {errors.answers[question.id]}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </fieldset>
+              ) : null}
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" asChild>
                   <Link href={`/jobs/${jobId}`}>{jobsStrings.cancel}</Link>
@@ -310,6 +423,23 @@ export default function JobApplyPage() {
                   </div>
                 ))}
               </dl>
+
+              {questions.length > 0 ? (
+                <dl className="space-y-3 text-sm">
+                  {questions.map((question) => (
+                    <div key={question.id} className="border-b pb-2 last:border-0">
+                      <dt className="text-xs text-muted-foreground">
+                        {question.prompt}
+                      </dt>
+                      <dd className="whitespace-pre-line break-words">
+                        {(form.answers[question.id] ?? '').trim() || (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
 
               {serverError ? (
                 <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">

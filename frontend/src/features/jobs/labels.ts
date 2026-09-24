@@ -312,4 +312,62 @@ export const jobsStrings = {
   emptyEmployerJobsBody: 'أضف وظيفتك الأولى لتبدأ في استقبال المتقدمين.',
   emptyCompaniesMineTitle: 'لم تنشئ أي شركة بعد',
   emptyCompaniesMineBody: 'أضف شركتك لتتمكن من نشر الوظائف باسمها.',
+
+  // ── Dynamic filters ───────────────────────────────────────────
+  // Only the two data-backed filters get a section title of their own; the
+  // static enum groups reuse the labels above them.
+  category: 'الفئة',
+  company: 'الشركة',
+  companySearchPlaceholder: 'ابحث باسم الشركة',
+  companySearchHint: 'اكتب حرفين على الأقل للبحث',
+  noCompanyResults: 'لا توجد شركات مطابقة',
+  remoteOnly: 'عن بُعد فقط',
+  clearAll: 'مسح الكل',
+  /** Accessible name for the ✕ on an active-filter chip. */
+  removeChip: (label: string) => `إزالة الفلتر: ${label}`,
+  /** Fit badge. Shown only for 1–100 (see formatMatchScore). */
+  matchPercent: (n: number) => `توافق ${n}٪`,
+  salaryAtLeast: (n: number) => `الراتب من ${n}`,
+  salaryAtMost: (n: number) => `الراتب حتى ${n}`,
+
+  // ── Career profile (/jobs/profile) ───────────────────────────
+  careerProfile: 'ملف الوظائف',
+  editProfile: 'تعديل الملف الشخصي',
+  profileSummary: 'ملخص الملف',
+  emptyProfileBody: 'لا توجد بيانات لعرضها بعد — أضفها من ملفك الشخصي.',
+  location: 'الموقع',
+  bio: 'نبذة',
+  experienceYears: 'سنوات الخبرة',
+  school: 'الجهة التعليمية',
+  gradeLevel: 'المستوى الدراسي',
+  educationType: 'نوع التعليم',
+  section: 'القسم',
+  studyGoal: 'هدف الدراسة',
+  subjects: 'المواد',
+  /** Stated explicitly: the CV link is device-local, not synced. */
+  resumeDeviceNote:
+    'يُحفظ هذا الرابط على هذا الجهاز فقط ليُستخدم في تعبئة نماذج التقديم هنا؛ لا يُرسل إلى الخادم ولا يظهر على أجهزة أخرى.',
+  resumeSaved: 'تم الحفظ',
+  invalidUrl: 'الرابط غير صالح',
+
+  // ── Screening questions (employer editor + apply form) ───────
+  screeningQuestions: 'أسئلة التقديم',
+  screeningQuestionsHint: 'تظهر هذه الأسئلة للمتقدم أثناء تعبئة الطلب.',
+  addQuestion: 'إضافة سؤال',
+  removeQuestion: 'حذف السؤال',
+  questionPromptPlaceholder: 'اكتب نص السؤال…',
+  questionRequired: 'إلزامي',
+  questionOptional: 'اختياري',
+  questionsMaxReached: 'وصلت إلى الحد الأقصى (١٠ أسئلة)',
+  questionTooShort: 'نص السؤال قصير جدًا (٥ أحرف على الأقل)',
+  questionTooLong: 'نص السؤال طويل جدًا (٣٠٠ حرف كحد أقصى)',
+  questionDuplicate: 'هذا السؤال مكرر',
+  answerRequired: 'الإجابة على هذا السؤال إلزامية',
+
+  // ── Applicant screening answers (employer view) ──────────────
+  applicationAnswers: 'إجابات أسئلة التقديم',
+  questionId: 'معرّف السؤال',
+  // Shown next to the bare id when the question was deleted after the
+  // application arrived — the answer stays visible, only its label is lost.
+  questionRemoved: 'لم يعد هذا السؤال موجودًا في الوظيفة',
 } as const;

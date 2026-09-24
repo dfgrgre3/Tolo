@@ -3,103 +3,38 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Target, TrendingUp, TrendingDown, Activity, Zap, Award } from 'lucide-react';
-
-type WeeklyData = { 
-	bySubject: Record<string, number>; 
-	byDay: { date: string | Date; minutes: number }[] 
-};
-
-type SummaryData = {
-	totalMinutes: number;
-	averageFocus: number;
-	tasksCompleted: number;
-	streakDays: number;
-};
-
-interface PerformanceMetricsData {
-	[key: string]: unknown;
-}
+import { useMemo } from "react";
+import {
+  calcCoreScores,
+  getScoreColor,
+  getScoreLabel,
+  weekOverWeekChange,
+} from "@/features/analytics/lib/performance-calculations";
+import type {
+  PerformanceRaw,
+  SummaryData,
+  WeeklyData,
+} from "@/features/analytics/lib/types";
 
 interface PerformanceMetricsProps {
 	summary: SummaryData | null;
 	weekly: WeeklyData | null;
-	performanceMetrics: PerformanceMetricsData | null;
+	performanceMetrics: PerformanceRaw | null;
 }
 
-const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({  
-	summary, 
-	weekly, 
-	performanceMetrics: _performanceMetrics
+const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
+	summary,
+	weekly,
+	performanceMetrics
 }) => {
-	const calculateMetrics = () => {
-		if (!summary || !weekly) {
-			return {
-				productivityScore: 0,
-				consistencyScore: 0,
-				engagementScore: 0,
-				growthRate: 0
-			};
-		}
-
-		// Productivity Score (0-100)
-		const totalHours = summary.totalMinutes / 60;
-		const weeklyHours = (weekly?.bySubject ? Object.values(weekly.bySubject) : []).reduce((a, b) => a + (b || 0), 0) / 60;
-		const productivityScore = Math.min(100, Math.round(
-			(totalHours / 20 * 30) + // 30% weight for total hours
-			(weeklyHours / 20 * 30) + // 30% weight for weekly hours
-			(summary.averageFocus / 100 * 40) // 40% weight for focus
-		));
-
-		// Consistency Score (0-100)
-		const dailyMinutes = (weekly?.byDay || []).map(d => d.minutes || 0);
-		const activeDays = dailyMinutes.filter(m => m > 0).length;
-		const consistencyScore = Math.round((activeDays / 7) * 100);
-
-		// Engagement Score (0-100)
-		const taskCompletionRate = summary.tasksCompleted > 0 
-			? Math.min(100, (summary.tasksCompleted / (summary.tasksCompleted + 5)) * 100)
-			: 0;
-		const engagementScore = Math.round(
-			(taskCompletionRate * 0.5) + 
-			(summary.streakDays / 30 * 50)
-		);
-
-		// Growth Rate
-		const firstHalf = dailyMinutes.slice(0, Math.floor(dailyMinutes.length / 2));
-		const secondHalf = dailyMinutes.slice(Math.floor(dailyMinutes.length / 2));
-		const firstAvg = firstHalf.length > 0 
-			? firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length 
-			: 0;
-		const secondAvg = secondHalf.length > 0
-			? secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
-			: 0;
-		const growthRate = firstAvg > 0 
-			? Math.round(((secondAvg - firstAvg) / firstAvg) * 100)
-			: 0;
-
-		return {
-			productivityScore,
-			consistencyScore,
-			engagementScore,
-			growthRate
-		};
-	};
-
-	const metrics = calculateMetrics();
-
-	const getScoreColor = (score: number) => {
-		if (score >= 80) return 'text-green-600 dark:text-green-400';
-		if (score >= 60) return 'text-blue-600 dark:text-blue-400';
-		if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
-		return 'text-red-600 dark:text-red-400';
-	};
-
-	const getScoreLabel = (score: number) => {
-		if (score >= 80) return 'ممتاز';
-		if (score >= 60) return 'جيد';
-		if (score >= 40) return 'متوسط';
-		return 'يحتاج تحسين';
-	};
+	const metrics = useMemo(
+		() => calcCoreScores(summary, weekly, performanceMetrics),
+		[summary, weekly, performanceMetrics],
+	);
+	const wow = useMemo(
+		() => weekOverWeekChange(weekly, performanceMetrics),
+		[weekly, performanceMetrics],
+	);
 
 	const performanceCards = [
 		{
@@ -195,13 +130,11 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<div className="space-y-2">
 							<p className="text-sm font-medium text-muted-foreground">متوسط الأداء</p>
-							<p className={`text-3xl font-bold ${getScoreColor(
-								(metrics.productivityScore + metrics.consistencyScore + metrics.engagementScore) / 3
-							)}`}>
-								{Math.round((metrics.productivityScore + metrics.consistencyScore + metrics.engagementScore) / 3)}%
+							<p className={`text-3xl font-bold ${getScoreColor(metrics.averageScore)}`}>
+								{metrics.averageScore}%
 							</p>
-							<Progress 
-								value={(metrics.productivityScore + metrics.consistencyScore + metrics.engagementScore) / 3} 
+							<Progress
+								value={metrics.averageScore}
 								className="h-3 mt-2"
 							/>
 						</div>
@@ -225,7 +158,9 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 								)}
 							</div>
 							<p className="text-xs text-muted-foreground">
-								{metrics.growthRate >= 0 ? 'أداؤك في تحسن مستمر' : 'يحتاج إلى تحسين'}
+								{wow !== null
+									? `تغير أسبوعي: ${wow >= 0 ? "+" : ""}${wow}%`
+									: metrics.growthRate >= 0 ? 'أداؤك في تحسن مستمر' : 'يحتاج إلى تحسين'}
 							</p>
 						</div>
 						<div className="space-y-2">

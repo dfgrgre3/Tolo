@@ -47,7 +47,7 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
 
     if (!valid && refreshToken) {
       const result = await refreshSession(request, refreshToken);
-      if (result.payload && result.cookies.length > 0) {
+      if (result.cookies.length > 0) {
         payload = result.payload;
         valid = true;
         refreshCookies = result.cookies;
@@ -95,9 +95,50 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
         refreshStatus: result.status,
       };
     }
+    // The same dead-session rule the page gate applies: an access token that
+    // fails verification with NO refresh_token to rotate it can never
+    // authenticate. Answer 401 at the edge and expire the stale cookie.
+    // Forwarding instead would produce a backend 401 while the cookie
+    // survives, so the root layout keeps seeing it (hasSessionHint), the
+    // client keeps probing /auth/me, and a 401 appears on every page load.
+    if (expired && accessToken && !refreshToken) {
+      const response = NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+      clearAuthCookies(response, request);
+      return finalizeProxyResponse(response, nonce);
+    }
   }
 
-  if (session.refreshAttempted && session.refreshCookies.length > 0 && session.payload) {
+  if (session.refreshAttempted && session.refreshCookies.length > 0) {
+    // Role gates only when the rotated token verifies locally. When the
+    // edge cannot verify (missing JWT_PUBLIC_KEY / iss-aud mismatch) the
+    // payload is null even though the backend rotated successfully — the
+    // backend stays authoritative, so skip coarse gating and just relay.
+    if (session.payload) {
+      // SECURITY: the role gates must ALSO run on the refreshed fast path.
+      // Returning here unconditionally bypassed applyRoleGate and the admin
+      // page gate for exactly one request — an expired-token request to, say,
+      // /api/teacher/... or an admin page would sail past the coarse proxy
+      // layer the moment its refresh succeeded. The backend remains
+      // authoritative and re-validates every call, but this restores parity
+      // with the non-refreshed path below.
+      const fastPathRoleGate = applyRoleGate(pathname, session.payload?.role, isPublicEndpoint);
+      if (fastPathRoleGate) {
+        if (session.refreshCookies.length > 0) {
+          appendRefreshCookies(fastPathRoleGate, session.refreshCookies);
+        }
+        return finalizeProxyResponse(fastPathRoleGate, nonce);
+      }
+      if (isAdminRoute(pathname) && !isStaffAdminPanelRole(session.payload?.role)) {
+        const response = NextResponse.redirect(new URL('/dashboard', request.url));
+        if (session.refreshCookies.length > 0) {
+          appendRefreshCookies(response, session.refreshCookies);
+        }
+        return finalizeProxyResponse(response, nonce);
+      }
+    }
     applyRefreshToRequest(requestHeaders, session);
     return createRefreshedResponse(requestHeaders, session, nonce);
   }

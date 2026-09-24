@@ -111,7 +111,9 @@ export default function Header() {
 		shrinkThreshold: 80,
 		hideThreshold: 300,
 		showOnScrollUp: true,
-		enableProgress: true
+		// Header doesn't consume scrollProgress (ReadingProgressBar tracks scroll
+		// internally), so skip the per-frame progress math entirely.
+		enableProgress: false
 	});
 
 	const { user, status: authStatus } = useAuth();

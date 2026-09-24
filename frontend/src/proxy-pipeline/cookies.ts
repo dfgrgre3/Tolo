@@ -79,6 +79,10 @@ export function clearAuthCookies(response: NextResponse, request?: NextRequest):
     "refresh_token",
     "auth_token",
     "bearer_token",
+    // Issued by the backend's password-reset flow (HttpOnly). Leaving it
+    // alive after a full session wipe would keep a reset-flow session
+    // fragment readable by the backend after logout.
+    "reset_session",
   ] as const;
   for (const name of names) {
     try {

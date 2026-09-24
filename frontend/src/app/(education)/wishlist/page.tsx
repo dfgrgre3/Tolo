@@ -6,10 +6,10 @@ import Link from "next/link";
 import { Loader2, Heart, Trash2, ArrowLeft, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import {
-  addCartItemRaw,
   fetchWishlistRaw,
   removeWishlistItemRaw,
 } from "@/features/courses/api/courses-gateway";
+import { useAddToCart } from "@/features/cart";
 
 type WishlistItem = {
   id: string;
@@ -29,6 +29,7 @@ export default function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const { add: addToCartUnified } = useAddToCart();
 
   const fetchWishlist = async () => {
     setLoading(true);
@@ -62,10 +63,9 @@ export default function WishlistPage() {
     }
   };
 
-  const handleAddToCart = async (subjectId: string) => {
+  const handleAddToCart = (subjectId: string) => {
     try {
-      await addCartItemRaw(subjectId);
-      toast.success("تمت الإضافة للسلة");
+      addToCartUnified(subjectId);
     } catch {
       toast.error("فشلت الإضافة للسلة");
     }

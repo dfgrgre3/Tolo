@@ -71,7 +71,7 @@ export const STUDENT_ENDPOINT_ROLES: readonly UserRole[] = [
  *     /wishlist /library
  *   (misc): /mfa
  *
- * Public catalog stays OUT: /courses, /teachers, /tips, /resources,
+ * Public catalog stays OUT: /courses, /teachers, /resources,
  * /blog (read), /forum (read), /announcements (read), /events (read),
  * /contests (read) render without a session. Their write leaves are
  * pinned individually in PROTECTED_WRITE_PATHS below so a subtree grant

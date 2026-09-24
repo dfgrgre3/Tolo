@@ -106,7 +106,6 @@ const FALLBACK_CATEGORIES: FallbackCategory[] = [
     menuKey: "all-features",
     columnKey: "content",
     items: [
-      { href: "/tips", label: "نصائح يومية", description: "نصائح وتوجيهات عملية للتفوق الدراسي", icon: "lightbulb" },
       { href: "/blog", label: "المدونة التعليمية", description: "مقالات ومشاركات تثقيفية من المعلمين والطلاب", icon: "file-text" },
     ],
   },
@@ -269,3 +268,27 @@ export const utilityNavItems: UtilityNavItem[] = [
   { href: "/jobs", label: "وظائف Tolo", position: "left" },
   { href: "/plans", label: "الخطط", position: "right" },
 ];
+
+/**
+ * أيقونات الروابط السريعة (نفس أسماء الأيقونات التي يرسلها الـ backend
+ * لعنصري التدريس على Tolo ووظائف Tolo في GET /api/v1/navigation/menu).
+ */
+const QUICK_LINK_ICON_NAMES: Record<string, string> = {
+  "/teach": "presentation",
+  "/jobs": "briefcase",
+};
+
+/**
+ * روابط سريعة تُعرض داخل القائمة الجانبية للموبايل أسفل عناصر التنقل.
+ * نفس روابط الصف الأول على الديسكتوب (position === "left")، لكن هنا
+ * بأيقونات لأن القائمة الجانبية ترسم أيقونة لكل عنصر. بدونها لا يظهر
+ * "التدريس على Tolo" و"وظائف Tolo" على الهاتف إطلاقاً، لأن الديسكتوب
+ * يخفيهما داخل `hidden lg:*`.
+ */
+export const mobileQuickNavItems: NavItemWithMegaMenu[] = utilityNavItems
+  .filter((item) => item.position === "left")
+  .map((item) => ({
+    href: item.href,
+    label: item.label,
+    icon: getNavigationIcon(QUICK_LINK_ICON_NAMES[item.href] ?? "sparkles"),
+  }));

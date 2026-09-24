@@ -219,6 +219,23 @@ export const apiRoutes = {
   },
 
   // ──────────────────────────────────────────
+  // Study Time & Productivity — habits & exam plans  (protected_routes.go)
+  // Backs the /time subsystem data that used to be localStorage-only.
+  // ──────────────────────────────────────────
+  habits: {
+    list: '/api/habits',
+    create: '/api/habits',
+    update: (id: string) => `/api/habits/${id}`,
+    delete: (id: string) => `/api/habits/${id}`,
+  },
+  examPlans: {
+    list: '/api/exam-plans',
+    create: '/api/exam-plans',
+    update: (id: string) => `/api/exam-plans/${id}`,
+    delete: (id: string) => `/api/exam-plans/${id}`,
+  },
+
+  // ──────────────────────────────────────────
   // Activities  (protected_routes.go)
   // ──────────────────────────────────────────
   activities: {
@@ -331,7 +348,6 @@ export const apiRoutes = {
     examStatus: (jobId: string) => `/api/ai/exam/status/${jobId}`,
     suggest: '/api/ai/suggest',
     chat: '/api/ai/chat',
-    tips: '/api/ai/tips',
     teachers: '/api/ai/teachers',
     conversations: '/api/ai/conversations',
     conversation: (id: string) => `/api/ai/conversation/${id}`,

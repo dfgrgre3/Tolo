@@ -8,8 +8,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoaderCircle, ShieldCheck, AlertCircle } from "lucide-react";
 
-/** Length of a TOTP code; backup recovery codes are longer. */
-const MFA_CODE_MAX_LENGTH = 32;
+/**
+ * Length of a TOTP code; backup recovery codes are longer. The login-service
+ * validator accepts exactly `^\d{6}$` or `^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$`
+ * (9 chars), so anything longer can never pass and would only hide a typo
+ * until submit — cap the input to the real maximum.
+ */
+const MFA_CODE_MAX_LENGTH = 9;
 
 interface MfaVerifyStepProps {
   code: string;

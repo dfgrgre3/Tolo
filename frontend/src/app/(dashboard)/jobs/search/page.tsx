@@ -2,7 +2,7 @@
 
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MapPin, Search, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/use-debounce';
-import { useJobSearch } from '@/hooks/use-jobs';
+import { useCompanyLabels, useJobCategories, useJobSearch } from '@/hooks/use-jobs';
 import { JobCard } from '@/features/jobs/components/JobCard';
 import { JobFilters } from '@/features/jobs/components/JobFilters';
 import { JobsPagination } from '@/features/jobs/components/JobsPagination';
@@ -30,60 +30,15 @@ import {
   JobsErrorState,
 } from '@/features/jobs/components/JobStates';
 import { jobsStrings, sortLabels } from '@/features/jobs/labels';
+import {
+  buildActiveFilterChips,
+  parseFilters,
+  prettifyFilterValue,
+  removeFilterChip,
+  serialiseFilters,
+  type ActiveFilterChip,
+} from '@/features/jobs/search-params';
 import type { JobSearchParams } from '@/services/api/contracts-jobs-service';
-
-const ARRAY_KEYS = ['jobType', 'workplace', 'experience', 'category', 'skills', 'company'] as const;
-const NUMBER_KEYS = ['salaryMin', 'salaryMax', 'datePosted', 'page'] as const;
-
-/**
- * The URL is the single source of truth for the search state.
- *
- * Parsing from and serialising back to the query string (rather than holding
- * filters only in React state) is what makes a search shareable, bookmarkable
- * and correct under browser back/forward — all of which the spec requires of
- * /jobs/search.
- */
-function parseFilters(params: URLSearchParams): JobSearchParams {
-  const filters: JobSearchParams = {};
-
-  const keyword = params.get('keyword');
-  if (keyword) filters.keyword = keyword;
-
-  const location = params.get('location');
-  if (location) filters.location = location;
-
-  if (params.get('remote') === 'true') filters.remote = true;
-
-  for (const key of ARRAY_KEYS) {
-    const raw = params.get(key);
-    if (raw) filters[key] = raw.split(',').filter(Boolean);
-  }
-
-  for (const key of NUMBER_KEYS) {
-    const raw = params.get(key);
-    if (raw && Number.isFinite(Number(raw))) filters[key] = Number(raw);
-  }
-
-  const sort = params.get('sort');
-  if (sort && sort in sortLabels) filters.sort = sort as JobSearchParams['sort'];
-
-  return filters;
-}
-
-function serialiseFilters(filters: JobSearchParams): string {
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(filters)) {
-    if (value === undefined || value === null || value === '' || value === false) continue;
-    if (Array.isArray(value)) {
-      if (value.length > 0) params.set(key, value.join(','));
-    } else {
-      params.set(key, String(value));
-    }
-  }
-
-  return params.toString();
-}
 
 function JobSearchContent() {
   const router = useRouter();
@@ -104,6 +59,12 @@ function JobSearchContent() {
 
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
+  // Labels for the chips row below. Categories come from the very same cached
+  // query the filter panel runs (react-query dedupes it, so this costs no extra
+  // request), and companies need a name lookup because the URL stores ids.
+  const { data: categoryList } = useJobCategories();
+  const companyLabels = useCompanyLabels(filters.company ?? []);
+
   const pushFilters = React.useCallback(
     (next: JobSearchParams) => {
       const query = serialiseFilters(next);
@@ -112,9 +73,28 @@ function JobSearchContent() {
     [router]
   );
 
-  // Sync debounced text inputs into the URL, but only when they actually
-  // differ — otherwise this effect would fight the URL it just wrote.
+  /**
+   * One chip per applied filter value, so the results the user is looking at are
+   * always explained by something they can undo individually.
+   */
+  const activeChips = React.useMemo(
+    () =>
+      buildActiveFilterChips(filters, {
+        categories: Object.fromEntries(
+          (categoryList ?? []).map((item) => [item.category, prettifyFilterValue(item.category)])
+        ),
+        companies: companyLabels,
+      }),
+    [filters, categoryList, companyLabels]
+  );
+
+  // Sync debounced text inputs into the URL, but only once the debounce has
+  // settled on what the inputs hold and the result differs from the URL. The
+  // settle check is what stops a chip that cleared the keyword from being
+  // re-written by a debounced value that had not caught up yet.
   React.useEffect(() => {
+    if (keyword !== debouncedKeyword || location !== debouncedLocation) return;
+
     const current = filters.keyword ?? '';
     const currentLocation = filters.location ?? '';
     if (debouncedKeyword === current && debouncedLocation === currentLocation) return;
@@ -125,7 +105,7 @@ function JobSearchContent() {
       location: debouncedLocation || undefined,
       page: undefined,
     });
-  }, [debouncedKeyword, debouncedLocation, filters, pushFilters]);
+  }, [keyword, debouncedKeyword, location, debouncedLocation, filters, pushFilters]);
 
   const handleFilterChange = (patch: Partial<JobSearchParams>) => {
     // Any filter change resets to page 1: staying on page 7 of a result set
@@ -137,6 +117,15 @@ function JobSearchContent() {
     setKeyword('');
     setLocation('');
     router.replace('/jobs/search', { scroll: false });
+  };
+
+  const handleRemoveChip = (chip: ActiveFilterChip) => {
+    // The keyword and location inputs own local state, so clearing them from a
+    // chip has to reset those inputs too — otherwise the debounced sync above
+    // would write the old text straight back into the URL.
+    if (chip.field === 'keyword') setKeyword('');
+    if (chip.field === 'location') setLocation('');
+    pushFilters(removeFilterChip(filters, chip));
   };
 
   const { data, isLoading, isError, isFetching, refetch } = useJobSearch(filters);
@@ -188,6 +177,27 @@ function JobSearchContent() {
         </aside>
 
         <div className="min-w-0 flex-1 space-y-4">
+          {activeChips.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {activeChips.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => handleRemoveChip(chip)}
+                  aria-label={jobsStrings.removeChip(chip.label)}
+                  className="inline-flex max-w-full items-center gap-1 rounded-full border bg-muted/60 px-2.5 py-1 text-xs transition-colors hover:bg-muted"
+                >
+                  <span className="truncate">{chip.label}</span>
+                  <X className="h-3 w-3 shrink-0" aria-hidden="true" />
+                </button>
+              ))}
+
+              <Button variant="ghost" size="sm" onClick={handleClear}>
+                {jobsStrings.clearAll}
+              </Button>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground" aria-live="polite">
               {pagination ? jobsStrings.resultsCount(pagination.total) : ' '}

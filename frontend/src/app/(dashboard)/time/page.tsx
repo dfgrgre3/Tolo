@@ -21,7 +21,8 @@ import {
   KanbanSquare,
   Target,
   FileBarChart,
-  Wrench
+  Wrench,
+  GraduationCap,
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,6 +61,7 @@ const QuickActionButton = dynamic(() => import('./_components/QuickActionButton'
 const LazyTimeCalendar = dynamic(() => import('./_components/TimeCalendar'), { ssr: false });
 const LazyTaskKanban = dynamic(() => import('./_components/TaskKanban'), { ssr: false });
 const LazyGoalsHabits = dynamic(() => import('./_components/GoalsHabits'), { ssr: false });
+const LazyExamPlanner = dynamic(() => import('./_components/ExamPlanner'), { ssr: false });
 const LazyAdvancedPomodoro = dynamic(() => import('./_components/AdvancedPomodoro'), { ssr: false });
 const LazyProductivityReport = dynamic(() => import('./_components/ProductivityReport'), { ssr: false });
 const LazyTaskTools = dynamic(() => import('./_components/TaskTools'), { ssr: false });
@@ -408,6 +410,7 @@ export default function TimeManagementPage() {
                   { id: "tracker", label: "بؤرة التركيز", icon: TimerReset },
                   { id: "pomodoro", label: "بومودورو", icon: Play },
                   { id: "goals", label: "أهداف وعادات", icon: Target },
+                  { id: "exam-planner", label: "مخطط الامتحانات", icon: GraduationCap },
                   { id: "history", label: "موسوعة السجل", icon: History },
                   { id: "tools", label: "أدوات المهام", icon: Wrench },
                   { id: "reports", label: "التقارير", icon: FileBarChart },
@@ -459,6 +462,8 @@ export default function TimeManagementPage() {
                     stats={stats}
                     subjects={subjects}
                     tasks={filteredTasks}
+                    plannerTasks={tasks}
+                    schedule={schedule}
                     reminders={filteredReminders}
                     studySessions={studySessions}
                     showCompletedTasks={showCompletedTasks}
@@ -697,6 +702,17 @@ export default function TimeManagementPage() {
                     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
                     return d >= weekAgo;
                   }).reduce((a, s) => a + s.durationMin, 0)} />
+                </ComponentErrorBoundary>
+              </TabsContent>
+
+              {/* ── EXAM PLANNER: countdown + readiness + revision queue ── */}
+              <TabsContent value="exam-planner" className="mt-0">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold">مخطط الامتحانات</h2>
+                  <p className="text-sm text-muted-foreground mt-1">عد تنازلي ودرجة جاهزية وطابور مراجعة مرتب بضعف الموضوع × قرب الموعد — تُحفظ التواريخ على جهازك</p>
+                </div>
+                <ComponentErrorBoundary>
+                  <LazyExamPlanner tasks={tasks} />
                 </ComponentErrorBoundary>
               </TabsContent>
 

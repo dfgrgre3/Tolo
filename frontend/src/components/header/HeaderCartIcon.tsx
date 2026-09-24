@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/contexts/auth-context";
-import { fetchCartRaw } from "@/features/courses/api/courses-gateway";
+import { fetchCart, CART_UPDATED_EVENT, cartKeys } from "@/features/cart";
+import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/lib/logger";
 
 interface HeaderCartIconProps {
@@ -14,12 +15,9 @@ interface HeaderCartIconProps {
 	mounted: boolean;
 }
 
-interface CartResponse {
-	items?: unknown[];
-}
-
 export function HeaderCartIcon({ user, mounted }: HeaderCartIconProps) {
 	const pathname = usePathname();
+	const queryClient = useQueryClient();
 	const [count, setCount] = useState<number | null>(0);
 
 	// Cart badge is a non-critical convenience — never block the header on it.
@@ -27,13 +25,19 @@ export function HeaderCartIcon({ user, mounted }: HeaderCartIconProps) {
 	// we just hide the badge rather than keep showing a possibly-stale count.
 	const fetchCount = useCallback(async () => {
 		try {
-			const data = await fetchCartRaw<CartResponse>();
-			setCount(Array.isArray(data?.items) ? data.items.length : 0);
+			const cached = queryClient.getQueryData<unknown>(cartKeys.detail());
+			if (Array.isArray(cached)) {
+				setCount(cached.length);
+				return;
+			}
+			const items = await fetchCart();
+			setCount(items.length);
+			queryClient.setQueryData(cartKeys.detail(), items);
 		} catch (error) {
 			logger.error("Failed to fetch cart count", error);
 			setCount(null);
 		}
-	}, []);
+	}, [queryClient]);
 
 	useEffect(() => {
 		if (!mounted || !user) return;
@@ -41,6 +45,17 @@ export function HeaderCartIcon({ user, mounted }: HeaderCartIconProps) {
 		// eslint-disable-next-line react-hooks/set-state-in-effect
 		fetchCount();
 	}, [mounted, user, fetchCount, pathname]);
+
+	useEffect(() => {
+		if (!mounted || !user) return;
+		const onUpdate = (e: Event) => {
+			const detail = (e as CustomEvent<number>).detail;
+			if (typeof detail === "number") setCount(detail);
+			else fetchCount();
+		};
+		window.addEventListener(CART_UPDATED_EVENT, onUpdate);
+		return () => window.removeEventListener(CART_UPDATED_EVENT, onUpdate);
+	}, [mounted, user, fetchCount]);
 
 	if (!mounted || !user) return null;
 

@@ -5,6 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --turbopack",
+        "dev:lan": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --turbopack -H 0.0.0.0 -p 3000",
         "dev:turbo": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --turbopack",
         "dev:webpack": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev --webpack",
         "clear-cache": "npx rimraf .next/cache",
@@ -26,7 +27,8 @@
         "test:ci": "vitest run --reporter=verbose",
         "test:e2e": "playwright test",
         "ci": "npm run type-check && npm run lint:strict && npm run test:ci && npm run build",
-        "ci:e2e": "npm run test:e2e"
+        "ci:e2e": "npm run test:e2e",
+        "clear-hsts": "powershell -ExecutionPolicy Bypass -File scripts/clear-localhost-hsts.ps1"
     },
     "dependencies": {
         "@hookform/resolvers": "^5.4.0",
@@ -89,6 +91,7 @@
         "@typescript-eslint/eslint-plugin": "^8.20.0",
         "@typescript-eslint/parser": "^8.20.0",
         "autoprefixer": "^10.5.0",
+        "babel-plugin-react-compiler": "^1.0.0",
         "cross-env": "^10.1.0",
         "eslint": "^9.39.4",
         "eslint-plugin-react": "^7.37.3",

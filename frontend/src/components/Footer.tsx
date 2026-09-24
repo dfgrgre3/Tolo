@@ -74,8 +74,7 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
 			{ href: "/forum", label: "المنتدى" },
 			{ href: "/events", label: "الفعاليات" },
 			{ href: "/announcements", label: "الإعلانات" },
-			{ href: "/leaderboard", label: "لوحة الصدارة" },
-			{ href: "/tips", label: "نصائح دراسية" }
+			{ href: "/leaderboard", label: "لوحة الصدارة" }
 		]
 	},
 	{

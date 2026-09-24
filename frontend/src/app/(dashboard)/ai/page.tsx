@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Loader2, Bot, FileText, CalendarDays, BookOpenText, PenLine,
-  Search, Lightbulb, Sparkles, GraduationCap,
+  Search, Sparkles, GraduationCap,
 } from 'lucide-react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,7 +17,6 @@ import { AI_SUBJECTS, AI_YEARS } from './components/ai-shared';
 const AIAssistant = dynamic(() => import('./components/AIAssistant'), { ssr: false, loading: () => <TabSkeleton /> });
 const ExamGenerator = dynamic(() => import('./components/ExamGenerator'), { ssr: false, loading: () => <TabSkeleton /> });
 const TeacherSearch = dynamic(() => import('./components/TeacherSearch'), { ssr: false, loading: () => <TabSkeleton /> });
-const TipsGenerator = dynamic(() => import('./components/TipsGenerator'), { ssr: false, loading: () => <TabSkeleton /> });
 const StudyPlanner = dynamic(() => import('./features/StudyPlanner'), { ssr: false, loading: () => <TabSkeleton /> });
 const LessonSummarizer = dynamic(() => import('./features/LessonSummarizer'), { ssr: false, loading: () => <TabSkeleton /> });
 const EssayGrader = dynamic(() => import('./features/EssayGrader'), { ssr: false, loading: () => <TabSkeleton /> });
@@ -35,8 +34,8 @@ function TabSkeleton() {
   );
 }
 
-type TabId = 'assistant' | 'exam' | 'planner' | 'summarizer' | 'grader' | 'teachers' | 'tips';
-const VALID_TABS: TabId[] = ['assistant', 'exam', 'planner', 'summarizer', 'grader', 'teachers', 'tips'];
+type TabId = 'assistant' | 'exam' | 'planner' | 'summarizer' | 'grader' | 'teachers';
+const VALID_TABS: TabId[] = ['assistant', 'exam', 'planner', 'summarizer', 'grader', 'teachers'];
 
 const TABS: { id: TabId; label: string; desc: string; icon: typeof Bot }[] = [
   { id: 'assistant', label: 'المساعد', desc: 'حوار شرح وإجابة', icon: Bot },
@@ -45,7 +44,6 @@ const TABS: { id: TabId; label: string; desc: string; icon: typeof Bot }[] = [
   { id: 'summarizer', label: 'تلخيص الدروس', desc: 'نقاط + خريطة', icon: BookOpenText },
   { id: 'grader', label: 'تصحيح الإجابات', desc: 'تقييم لغوي', icon: PenLine },
   { id: 'teachers', label: 'المعلمون', desc: 'بحث وقنوات', icon: Search },
-  { id: 'tips', label: 'نصائح المذاكرة', desc: 'تحسين الأداء', icon: Lightbulb },
 ];
 
 export default function AILearningPage() {
@@ -225,10 +223,6 @@ function AIWorkspace({ selectedTab, onTabChange }: { selectedTab: TabId; onTabCh
 
           <TabsContent value="teachers" className="mt-0 outline-none">
             <TeacherSearch subjects={AI_SUBJECTS} className="border-border bg-card shadow-sm" />
-          </TabsContent>
-
-          <TabsContent value="tips" className="mt-0 outline-none">
-            <TipsGenerator subjects={AI_SUBJECTS} className="border-border bg-card shadow-sm" />
           </TabsContent>
         </Tabs>
 

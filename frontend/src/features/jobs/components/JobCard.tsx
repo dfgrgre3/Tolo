@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useToggleSaveJob } from '@/hooks/use-jobs';
 import type { Job } from '@/types/job';
-import { formatLocation, formatRelativeDate, formatSalary } from '../format';
+import { formatLocation, formatMatchScore, formatRelativeDate, formatSalary } from '../format';
 import {
   employmentTypeLabels,
   experienceLevelLabels,
@@ -33,6 +33,9 @@ export function JobCard({ job, savedAt }: { job: Job; savedAt?: string }) {
   const salary = formatSalary(job);
   const location = formatLocation(job);
   const posted = formatRelativeDate(savedAt ?? job.publishedAt);
+  // Server-computed fit. Present only for a signed-in viewer, and null whenever
+  // the score would not be worth stating (see formatMatchScore).
+  const matchScore = formatMatchScore(job.matchScore);
 
   const handleToggleSave = (event: React.MouseEvent) => {
     // The card is a link; the bookmark must not navigate.
@@ -83,6 +86,9 @@ export function JobCard({ job, savedAt }: { job: Job; savedAt?: string }) {
                 <Badge variant="outline" className="shrink-0 text-muted-foreground">
                   {jobsStrings.applyClosed}
                 </Badge>
+              ) : null}
+              {matchScore ? (
+                <Badge className="shrink-0 bg-primary/10 text-primary">{matchScore}</Badge>
               ) : null}
             </div>
 

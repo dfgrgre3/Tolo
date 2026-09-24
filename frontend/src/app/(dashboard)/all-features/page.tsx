@@ -9,6 +9,7 @@ import {
   CreditCard,
   GraduationCap,
   Trophy,
+  UserCircle2,
   Users,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ const features = [
   { href: "/teachers", title: "المدرسون", description: "ابحث عن المدرسين والمحتوى التعليمي.", icon: GraduationCap },
   { href: "/events", title: "الفعاليات", description: "أنشطة ومواعيد مجتمعية مهمة.", icon: Users },
   { href: "/billing", title: "المحفظة والفواتير", description: "إدارة الرصيد والمدفوعات والاشتراك.", icon: CreditCard },
+  { href: "/profile", title: "الملف الشخصي", description: "بياناتك وأمانك وإشعاراتك وإنجازاتك.", icon: UserCircle2 },
 ];
 
 export default function AllFeaturesPage() {

@@ -1,6 +1,13 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  type QueryKey,
+} from '@tanstack/react-query';
 import { ApiError } from '@/lib/api/api-client';
 import { unwrapOpenApiPayload } from '@/lib/api/generated-client';
 import {
@@ -57,6 +64,10 @@ export const jobsKeys = {
   application: (id: string) => ['jobs', 'application', id] as const,
   companies: (params?: unknown) => ['jobs', 'companies', params ?? {}] as const,
   company: (id: string) => ['jobs', 'company', id] as const,
+  // Deliberately not the same key as `company`: this entry exists only to read a
+  // display name, and letting a label lookup and a full company fetch share one
+  // entry would serve either consumer the other one's answer.
+  companyLabel: (id: string) => ['jobs', 'company-label', id] as const,
   companyJobs: (id: string, page?: number, limit?: number) =>
     ['jobs', 'company', id, 'jobs', page ?? 1, limit] as const,
 };
@@ -160,13 +171,24 @@ export function useCompanies(params?: {
   verified?: boolean;
   page?: number;
   limit?: number;
+  /**
+   * Gates the request. The company typeahead must not spend a request on a
+   * one-character query, and an untouched filter must not pull a page of every
+   * company in the database. `enabled` stays out of the query key on purpose:
+   * two callers asking for the same page share one cache entry regardless of
+   * which of them is idle.
+   */
+  enabled?: boolean;
 }) {
+  const { enabled = true, ...query } = params ?? {};
+
   return useQuery({
-    queryKey: jobsKeys.companies(params),
+    queryKey: jobsKeys.companies(query),
     queryFn: async (): Promise<{ items: Company[]; pagination?: JobsPagination }> => {
-      const payload = unwrap<ListEnvelope<Company>>(await contractListCompanies(params));
+      const payload = unwrap<ListEnvelope<Company>>(await contractListCompanies(query));
       return { items: payload?.items ?? [], pagination: payload?.pagination };
     },
+    enabled,
     placeholderData: (previous) => previous,
   });
 }
@@ -180,6 +202,43 @@ export function useCompany(id: string) {
     },
     enabled: !!id,
   });
+}
+
+/**
+ * Resolves company ids to display names for the active-filter chips.
+ *
+ * The URL stores ids — that is what the search API filters on — but a chip has
+ * to show a name, and a shared link opened cold knows nothing else about the
+ * company. One query per id (cached under `companyLabel`, so a deleted or
+ * renamed company cannot poison `useCompany`'s own entry) lets the row label
+ * itself on first paint and resolve from cache on every later visit.
+ *
+ * Ids that never resolve keep no entry, and the caller falls back to a trimmed
+ * id — which is why retrying a lookup that failed is not worth the requests.
+ */
+export function useCompanyLabels(ids: readonly string[]): Record<string, string> {
+  const unique = useMemo(() => Array.from(new Set(ids.filter(Boolean))), [ids]);
+
+  const results = useQueries({
+    queries: unique.map((id) => ({
+      queryKey: jobsKeys.companyLabel(id),
+      queryFn: async (): Promise<Company> => {
+        const payload = unwrap<{ company: Company }>(await contractGetCompany(id));
+        return payload.company;
+      },
+      staleTime: 30 * 60_000,
+      retry: false,
+    })),
+  });
+
+  return useMemo(() => {
+    const labels: Record<string, string> = {};
+    unique.forEach((id, index) => {
+      const name = results[index]?.data?.name;
+      if (name) labels[id] = name;
+    });
+    return labels;
+  }, [unique, results]);
 }
 
 export function useCompanyJobs(id: string, params?: { page?: number; limit?: number }) {

@@ -62,7 +62,13 @@ export async function refreshSession(
 
   const refresh = attemptTokenRefresh(refreshToken, request)
     .then((result) => {
-      if (!result.payload || result.cookies.length === 0) {
+      // A rotation (Set-Cookie present) is success even when the new access
+      // token cannot be verified locally (missing JWT_PUBLIC_KEY in this
+      // runtime, iss/aud mismatch, ...). The backend already rotated
+      // server-side — marking this as failed would poison the cooldown and
+      // force-logout a user the backend still considers valid. Only a
+      // refresh with NO rotation counts as a failure.
+      if (result.cookies.length === 0) {
         failedRefreshes.set(refreshToken, Date.now() + FAILED_REFRESH_COOLDOWN_MS);
       }
       return result;

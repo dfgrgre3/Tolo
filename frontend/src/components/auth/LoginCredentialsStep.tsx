@@ -132,7 +132,9 @@ export default function LoginCredentialsStep({
               </label>
               <input
                 id="magic-link-email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 dir="ltr"
                 placeholder="you@example.com"
                 value={email}

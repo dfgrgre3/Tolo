@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from "react";
 import {
   Wallet,
   ArrowUpRight,
@@ -23,13 +23,13 @@ import {
   Loader2 } from
 "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { SITE } from "@thanawy/shared/site-config";
-import WalletGrowthChart from "./WalletGrowthChart";
+// React.lazy (بدل next/dynamic — يتعطل مع Turbopack في التطوير) لفصل حزمة recharts الثقيلة عن الحزمة الرئيسية
+const WalletGrowthChart = lazy(() => import("./WalletGrowthChart"));
 import { WalletHeroSkeleton } from "./BillingSkeletons";
 import {
   fetchWalletSummaryRaw,
@@ -40,7 +40,7 @@ import {
   resolvePaymentAction,
   type PaymentInitResponse,
   type PaymentMethod,
-} from "@/lib/payments";
+} from "@/features/payments";
 import {
   BillingTableShell,
   BillingPagination,
@@ -78,12 +78,12 @@ const typeMap: Record<string, {label: string;icon: LucideIcon;color: string;bg: 
 
 // --- Enhanced Sub-components ---
 
-const VirtualCard = ({ balance, txCount }: {balance: number;txCount: number;}) =>
-<m.div
-  whileHover={{ rotateY: 5, rotateX: -5, scale: 1.02 }}
+const VirtualCard = React.memo(function VirtualCard({ balance, txCount }: {balance: number;txCount: number;}) {
+  return (
+  <div
   className="relative w-full aspect-[1.6/1] rounded-[2.5rem] p-8 overflow-hidden group shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] cursor-pointer">
-  
-    <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-primary/80 transition-all duration-700 group-hover:hue-rotate-30" />
+
+    <div className="absolute inset-0 bg-gradient-to-br from-primary via-purple-600 to-primary/80" />
     {/* CSS-only texture: an external transparenttextures.com URL used to live
         here, but it violates the img-src CSP allowlist (see lib/security/csp.ts)
         and leaks referrers to a third party. This radial-gradient dot pattern
@@ -103,7 +103,7 @@ const VirtualCard = ({ balance, txCount }: {balance: number;txCount: number;}) =
         <div className="space-y-1">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{SITE.nameAr} بريميوم</p>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <Sparkles className="w-5 h-5 text-amber-300" />
             <span className="font-black text-xl italic uppercase tracking-wider">{SITE.name} Platinum</span>
           </div>
         </div>
@@ -135,12 +135,14 @@ const VirtualCard = ({ balance, txCount }: {balance: number;txCount: number;}) =
         </div>
       </div>
     </div>
-  </m.div>;
+  </div>
+  );
+});
 
 
 const TOPUP_METHODS: PaymentMethod[] = ["card", "wallet", "fawry"];
 
-const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: () => void;onDeposit: (amount: number, method: PaymentMethod) => Promise<PaymentInitResponse | void>;}) => {
+const DepositModal = React.memo(function DepositModal({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: () => void;onDeposit: (amount: number, method: PaymentMethod) => Promise<PaymentInitResponse | void>;}) {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [loading, setLoading] = useState(false);
@@ -186,20 +188,14 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
   };
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen &&
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <m.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          <div
           onClick={onClose}
           className="absolute inset-0 bg-[#07080f]/90 backdrop-blur-md" />
-        
-          <m.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+
+          <div
           className="relative w-full max-w-lg bg-[#111322] border border-white/10 rounded-[3rem] p-10 shadow-2xl overflow-hidden">
           
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-600" />
@@ -209,7 +205,7 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
                 <h3 className="text-3xl font-black text-white">شحن الرصيد</h3>
                 <p className="text-gray-400 font-medium">اختر المبلغ الذي تود إضافته لمحفظتك فوراً.</p>
               </div>
-              <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors">
+              <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl">
                 <ArrowRight className="w-6 h-6 text-white rotate-180" />
               </button>
             </div>
@@ -222,7 +218,7 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-white/5 border border-white/10 rounded-[2.2rem] py-8 px-20 text-4xl font-black text-white outline-none focus:border-primary/50 transition-all text-center" />
+                className="w-full bg-white/5 border border-white/10 rounded-[2.2rem] py-8 px-20 text-4xl font-black text-white outline-none focus:border-primary/50 text-center" />
               
                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-500">ج.م</span>
               </div>
@@ -232,7 +228,7 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
               <button
                 key={num}
                 onClick={() => setAmount(num.toString())}
-                className="py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-primary hover:text-white font-black transition-all transform active:scale-95">
+                className="py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-primary hover:text-white font-black">
                 
                     +{num}
                   </button>
@@ -246,7 +242,7 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
                     <button
                       key={m}
                       onClick={() => setMethod(m)}
-                      className={`rounded-2xl border px-2 py-4 text-center transition-all active:scale-95 ${
+                      className={`rounded-2xl border px-2 py-4 text-center ${
                         method === m
                           ? "border-primary bg-primary/15 text-white shadow-lg shadow-primary/20"
                           : "border-white/10 bg-white/5 text-gray-400 hover:border-white/25 hover:text-white"
@@ -262,9 +258,9 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
               <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full py-6 rounded-[2rem] bg-primary hover:bg-primary/90 text-white font-black text-xl transition-all shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-70">
-              
-                {loading ? <Loader2 className="w-7 h-7 animate-spin" /> : <Zap className="w-6 h-6" />}
+              className="w-full py-6 rounded-[2rem] bg-primary hover:bg-primary/90 text-white font-black text-xl shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 disabled:opacity-70">
+
+                {loading ? <Loader2 className="w-7 h-7" /> : <Zap className="w-6 h-6" />}
                 {loading ? "جاري المعالجة..." : "تأكيد الشحن الآن"}
               </button>
             </div>
@@ -273,12 +269,12 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
                <ShieldCheck className="w-4 h-4 text-emerald-500" />
                بوابات دفع مشفرة وآمنة تماماً
             </div>
-          </m.div>
+          </div>
         </div>
       }
-    </AnimatePresence>);
+    </>);
 
-};
+});
 
 const copyToClipboard = (text: string) => {
   navigator.clipboard.writeText(text);
@@ -300,7 +296,7 @@ export default function WalletDashboard() {
   // بديل ssr:false — الرسم البياني يعتمد على أبعاد المتصفح، يُرسم بعد التركيب فقط
   const [mounted, setMounted] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const walletData = await fetchWalletSummaryRaw<{
         balance?: number;
@@ -337,16 +333,19 @@ export default function WalletDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
       setMounted(true);
       fetchData();
     });
-  }, []);
+  }, [fetchData]);
 
-  const handleDeposit = async (amount: number, method: PaymentMethod) => {
+  const closeDepositModal = useCallback(() => setIsDepositModalOpen(false), []);
+  const openDepositModal = useCallback(() => setIsDepositModalOpen(true), []);
+
+  const handleDeposit = useCallback(async (amount: number, method: PaymentMethod) => {
     // Backend `CreatePaymentRequest` validates the `Method` field
     // (JSON `method`) as required — `paymentMethod` is kept as an alias
     // for any handler that still reads the old key.
@@ -364,7 +363,7 @@ export default function WalletDashboard() {
     }
     fetchData(); // Refresh history (pending top-up row)
     return data;
-  };
+  }, [fetchData]);
 
   const chartData = useMemo(() => {
     if (transactions.length === 0) return [];
@@ -461,7 +460,7 @@ export default function WalletDashboard() {
   const pagedTransactions = filteredTransactions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const pagedInvoices = filteredInvoices.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     if (activeTab === "activity") {
       if (filteredTransactions.length === 0) { toast.info("لا توجد معاملات لتصديرها"); return; }
       exportToCsv("transactions", filteredTransactions.map((tx) => ({
@@ -480,13 +479,19 @@ export default function WalletDashboard() {
       })));
     }
     toast.success("تم تصدير CSV بنجاح");
-  };
+  }, [activeTab, filteredTransactions, filteredInvoices]);
+
+  const handleQuery = useCallback((v: string) => { setQuery(v); setPage(1); }, []);
+  const handleTabFilter = useCallback((v: string) => { setTxFilter(v); setPage(1); }, []);
+  const handleSortToggle = useCallback(() => setSortDir((d) => (d === "desc" ? "asc" : "desc")), []);
+  const showActivityTab = useCallback(() => { setActiveTab("activity"); setPage(1); setTxFilter("ALL"); setQuery(""); }, []);
+  const showInvoicesTab = useCallback(() => { setActiveTab("invoices"); setPage(1); setTxFilter("ALL"); setQuery(""); }, []);
 
   return (
     <div className="space-y-12" dir="rtl">
       <DepositModal
         isOpen={isDepositModalOpen}
-        onClose={() => setIsDepositModalOpen(false)}
+        onClose={closeDepositModal}
         onDeposit={handleDeposit} />
       
 
@@ -505,21 +510,18 @@ export default function WalletDashboard() {
                 <VirtualCard balance={balance} txCount={transactions.length} />
                 
                 <div className="flex flex-wrap gap-6">
-                  <m.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsDepositModalOpen(true)}
-                  className="group relative overflow-hidden bg-primary px-12 py-6 rounded-[2.2rem] font-black text-white shadow-[0_20px_50px_rgba(var(--primary-rgb),0.5)] flex items-center gap-4 transition-all">
+                  <button
+                  onClick={openDepositModal}
+                  className="group relative overflow-hidden bg-primary px-12 py-6 rounded-[2.2rem] font-black text-white shadow-[0_20px_50px_rgba(var(--primary-rgb),0.5)] flex items-center gap-4">
                   
                     <Plus className="w-7 h-7" />
                     <span className="text-xl">شحن الحساب</span>
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                  </m.button>
+                  </button>
                   <Link
                   href="/subscription"
-                  className="group px-12 py-6 rounded-[2.2rem] border-2 border-white/10 bg-white/5 text-white font-black backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:scale-105 active:scale-95 flex items-center gap-4">
+                  className="group px-12 py-6 rounded-[2.2rem] border-2 border-white/10 bg-white/5 text-white font-black backdrop-blur-xl hover:bg-white/10 hover:border-white/20 flex items-center gap-4">
 
-                    <Receipt className="w-7 h-7 group-hover:scale-110 transition-transform" />
+                    <Receipt className="w-7 h-7" />
                     <span className="text-xl">سجل الفواتير</span>
                   </Link>
                 </div>
@@ -544,11 +546,11 @@ export default function WalletDashboard() {
                   
                   <div className="h-full">
                     {mounted ? (
-                      <WalletGrowthChart data={chartData} />
+                      <Suspense fallback={<div className="h-[80%] rounded-[2rem] bg-white/5 border border-white/10" />}>
+                        <WalletGrowthChart data={chartData} />
+                      </Suspense>
                     ) : (
-                      <div className="h-[80%] flex items-center justify-center">
-                        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      </div>
+                      <div className="h-[80%] rounded-[2rem] bg-white/5 border border-white/10" />
                     )}
                   </div>
                 </div>
@@ -558,7 +560,7 @@ export default function WalletDashboard() {
                 { label: "منصرف هـذا الشهر", val: stats.spent, icon: ArrowDownLeft, color: "text-rose-400", bg: "bg-rose-500/10" },
                 { label: "وارد هذا الشهر", val: stats.received, icon: ArrowUpRight, color: "text-emerald-400", bg: "bg-emerald-500/10" }].
                 map((s, i) =>
-                <div key={i} className="bg-white/5 rounded-[2.2rem] p-6 border border-white/5 transition-all hover:bg-white/10">
+                <div key={i} className="bg-white/5 rounded-[2.2rem] p-6 border border-white/5 hover:bg-white/10">
                       <div className={`${s.bg} ${s.color} w-10 h-10 rounded-xl flex items-center justify-center mb-4`}>
                         <s.icon className="w-5 h-5" />
                       </div>
@@ -583,15 +585,15 @@ export default function WalletDashboard() {
             extra={
               <div className="flex bg-[#111322] p-1.5 rounded-2xl border border-white/10">
                 <button
-                  onClick={() => { setActiveTab("activity"); setPage(1); setTxFilter("ALL"); setQuery(""); }}
-                  className={`px-6 py-2.5 rounded-xl font-black transition-all text-xs flex items-center gap-2 ${activeTab === "activity" ? "bg-primary text-white shadow-lg" : "text-gray-500 hover:text-white"}`}
+                  onClick={showActivityTab}
+                  className={`px-6 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 ${activeTab === "activity" ? "bg-primary text-white shadow-lg" : "text-gray-500 hover:text-white"}`}
                 >
                   <History className="w-4 h-4" />
                   السجل المالي
                 </button>
                 <button
-                  onClick={() => { setActiveTab("invoices"); setPage(1); setTxFilter("ALL"); setQuery(""); }}
-                  className={`px-6 py-2.5 rounded-xl font-black transition-all text-xs flex items-center gap-2 ${activeTab === "invoices" ? "bg-primary text-white shadow-lg" : "text-gray-500 hover:text-white"}`}
+                  onClick={showInvoicesTab}
+                  className={`px-6 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 ${activeTab === "invoices" ? "bg-primary text-white shadow-lg" : "text-gray-500 hover:text-white"}`}
                 >
                   <Receipt className="w-4 h-4" />
                   الفواتير
@@ -602,22 +604,22 @@ export default function WalletDashboard() {
 
           <BillingFilterBar
             query={query}
-            onQuery={(v) => { setQuery(v); setPage(1); }}
+            onQuery={handleQuery}
             searchPlaceholder={activeTab === "activity" ? "بحث في المعاملات بالوصف أو المبلغ..." : "بحث برقم الفاتورة أو القيمة..."}
             searchLabel="بحث في السجل المالي"
             tabs={activeTab === "activity"
               ? [{ value: "ALL", label: "الكل" }, { value: "IN", label: "وارد" }, { value: "OUT", label: "صادر" }, { value: "REFUND", label: `استرداد (${refundsSummary.count})` }]
               : [{ value: "ALL", label: "الكل" }, { value: "SUCCESS", label: "ناجحة" }, { value: "PENDING", label: "معلقة" }, { value: "FAILED", label: "فاشلة" }]}
             activeTab={txFilter}
-            onTab={(v) => { setTxFilter(v); setPage(1); }}
+            onTab={handleTabFilter}
             sortLabel={sortDir === "desc" ? "الأحدث أولاً" : "الأقدم أولاً"}
-            onSort={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+            onSort={handleSortToggle}
             onRefresh={fetchData}
             onExport={handleExport}
             exportDisabled={activeList.length === 0}
           />
 
-          <AnimatePresence mode="wait">
+          <>
             {txFilter === "REFUND" && activeTab === "activity" && (
               <div className="mb-4 flex items-center gap-3 rounded-2xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm font-bold text-blue-500">
                 <History className="w-4 h-4" />
@@ -626,11 +628,8 @@ export default function WalletDashboard() {
                 </span>
               </div>
             )}
-            <m.div
+            <div
               key={activeTab + txFilter + sortDir + safePage}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
             >
               {activeTab === "activity" ? (
                 pagedTransactions.length > 0 ? (
@@ -639,7 +638,7 @@ export default function WalletDashboard() {
                       {pagedTransactions.map((tx) => {
                         const type = typeMap[tx.type] || { label: tx.type, icon: Wallet, color: "text-gray-500 dark:text-gray-400", bg: "bg-gray-500/10" };
                         return (
-                          <tr key={tx.id} onClick={() => copyToClipboard(tx.id)} className="hover:bg-primary/5 transition-colors border-l-2 border-transparent hover:border-primary/40 cursor-pointer" title="اضغط لنسخ رقم المعاملة">
+                          <tr key={tx.id} onClick={() => copyToClipboard(tx.id)} className="hover:bg-primary/5 border-l-2 border-transparent hover:border-primary/40 cursor-pointer" title="اضغط لنسخ رقم المعاملة">
                             <td className="px-6 py-4 text-start">
                               <div className="flex items-center gap-3">
                                 <div className={`w-10 h-10 rounded-xl ${type.bg} ${type.color} flex items-center justify-center shrink-0`}>
@@ -673,7 +672,7 @@ export default function WalletDashboard() {
                 <>
                   <BillingTableShell headers={["رقم الفاتورة", "القيمة", "الحالة", "التاريخ"]}>
                     {pagedInvoices.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-primary/5 transition-colors border-l-2 border-transparent hover:border-primary/40">
+                      <tr key={inv.id} className="hover:bg-primary/5 border-l-2 border-transparent hover:border-primary/40">
                         <td className="px-6 py-4 text-start">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -698,15 +697,15 @@ export default function WalletDashboard() {
               <p className="mt-4 text-xs text-gray-500 font-bold">
                 عرض {activeList.length > 0 ? pagedTransactions.length || pagedInvoices.length : 0} من أصل {activeList.length} عملية
               </p>
-            </m.div>
-          </AnimatePresence>
+            </div>
+          </>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-10">
            {/* Security Insight */}
            <div className="p-8 rounded-[3rem] bg-gradient-to-br from-emerald-500/20 via-emerald-500/5 to-transparent border border-emerald-500/20 relative overflow-hidden group">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-[50px] rounded-full group-hover:scale-110 transition-transform" />
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 blur-[50px] rounded-full" />
               <ShieldCheck className="w-12 h-12 text-emerald-500 mb-6" />
               <h4 className="text-2xl font-black text-white mb-2 tracking-tight">أمان بنكي 100%</h4>
               <p className="text-sm text-gray-400 font-medium leading-relaxed">جميع معاملاتك مشفرة ومؤمنة بأحدث معايير الأمان العالمية لحمايتك.</p>
@@ -715,10 +714,10 @@ export default function WalletDashboard() {
            {/* Referrals Promo — نظام الإحالة الحقيقي بدل الولاء الوهمي */}
            <Link
              href="/billing/referrals"
-             className="block p-8 rounded-[3rem] bg-gradient-to-br from-amber-500/20 via-primary/10 to-transparent border border-amber-500/10 hover:border-amber-500/40 transition-all group"
+             className="block p-8 rounded-[3rem] bg-gradient-to-br from-amber-500/20 via-primary/10 to-transparent border border-amber-500/10 hover:border-amber-500/40 group"
            >
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-amber-500 rounded-2xl shadow-xl shadow-amber-500/20 group-hover:scale-110 transition-transform">
+                <div className="p-3 bg-amber-500 rounded-2xl shadow-xl shadow-amber-500/20">
                   <Gift className="w-6 h-6 text-white" />
                 </div>
                 <h4 className="text-xl font-black text-white">برنامج الإحالة</h4>
@@ -726,15 +725,15 @@ export default function WalletDashboard() {
               <p className="text-sm text-gray-400 font-medium leading-relaxed mb-6">
                 ادعُ أصدقاءك للمنصة واكسب <span className="text-emerald-400 font-black">20 ج.م</span> في محفظتك عن كل صديق يشترك بكودك — بلا حد أقصى.
               </p>
-              <span className="block w-full py-4 rounded-2xl bg-white text-gray-900 font-black text-sm text-center group-hover:bg-amber-500 group-hover:text-white transition-all">
+              <span className="block w-full py-4 rounded-2xl bg-white text-gray-900 font-black text-sm text-center group-hover:bg-amber-500 group-hover:text-white">
                 انسخ كود الدعوة
               </span>
            </Link>
 
            {/* Support */}
            <div className="p-8 rounded-[3rem] bg-[#111322] border border-white/5 flex flex-col items-center text-center gap-6 group">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                 <Zap className="w-10 h-10 text-primary animate-pulse" />
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                 <Zap className="w-10 h-10 text-primary" />
               </div>
               <div className="space-y-2">
                  <h4 className="text-xl font-black text-white">دعم مالي فني</h4>

@@ -4,6 +4,56 @@
  */
 
 export interface paths {
+    "/api/courses/lessons/{id}/interactive-questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: never;
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/lessons/{id}/questions/{questionId}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: never;
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/analytics/conversion": {
         parameters: {
             query?: never;
@@ -27,7 +77,7 @@ export interface paths {
             /** @description Conversion event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ConversionEventRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_analytics.ConversionEventRequest"];
                 };
             };
             responses: {
@@ -73,7 +123,7 @@ export interface paths {
             /** @description User journey data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_analytics.UserJourneyRequest"];
                 };
             };
             responses: {
@@ -738,7 +788,7 @@ export interface paths {
             /** @description Notification details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_notification.NotificationRequest"];
                 };
             };
             responses: {
@@ -748,7 +798,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_notification.NotificationResponse"];
                     };
                 };
             };
@@ -834,7 +884,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_notification.NotificationResponse"];
                     };
                 };
             };
@@ -916,7 +966,7 @@ export interface paths {
             /** @description Notification details with scheduledFor */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_notification.NotificationRequest"];
                 };
             };
             responses: {
@@ -926,7 +976,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_notification.NotificationResponse"];
                     };
                 };
             };
@@ -2106,6 +2156,227 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/support/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all support articles (admin) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upsert support article */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete support article */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Article ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create support incident */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/incidents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update support incident */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Incident ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/services/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update service status */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Service key */
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/v1/admin/tickets": {
         parameters: {
             query?: never;
@@ -2165,7 +2436,7 @@ export interface paths {
             /** @description Ticket details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.CreateTicketRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.CreateTicketRequest"];
                 };
             };
             responses: {
@@ -2394,7 +2665,7 @@ export interface paths {
             /** @description Message details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SendMessageRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.SendMessageRequest"];
                 };
             };
             responses: {
@@ -2447,7 +2718,7 @@ export interface paths {
             /** @description Priority update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.UpdateTicketPriorityRequest"];
                 };
             };
             responses: {
@@ -2496,7 +2767,7 @@ export interface paths {
             /** @description Status update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.UpdateTicketStatusRequest"];
                 };
             };
             responses: {
@@ -2582,7 +2853,7 @@ export interface paths {
             /** @description Search history data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.SearchHistoryRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_public.SearchHistoryRequest"];
                 };
             };
             responses: {
@@ -2674,7 +2945,7 @@ export interface paths {
             /** @description Promo event data */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.PromoEventRequest"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_public.PromoEventRequest"];
                 };
             };
             responses: {
@@ -2686,6 +2957,61 @@ export interface paths {
                     content: {
                         "application/json": {
                             [key: string]: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/auth0/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange Auth0 token for internal JWT
+         * @description Validate an Auth0 RS256 access token, JIT-provision the user
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Auth0 exchange request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.Auth0ExchangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.Auth0ExchangeResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
                         };
                     };
                 };
@@ -2720,7 +3046,7 @@ export interface paths {
             /** @description Login credentials */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["authdto.LoginRequest"];
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.LoginRequest"];
                 };
             };
             responses: {
@@ -2730,11 +3056,144 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.LoginResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.LoginResponse"];
                     };
                 };
                 /** @description Unauthorized */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * MFA recovery codes status
+         * @description Returns how many unused backup codes remain.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/recovery-codes/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate MFA recovery codes
+         * @description Issues a fresh set of backup codes after password + TOTP re-auth. Old codes are invalidated.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description re-auth */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.RegenerateRecoveryCodesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/recovery-codes/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke MFA recovery codes
+         * @description Deletes all unused backup codes after password re-auth.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description re-auth */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.RevokeRecoveryCodesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2775,7 +3234,7 @@ export interface paths {
             /** @description MFA verification */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["authdto.VerifyMFARequest"];
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.VerifyMFARequest"];
                 };
             };
             responses: {
@@ -2803,6 +3262,47 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/certificates/verify/{no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verify a certificate by number */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Certificate number */
+                    no: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2843,7 +3343,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CompanyListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CompanyListResponse"];
                     };
                 };
             };
@@ -2882,7 +3382,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CompanyDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CompanyDetailResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2937,7 +3437,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CompanyJobsResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CompanyJobsResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -2995,7 +3495,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CourseListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CourseListResponse"];
                     };
                 };
             };
@@ -3042,38 +3542,15 @@ export interface paths {
             };
         };
         put?: never;
-        /** Update lesson progress */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    /** @description Lesson ID */
-                    id: string;
-                };
+                path?: never;
                 cookie?: never;
             };
-            /** @description Progress payload */
-            requestBody: {
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
+            requestBody?: never;
+            responses: never;
         };
         delete?: never;
         options?: never;
@@ -3107,7 +3584,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CourseDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CourseDetailResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -3125,6 +3602,72 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{id}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my course certificate */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Issue my course certificate */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3417,7 +3960,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationDetailResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -3475,7 +4018,7 @@ export interface paths {
             /** @description Target stage */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.ApplicationStagePayload"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_jobs.ApplicationStagePayload"];
                 };
             };
             responses: {
@@ -3485,7 +4028,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -3563,7 +4106,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CompanyListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CompanyListResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -3588,7 +4131,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerCompanyPayload"];
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_jobs.EmployerCompanyPayload"];
             responses: {
                 /** @description Created */
                 201: {
@@ -3596,7 +4139,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CompanyDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CompanyDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -3653,7 +4196,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerCompanyPayload"];
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_jobs.EmployerCompanyPayload"];
             responses: {
                 /** @description OK */
                 200: {
@@ -3661,7 +4204,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.CompanyDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.CompanyDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -3724,7 +4267,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.EmployerJobListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobListResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -3749,7 +4292,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerJobPayload"];
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_jobs.EmployerJobPayload"];
             responses: {
                 /** @description Created */
                 201: {
@@ -3757,7 +4300,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -3816,7 +4359,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobDetailResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -3884,7 +4427,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_protected.EmployerJobPayload"];
+            requestBody: components["requestBodies"]["internal_infrastructure_api_handlers_jobs.EmployerJobPayload"];
             responses: {
                 /** @description OK */
                 200: {
@@ -3892,7 +4435,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -3967,7 +4510,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobApplicationListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationListResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4030,7 +4573,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobDetailResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -4075,7 +4618,7 @@ export interface paths {
             /** @description Target status */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.JobTransitionPayload"];
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_jobs.JobTransitionPayload"];
                 };
             };
             responses: {
@@ -4085,7 +4628,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.EmployerJobDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -4198,7 +4741,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobListResponse"];
                     };
                 };
             };
@@ -4234,7 +4777,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobCategoryListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobCategoryListResponse"];
                     };
                 };
             };
@@ -4273,7 +4816,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobDetailResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -4326,7 +4869,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobSimilarResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobSimilarResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -4380,7 +4923,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobApplicationListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationListResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4430,7 +4973,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationDetailResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4567,7 +5110,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobApplicationDetailResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationDetailResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -4645,7 +5188,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.JobsOverviewResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.JobsOverviewResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4697,7 +5240,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.SavedJobListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.SavedJobListResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4749,7 +5292,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.SavedJobToggleResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.SavedJobToggleResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4795,7 +5338,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.SavedJobToggleResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.SavedJobToggleResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -4887,13 +5430,1136 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.UnifiedSearchResponse"];
+                        "application/json": components["schemas"]["internal_infrastructure_api_handlers_public.UnifiedSearchResponse"];
                     };
                 };
             };
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List published support articles */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/articles/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get published support article */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Article slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/articles/{slug}/vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vote on a support article */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Article slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            /** @description Vote */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.voteArticleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/faqs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public FAQs */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public incidents */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get support system status */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my support tickets */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create my support ticket */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Ticket details */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.createMyTicketRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my support ticket */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Ticket ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close my ticket */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Ticket ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reply to my ticket */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Ticket ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Reply */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.replyMyTicketRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rate my ticket */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Ticket ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Rating */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_support.rateMyTicketRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen my ticket */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Ticket ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teachers/{id}/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get teacher public courses */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Featured only */
+                    featured?: boolean;
+                };
+                header?: never;
+                path: {
+                    /** @description Teacher ID or username */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teachers/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get teacher public profile */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Teacher ID or username */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teachers/{id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get related teachers */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Max results */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Teacher ID or username */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teachers/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get teacher public reviews */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Page number */
+                    page?: number;
+                    /** @description Page size */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Teacher ID or username */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get instructor analytics */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply to teach on Tolo */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/apply/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get teaching application status */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/bundles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List course bundles (Subject-native) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create course bundle (Subject-native) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Bundle payload */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.subjectBundleRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List instructor calendar events */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create instructor calendar event */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List instructor conversations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/conversations/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a message to a student */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -4923,7 +6589,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.TeachingCoursesListResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCoursesListResponse"];
                     };
                 };
             };
@@ -4945,7 +6611,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.TeachingCourseMutationResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"];
                     };
                 };
             };
@@ -4982,7 +6648,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.TeachingCourseResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseResponse"];
                     };
                 };
             };
@@ -5008,7 +6674,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.TeachingCourseDeleteResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse"];
                     };
                 };
             };
@@ -5034,11 +6700,315 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.TeachingCourseMutationResponse"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationResponse"];
                     };
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/v1/teaching/courses/{id}/certificates/{certId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a course certificate */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                    /** @description Certificate ID */
+                    certId: string;
+                };
+                cookie?: never;
+            };
+            /** @description Revocation reason */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.revokeCertificateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/courses/{id}/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get course pricing (Subject-native) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        /** Set course pricing (Subject-native) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Course ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Pricing payload */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.subjectPricingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/earnings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get instructor earnings summary */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get instructor settings */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update instructor settings */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/teaching/settings/api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate instructor API key */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teaching/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List instructor transactions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/profile": {
@@ -5067,7 +7037,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.UserProfileEnvelope"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileEnvelope"];
                     };
                 };
                 /** @description Unauthorized */
@@ -5102,7 +7072,7 @@ export interface paths {
             /** @description Profile fields to update */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["authdto.UserProfileUpdateRequest"];
+                    "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateRequest"];
                 };
             };
             responses: {
@@ -5112,7 +7082,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["authdto.UserProfileUpdateEnvelope"];
+                        "application/json": components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope"];
                     };
                 };
                 /** @description Bad Request */
@@ -5145,7 +7115,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "internal_infrastructure_api_handlers_protected.ApplicationStagePayload": {
+        "internal_infrastructure_api_handlers_analytics.ConversionEventRequest": {
+            goal: string;
+            journeySteps?: number;
+            sessionId: string;
+            timestamp: string;
+            userId: string;
+            value?: number;
+        };
+        "internal_infrastructure_api_handlers_analytics.UserJourneyRequest": {
+            completed?: boolean;
+            conversionGoal?: string;
+            endedAt?: string;
+            sessionId: string;
+            startedAt: string;
+            steps?: components["schemas"]["internal_infrastructure_api_handlers_analytics.UserJourneyStep"][];
+            totalDuration?: number;
+            userId: string;
+        };
+        "internal_infrastructure_api_handlers_analytics.UserJourneyStep": {
+            action?: string;
+            duration?: number;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            page?: string;
+            sessionId?: string;
+            timestamp?: string;
+            userId?: string;
+        };
+        "internal_infrastructure_api_handlers_jobs.ApplicationStagePayload": {
             /**
              * @description Note is an optional employer-visible reason, e.g. why a candidate was
              *     rejected. Surfaced to the candidate, so keep it professional.
@@ -5157,13 +7157,85 @@ export interface components {
              */
             status: string;
         };
-        "internal_infrastructure_api_handlers_protected.ConversionEventRequest": {
-            goal: string;
-            journeySteps?: number;
-            sessionId: string;
-            timestamp: string;
-            userId: string;
-            value?: number;
+        "internal_infrastructure_api_handlers_jobs.EmployerCompanyPayload": {
+            coverUrl?: string;
+            description?: string;
+            foundedYear?: number;
+            industry?: string;
+            location?: string;
+            logoUrl?: string;
+            name: string;
+            /** @enum {string} */
+            size?: "1-10" | "11-50" | "51-200" | "201-500" | "501-1000" | "1000+";
+            website?: string;
+        };
+        "internal_infrastructure_api_handlers_jobs.EmployerJobPayload": {
+            benefits?: string;
+            category?: string;
+            city?: string;
+            companyId: string;
+            country?: string;
+            description?: string;
+            /** @enum {string} */
+            employmentType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE";
+            /** @enum {string} */
+            experienceLevel?: "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "MANAGER" | "DIRECTOR";
+            expiresAt?: string;
+            isSalaryVisible?: boolean;
+            preferredQualifications?: string;
+            /** @description Screening questions asked to every applicant of this posting. */
+            questions?: components["schemas"]["internal_infrastructure_api_handlers_jobs.EmployerJobQuestion"][];
+            requirements?: string;
+            responsibilities?: string;
+            salaryCurrency?: string;
+            salaryMax?: number;
+            salaryMin?: number;
+            /** @enum {string} */
+            salaryPeriod?: "HOURLY" | "MONTHLY" | "YEARLY";
+            skills?: string[];
+            title: string;
+            /** @enum {string} */
+            workplaceType?: "REMOTE" | "HYBRID" | "ON_SITE";
+        };
+        "internal_infrastructure_api_handlers_jobs.EmployerJobQuestion": {
+            id?: string;
+            prompt: string;
+            required?: boolean;
+        };
+        "internal_infrastructure_api_handlers_jobs.JobTransitionPayload": {
+            /**
+             * @description Reason is required when an admin rejects a posting, so the employer is
+             *     told what to fix. Ignored for every other transition.
+             */
+            reason?: string;
+            /**
+             * @description Status is the target state. Validated against the domain state machine,
+             *     not against a list duplicated here.
+             */
+            status: string;
+        };
+        "internal_infrastructure_api_handlers_notification.NotificationRequest": {
+            actionUrl?: string;
+            channels: string[];
+            message: string;
+            /** @enum {string} */
+            priority?: "high" | "normal" | "low";
+            scheduledFor?: string;
+            title: string;
+            /** @enum {string} */
+            type?: "info" | "success" | "warning" | "error";
+            userIds: string[];
+        };
+        "internal_infrastructure_api_handlers_notification.NotificationResponse": {
+            broadcastId?: string;
+            queued?: boolean;
+            summary?: components["schemas"]["internal_infrastructure_api_handlers_notification.NotificationSummary"];
+        };
+        "internal_infrastructure_api_handlers_notification.NotificationSummary": {
+            failure?: number;
+            queued?: number;
+            success?: number;
+            total?: number;
         };
         "internal_infrastructure_api_handlers_protected.CreateBackupRequest": {
             includesDatabase?: boolean;
@@ -5173,17 +7245,6 @@ export interface components {
             tables?: string[];
             /** @enum {string} */
             type: "full" | "database" | "files" | "incremental";
-        };
-        "internal_infrastructure_api_handlers_protected.CreateTicketRequest": {
-            /** @enum {string} */
-            category: "technical" | "billing" | "content" | "account" | "other";
-            description: string;
-            /** @enum {string} */
-            priority?: "low" | "medium" | "high" | "urgent";
-            relatedEntityId?: string;
-            relatedEntityType?: string;
-            subject: string;
-            userId: string;
         };
         "internal_infrastructure_api_handlers_protected.CustomReportRequest": {
             dateRange?: {
@@ -5201,56 +7262,6 @@ export interface components {
             };
             widgets: components["schemas"]["internal_infrastructure_api_handlers_protected.ReportWidget"][];
         };
-        "internal_infrastructure_api_handlers_protected.EmployerCompanyPayload": {
-            coverUrl?: string;
-            description?: string;
-            foundedYear?: number;
-            industry?: string;
-            location?: string;
-            logoUrl?: string;
-            name: string;
-            /** @enum {string} */
-            size?: "1-10" | "11-50" | "51-200" | "201-500" | "501-1000" | "1000+";
-            website?: string;
-        };
-        "internal_infrastructure_api_handlers_protected.EmployerJobPayload": {
-            benefits?: string;
-            category?: string;
-            city?: string;
-            companyId: string;
-            country?: string;
-            description?: string;
-            /** @enum {string} */
-            employmentType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE";
-            /** @enum {string} */
-            experienceLevel?: "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "MANAGER" | "DIRECTOR";
-            expiresAt?: string;
-            isSalaryVisible?: boolean;
-            preferredQualifications?: string;
-            requirements?: string;
-            responsibilities?: string;
-            salaryCurrency?: string;
-            salaryMax?: number;
-            salaryMin?: number;
-            /** @enum {string} */
-            salaryPeriod?: "HOURLY" | "MONTHLY" | "YEARLY";
-            skills?: string[];
-            title: string;
-            /** @enum {string} */
-            workplaceType?: "REMOTE" | "HYBRID" | "ON_SITE";
-        };
-        "internal_infrastructure_api_handlers_protected.JobTransitionPayload": {
-            /**
-             * @description Reason is required when an admin rejects a posting, so the employer is
-             *     told what to fix. Ignored for every other transition.
-             */
-            reason?: string;
-            /**
-             * @description Status is the target state. Validated against the domain state machine,
-             *     not against a list duplicated here.
-             */
-            status: string;
-        };
         "internal_infrastructure_api_handlers_protected.MegaMenuTrackRequest": {
             /** @description "mega_menu" */
             component?: string;
@@ -5264,40 +7275,6 @@ export interface components {
             timestamp?: number;
             /** @description "open" | "close" */
             type: string;
-        };
-        "internal_infrastructure_api_handlers_protected.NotificationRequest": {
-            actionUrl?: string;
-            channels: string[];
-            message: string;
-            /** @enum {string} */
-            priority?: "high" | "normal" | "low";
-            scheduledFor?: string;
-            title: string;
-            /** @enum {string} */
-            type?: "info" | "success" | "warning" | "error";
-            userIds: string[];
-        };
-        "internal_infrastructure_api_handlers_protected.NotificationResponse": {
-            broadcastId?: string;
-            queued?: boolean;
-            summary?: components["schemas"]["internal_infrastructure_api_handlers_protected.NotificationSummary"];
-        };
-        "internal_infrastructure_api_handlers_protected.NotificationSummary": {
-            failure?: number;
-            queued?: number;
-            success?: number;
-            total?: number;
-        };
-        "internal_infrastructure_api_handlers_protected.PromoEventRequest": {
-            component?: string;
-            eventType?: string;
-            id?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            promoId?: string;
-            timestamp?: number;
-            type?: string;
         };
         "internal_infrastructure_api_handlers_protected.ReportDimension": {
             field: string;
@@ -5375,7 +7352,41 @@ export interface components {
              */
             type: "announcement" | "exam" | "task" | "post";
         };
-        "internal_infrastructure_api_handlers_protected.SearchHistoryRequest": {
+        "internal_infrastructure_api_handlers_protected.revokeCertificateRequest": {
+            reason: string;
+        };
+        "internal_infrastructure_api_handlers_protected.subjectBundleRequest": {
+            coverUrl?: string;
+            currencyCode?: string;
+            description?: string;
+            isActive?: boolean;
+            price?: number;
+            slug?: string;
+            subjectIds?: string[];
+            title: string;
+        };
+        "internal_infrastructure_api_handlers_protected.subjectPricingRequest": {
+            amount?: number;
+            currencyCode: string;
+            discountEndAt?: number;
+            discountPrice?: number;
+            discountStartAt?: number;
+            subscriptionDurationDays?: number;
+            subscriptionPlanId?: string;
+            type: string;
+        };
+        "internal_infrastructure_api_handlers_public.PromoEventRequest": {
+            component?: string;
+            eventType?: string;
+            id?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            promoId?: string;
+            timestamp?: number;
+            type?: string;
+        };
+        "internal_infrastructure_api_handlers_public.SearchHistoryRequest": {
             metadata?: {
                 [key: string]: unknown;
             };
@@ -5385,7 +7396,7 @@ export interface components {
             /** @description course, resource, teacher, video, all */
             type?: string;
         };
-        "internal_infrastructure_api_handlers_protected.SearchResultItem": {
+        "internal_infrastructure_api_handlers_public.SearchResultItem": {
             category?: string;
             description?: string;
             id?: string;
@@ -5394,223 +7405,249 @@ export interface components {
             type?: string;
             url?: string;
         };
-        "internal_infrastructure_api_handlers_protected.SendMessageRequest": {
+        "internal_infrastructure_api_handlers_public.UnifiedSearchResponse": {
+            results?: components["schemas"]["internal_infrastructure_api_handlers_public.SearchResultItem"][];
+            total?: number;
+        };
+        "internal_infrastructure_api_handlers_support.CreateTicketRequest": {
+            /** @enum {string} */
+            category: "technical" | "billing" | "content" | "account" | "other";
+            description: string;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "urgent";
+            relatedEntityId?: string;
+            relatedEntityType?: string;
+            subject: string;
+            userId: string;
+        };
+        "internal_infrastructure_api_handlers_support.SendMessageRequest": {
             isInternal?: boolean;
             message: string;
         };
-        "internal_infrastructure_api_handlers_protected.UnifiedSearchResponse": {
-            results?: components["schemas"]["internal_infrastructure_api_handlers_protected.SearchResultItem"][];
-            total?: number;
-        };
-        "internal_infrastructure_api_handlers_protected.UpdateTicketPriorityRequest": {
+        "internal_infrastructure_api_handlers_support.UpdateTicketPriorityRequest": {
             /** @enum {string} */
             priority: "low" | "medium" | "high" | "urgent";
         };
-        "internal_infrastructure_api_handlers_protected.UpdateTicketStatusRequest": {
+        "internal_infrastructure_api_handlers_support.UpdateTicketStatusRequest": {
             /** @enum {string} */
             status: "open" | "in_progress" | "resolved" | "closed" | "escalated";
         };
-        "internal_infrastructure_api_handlers_protected.UserJourneyRequest": {
-            completed?: boolean;
-            conversionGoal?: string;
-            endedAt?: string;
-            sessionId: string;
-            startedAt: string;
-            steps?: components["schemas"]["internal_infrastructure_api_handlers_protected.UserJourneyStep"][];
-            totalDuration?: number;
-            userId: string;
+        "internal_infrastructure_api_handlers_support.createMyTicketRequest": {
+            /** @enum {string} */
+            category: "technical" | "billing" | "content" | "account" | "other";
+            description: string;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "urgent";
+            relatedEntityId?: string;
+            relatedEntityType?: string;
+            subject: string;
         };
-        "internal_infrastructure_api_handlers_protected.UserJourneyStep": {
-            action?: string;
-            duration?: number;
-            id?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            page?: string;
-            sessionId?: string;
-            timestamp?: string;
-            userId?: string;
+        "internal_infrastructure_api_handlers_support.rateMyTicketRequest": {
+            comment?: string;
+            score: number;
         };
-        "authdto.CompanyDetailData": {
+        "internal_infrastructure_api_handlers_support.replyMyTicketRequest": {
+            message: string;
+        };
+        "internal_infrastructure_api_handlers_support.voteArticleRequest": {
+            helpful?: boolean;
+            reason?: string;
+        };
+        "thanawy-backend_internal_application_dto.Auth0ExchangeRequest": {
+            auth0Token: string;
+        };
+        "thanawy-backend_internal_application_dto.Auth0ExchangeResponse": {
+            accessToken?: string;
+            expiresIn?: number;
+            tokenType?: string;
+            user?: components["schemas"]["thanawy-backend_internal_application_dto.UserDTO"];
+        };
+        "thanawy-backend_internal_application_dto.CompanyDetailData": {
             company?: components["schemas"]["thanawy-backend_internal_domain_common.Company"];
         };
-        "authdto.CompanyDetailResponse": {
-            data?: components["schemas"]["authdto.CompanyDetailData"];
+        "thanawy-backend_internal_application_dto.CompanyDetailResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CompanyDetailData"];
             success?: boolean;
         };
-        "authdto.CompanyJobsData": {
+        "thanawy-backend_internal_application_dto.CompanyJobsData": {
             company?: components["schemas"]["thanawy-backend_internal_domain_common.Company"];
             items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
-            pagination?: components["schemas"]["authdto.Pagination"];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
         };
-        "authdto.CompanyJobsResponse": {
-            data?: components["schemas"]["authdto.CompanyJobsData"];
+        "thanawy-backend_internal_application_dto.CompanyJobsResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CompanyJobsData"];
             success?: boolean;
         };
-        "authdto.CompanyListData": {
+        "thanawy-backend_internal_application_dto.CompanyListData": {
             companies?: components["schemas"]["thanawy-backend_internal_domain_common.Company"][];
             items?: components["schemas"]["thanawy-backend_internal_domain_common.Company"][];
-            pagination?: components["schemas"]["authdto.Pagination"];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
         };
-        "authdto.CompanyListResponse": {
-            data?: components["schemas"]["authdto.CompanyListData"];
+        "thanawy-backend_internal_application_dto.CompanyListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CompanyListData"];
             success?: boolean;
         };
-        "authdto.CourseDetailData": {
+        "thanawy-backend_internal_application_dto.CourseDetailData": {
             course?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
             subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
         };
-        "authdto.CourseDetailResponse": {
-            data?: components["schemas"]["authdto.CourseDetailData"];
+        "thanawy-backend_internal_application_dto.CourseDetailResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CourseDetailData"];
             enrollment?: components["schemas"]["thanawy-backend_internal_domain_common.Enrollment"];
             subject?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"];
             success?: boolean;
         };
-        "authdto.CourseListData": {
+        "thanawy-backend_internal_application_dto.CourseListData": {
             items?: components["schemas"]["thanawy-backend_internal_domain_common.Subject"][];
             offset?: number;
-            pagination?: components["schemas"]["authdto.Pagination"];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
         };
-        "authdto.CourseListResponse": {
-            data?: components["schemas"]["authdto.CourseListData"];
+        "thanawy-backend_internal_application_dto.CourseListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.CourseListData"];
             success?: boolean;
         };
-        "authdto.EmployerJobDetailData": {
+        "thanawy-backend_internal_application_dto.EmployerJobDetailData": {
             allowedTransitions?: components["schemas"]["thanawy-backend_internal_domain_common.JobPostingStatus"][];
             job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
         };
-        "authdto.EmployerJobDetailResponse": {
-            data?: components["schemas"]["authdto.EmployerJobDetailData"];
+        "thanawy-backend_internal_application_dto.EmployerJobDetailResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobDetailData"];
             success?: boolean;
         };
-        "authdto.EmployerJobListData": {
+        "thanawy-backend_internal_application_dto.EmployerJobListData": {
             items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
-            pagination?: components["schemas"]["authdto.Pagination"];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
             statusCounts?: {
                 [key: string]: number;
             };
         };
-        "authdto.EmployerJobListResponse": {
-            data?: components["schemas"]["authdto.EmployerJobListData"];
+        "thanawy-backend_internal_application_dto.EmployerJobListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.EmployerJobListData"];
             success?: boolean;
         };
-        "authdto.JobApplicationDetailData": {
+        "thanawy-backend_internal_application_dto.JobApplicationDetailData": {
             application?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplication"];
         };
-        "authdto.JobApplicationDetailResponse": {
-            data?: components["schemas"]["authdto.JobApplicationDetailData"];
+        "thanawy-backend_internal_application_dto.JobApplicationDetailResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationDetailData"];
             success?: boolean;
         };
-        "authdto.JobApplicationListData": {
+        "thanawy-backend_internal_application_dto.JobApplicationListData": {
             applications?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplication"][];
             items?: components["schemas"]["thanawy-backend_internal_domain_common.JobApplication"][];
-            pagination?: components["schemas"]["authdto.Pagination"];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
             /** @description StatusCounts drives the application tab badges, keyed by status. */
             statusCounts?: {
                 [key: string]: number;
             };
         };
-        "authdto.JobApplicationListResponse": {
-            data?: components["schemas"]["authdto.JobApplicationListData"];
+        "thanawy-backend_internal_application_dto.JobApplicationListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobApplicationListData"];
             success?: boolean;
         };
-        "authdto.JobCategoryCount": {
+        "thanawy-backend_internal_application_dto.JobCategoryCount": {
             category?: string;
             count?: number;
         };
-        "authdto.JobCategoryListData": {
-            categories?: components["schemas"]["authdto.JobCategoryCount"][];
-            items?: components["schemas"]["authdto.JobCategoryCount"][];
+        "thanawy-backend_internal_application_dto.JobCategoryListData": {
+            categories?: components["schemas"]["thanawy-backend_internal_application_dto.JobCategoryCount"][];
+            items?: components["schemas"]["thanawy-backend_internal_application_dto.JobCategoryCount"][];
         };
-        "authdto.JobCategoryListResponse": {
-            data?: components["schemas"]["authdto.JobCategoryListData"];
+        "thanawy-backend_internal_application_dto.JobCategoryListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobCategoryListData"];
             success?: boolean;
         };
-        "authdto.JobDetailData": {
+        "thanawy-backend_internal_application_dto.JobDetailData": {
             job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
         };
-        "authdto.JobDetailResponse": {
-            data?: components["schemas"]["authdto.JobDetailData"];
+        "thanawy-backend_internal_application_dto.JobDetailResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobDetailData"];
             success?: boolean;
         };
-        "authdto.JobListData": {
+        "thanawy-backend_internal_application_dto.JobListData": {
             items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
-            pagination?: components["schemas"]["authdto.Pagination"];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
         };
-        "authdto.JobListResponse": {
-            data?: components["schemas"]["authdto.JobListData"];
+        "thanawy-backend_internal_application_dto.JobListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobListData"];
             success?: boolean;
         };
-        "authdto.JobSimilarData": {
+        "thanawy-backend_internal_application_dto.JobSimilarData": {
             items?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
             jobs?: components["schemas"]["thanawy-backend_internal_domain_common.Job"][];
         };
-        "authdto.JobSimilarResponse": {
-            data?: components["schemas"]["authdto.JobSimilarData"];
+        "thanawy-backend_internal_application_dto.JobSimilarResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobSimilarData"];
             success?: boolean;
         };
-        "authdto.JobsOverviewData": {
+        "thanawy-backend_internal_application_dto.JobsOverviewData": {
             applied?: number;
             interviews?: number;
             offers?: number;
             saved?: number;
         };
-        "authdto.JobsOverviewResponse": {
-            data?: components["schemas"]["authdto.JobsOverviewData"];
+        "thanawy-backend_internal_application_dto.JobsOverviewResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.JobsOverviewData"];
             success?: boolean;
         };
-        "authdto.LoginRequest": {
+        "thanawy-backend_internal_application_dto.LoginRequest": {
             deviceName?: string;
             email: string;
             fingerprint?: string;
             password: string;
             rememberMe?: boolean;
         };
-        "authdto.LoginResponse": {
+        "thanawy-backend_internal_application_dto.LoginResponse": {
             accessToken?: string;
             refreshToken?: string;
-            user?: components["schemas"]["authdto.UserDTO"];
+            user?: components["schemas"]["thanawy-backend_internal_application_dto.UserDTO"];
         };
-        "authdto.Pagination": {
+        "thanawy-backend_internal_application_dto.Pagination": {
             limit?: number;
             page?: number;
             total?: number;
             totalPages?: number;
         };
-        "authdto.SavedJobEntry": {
+        "thanawy-backend_internal_application_dto.RegenerateRecoveryCodesRequest": {
+            code: string;
+            password: string;
+        };
+        "thanawy-backend_internal_application_dto.RevokeRecoveryCodesRequest": {
+            password: string;
+        };
+        "thanawy-backend_internal_application_dto.SavedJobEntry": {
             job?: components["schemas"]["thanawy-backend_internal_domain_common.Job"];
             savedAt?: string;
         };
-        "authdto.SavedJobListData": {
-            items?: components["schemas"]["authdto.SavedJobEntry"][];
-            pagination?: components["schemas"]["authdto.Pagination"];
-            savedJobs?: components["schemas"]["authdto.SavedJobEntry"][];
+        "thanawy-backend_internal_application_dto.SavedJobListData": {
+            items?: components["schemas"]["thanawy-backend_internal_application_dto.SavedJobEntry"][];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.Pagination"];
+            savedJobs?: components["schemas"]["thanawy-backend_internal_application_dto.SavedJobEntry"][];
         };
-        "authdto.SavedJobListResponse": {
-            data?: components["schemas"]["authdto.SavedJobListData"];
+        "thanawy-backend_internal_application_dto.SavedJobListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.SavedJobListData"];
             success?: boolean;
         };
-        "authdto.SavedJobToggleData": {
+        "thanawy-backend_internal_application_dto.SavedJobToggleData": {
             isSaved?: boolean;
             jobId?: string;
         };
-        "authdto.SavedJobToggleResponse": {
-            data?: components["schemas"]["authdto.SavedJobToggleData"];
+        "thanawy-backend_internal_application_dto.SavedJobToggleResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.SavedJobToggleData"];
             success?: boolean;
         };
-        "authdto.TeachingChapterContract": {
+        "thanawy-backend_internal_application_dto.TeachingChapterContract": {
             id?: string;
-            lessons?: components["schemas"]["authdto.TeachingLessonContract"][];
+            lessons?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingLessonContract"][];
             title?: string;
         };
-        "authdto.TeachingCourseContract": {
+        "thanawy-backend_internal_application_dto.TeachingCourseContract": {
             category?: string;
             categoryId?: string;
-            chapters?: components["schemas"]["authdto.TeachingChapterContract"][];
+            chapters?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingChapterContract"][];
             createdDate?: string;
             description?: string;
             duration?: string;
@@ -5626,38 +7663,38 @@ export interface components {
             thumbnail?: string;
             title?: string;
         };
-        "authdto.TeachingCourseData": {
-            course?: components["schemas"]["authdto.TeachingCourseContract"];
+        "thanawy-backend_internal_application_dto.TeachingCourseData": {
+            course?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"];
         };
-        "authdto.TeachingCourseDeleteData": {
+        "thanawy-backend_internal_application_dto.TeachingCourseDeleteData": {
             deleted?: boolean;
         };
-        "authdto.TeachingCourseDeleteResponse": {
-            data?: components["schemas"]["authdto.TeachingCourseDeleteData"];
+        "thanawy-backend_internal_application_dto.TeachingCourseDeleteResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseDeleteData"];
             success?: boolean;
         };
-        "authdto.TeachingCourseMutationData": {
-            course?: components["schemas"]["authdto.TeachingCourseContract"];
+        "thanawy-backend_internal_application_dto.TeachingCourseMutationData": {
+            course?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"];
             message?: string;
             warnings?: string[];
         };
-        "authdto.TeachingCourseMutationResponse": {
-            data?: components["schemas"]["authdto.TeachingCourseMutationData"];
+        "thanawy-backend_internal_application_dto.TeachingCourseMutationResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseMutationData"];
             success?: boolean;
         };
-        "authdto.TeachingCourseResponse": {
-            data?: components["schemas"]["authdto.TeachingCourseData"];
+        "thanawy-backend_internal_application_dto.TeachingCourseResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseData"];
             success?: boolean;
         };
-        "authdto.TeachingCoursesListData": {
-            courses?: components["schemas"]["authdto.TeachingCourseContract"][];
-            pagination?: components["schemas"]["authdto.TeachingPaginationContract"];
+        "thanawy-backend_internal_application_dto.TeachingCoursesListData": {
+            courses?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCourseContract"][];
+            pagination?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingPaginationContract"];
         };
-        "authdto.TeachingCoursesListResponse": {
-            data?: components["schemas"]["authdto.TeachingCoursesListData"];
+        "thanawy-backend_internal_application_dto.TeachingCoursesListResponse": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.TeachingCoursesListData"];
             success?: boolean;
         };
-        "authdto.TeachingLessonContract": {
+        "thanawy-backend_internal_application_dto.TeachingLessonContract": {
             duration?: string;
             durationMinutes?: number;
             id?: string;
@@ -5665,13 +7702,13 @@ export interface components {
             title?: string;
             type?: string;
         };
-        "authdto.TeachingPaginationContract": {
+        "thanawy-backend_internal_application_dto.TeachingPaginationContract": {
             limit?: number;
             page?: number;
             total?: number;
             totalPages?: number;
         };
-        "authdto.UserDTO": {
+        "thanawy-backend_internal_application_dto.UserDTO": {
             avatar?: string;
             email?: string;
             emailVerified?: boolean;
@@ -5683,11 +7720,11 @@ export interface components {
             status?: string;
             username?: string;
         };
-        "authdto.UserProfileEnvelope": {
-            data?: components["schemas"]["authdto.UserProfileResponse"];
+        "thanawy-backend_internal_application_dto.UserProfileEnvelope": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.UserProfileResponse"];
             success?: boolean;
         };
-        "authdto.UserProfileResponse": {
+        "thanawy-backend_internal_application_dto.UserProfileResponse": {
             alternativePhone?: string;
             avatar?: string;
             bio?: string;
@@ -5711,11 +7748,11 @@ export interface components {
             subjectsTaught?: string[];
             username?: string;
         };
-        "authdto.UserProfileUpdateEnvelope": {
-            data?: components["schemas"]["authdto.UserProfileUpdateResponse"];
+        "thanawy-backend_internal_application_dto.UserProfileUpdateEnvelope": {
+            data?: components["schemas"]["thanawy-backend_internal_application_dto.UserProfileUpdateResponse"];
             success?: boolean;
         };
-        "authdto.UserProfileUpdateRequest": {
+        "thanawy-backend_internal_application_dto.UserProfileUpdateRequest": {
             alternativePhone?: string;
             avatar?: string;
             bio?: string;
@@ -5734,10 +7771,10 @@ export interface components {
             subjectsTaught?: string[];
             username?: string;
         };
-        "authdto.UserProfileUpdateResponse": {
+        "thanawy-backend_internal_application_dto.UserProfileUpdateResponse": {
             message?: string;
         };
-        "authdto.VerifyMFARequest": {
+        "thanawy-backend_internal_application_dto.VerifyMFARequest": {
             challengeId: string;
             code: string;
             rememberMe?: boolean;
@@ -5793,6 +7830,13 @@ export interface components {
         "thanawy-backend_internal_domain_common.EnrollmentType": "OPEN" | "LIMITED" | "BY_APPROVAL";
         "thanawy-backend_internal_domain_common.Exam": {
             createdAt?: string;
+            /**
+             * @description CreatedBy identifies the student who persisted an AI-generated exam.
+             *     NULL for every admin/teacher-created exam, which is what keeps them in
+             *     the public GET /api/v1/exams list (see buildExamsQuery). Owned rows are
+             *     only visible to their creator via ?mine=true.
+             */
+            createdBy?: string;
             description?: string;
             difficulty?: string;
             duration?: number;
@@ -5845,6 +7889,12 @@ export interface components {
             postedBy?: string;
             preferredQualifications?: string;
             publishedAt?: string;
+            /**
+             * @description Employer-authored screening questions. JobApplication.Answers is keyed by
+             *     these ids, so a prompt may be reworded without orphaning the responses
+             *     already stored against it.
+             */
+            questions?: components["schemas"]["thanawy-backend_internal_domain_common.JobQuestion"][];
             requirements?: string;
             responsibilities?: string;
             salaryCurrency?: string;
@@ -5886,6 +7936,16 @@ export interface components {
         "thanawy-backend_internal_domain_common.JobApplicationStatus": "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "ASSESSMENT" | "OFFER" | "HIRED" | "REJECTED" | "WITHDRAWN";
         /** @enum {string} */
         "thanawy-backend_internal_domain_common.JobPostingStatus": "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "PAUSED" | "CLOSED" | "REJECTED" | "ARCHIVED";
+        "thanawy-backend_internal_domain_common.JobQuestion": {
+            /**
+             * @description Identity minted by the writing surface. Answers are stored keyed by it,
+             *     so it must be stable across edits — never derived from the prompt text
+             *     or from the position in the list.
+             */
+            id?: string;
+            prompt?: string;
+            required?: boolean;
+        };
         "thanawy-backend_internal_domain_common.LessonAttachment": {
             createdAt?: string;
             fileSize?: number;
@@ -5995,6 +8055,15 @@ export interface components {
             level?: components["schemas"]["thanawy-backend_internal_domain_common.Level"];
             longDescription?: string;
             maxStudents?: number;
+            /**
+             * @description Lesson completion policy (P2-46/47, migration 0218). The backend —
+             *     never the client's 90% heuristic alone — decides completion:
+             *     - MinWatchPercent: watched % required to complete a lesson.
+             *     - RequireQuestions: all ACTIVE server-validated interactive questions
+             *       must have a correct attempt before the lesson may complete.
+             *     Defaults preserve the historical behavior (90%, no question gate).
+             */
+            minWatchPercent?: number;
             name: string;
             nameAr?: string;
             newUntil?: string;
@@ -6002,6 +8071,7 @@ export interface components {
             publishedAt?: string;
             rating: number;
             rejectionReason?: string;
+            requireQuestions?: boolean;
             requirements?: string;
             reviewedAt?: string;
             reviewedBy?: string;
@@ -6152,15 +8222,15 @@ export interface components {
     parameters: never;
     requestBodies: {
         /** @description Job */
-        "internal_infrastructure_api_handlers_protected.EmployerJobPayload": {
+        "internal_infrastructure_api_handlers_jobs.EmployerJobPayload": {
             content: {
-                "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.EmployerJobPayload"];
+                "application/json": components["schemas"]["internal_infrastructure_api_handlers_jobs.EmployerJobPayload"];
             };
         };
         /** @description Company */
-        "internal_infrastructure_api_handlers_protected.EmployerCompanyPayload": {
+        "internal_infrastructure_api_handlers_jobs.EmployerCompanyPayload": {
             content: {
-                "application/json": components["schemas"]["internal_infrastructure_api_handlers_protected.EmployerCompanyPayload"];
+                "application/json": components["schemas"]["internal_infrastructure_api_handlers_jobs.EmployerCompanyPayload"];
             };
         };
         /** @description Course payload */

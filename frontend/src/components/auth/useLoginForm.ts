@@ -84,9 +84,16 @@ export function useLoginForm() {
     const targetPath = sanitizeRedirectPath(searchParams.get("redirect"));
     const refreshed = await refreshUser();
     if (!refreshed) {
+      // The session cookies ARE already established at this point (login /
+      // MFA verify succeeded). Navigating anyway is correct: the dashboard
+      // will re-run its own auth hydration, and staying on /login with a
+      // live session makes the middleware bounce the user back anyway —
+      // showing an error first and then bouncing is strictly worse UX.
       setError("تعذر تحميل بيانات المستخدم بعد تسجيل الدخول");
-      return;
     }
+    // Leaving the MFA step clears the now-dead challengeId so a retry can
+    // never re-submit a consumed challenge.
+    setMfaChallenge(null);
     router.push(targetPath);
     router.refresh();
   };

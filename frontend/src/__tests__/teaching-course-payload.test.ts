@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCourseUpdateBody,
+  createCourseDuplicateTitle,
   mapTeachingLesson,
+  normalizeTeachingCourse,
   reorderTeachingLessons,
   toTeachingStatusTransport,
 } from "@/app/teaching/hooks/use-teaching-data";
@@ -56,5 +58,33 @@ describe("teaching course payload", () => {
       title: "Chapter",
       lessons: reordered.map(mapTeachingLesson),
     }]);
+  });
+
+  it("normalizes incomplete course payloads and duplicate titles for the teaching dashboard", () => {
+    const normalized = normalizeTeachingCourse({
+      id: "course-1",
+      title: "",
+      description: "",
+      thumbnail: "",
+      price: 0,
+      level: "INTERMEDIATE",
+      categoryId: "cat-1",
+      category: "",
+      status: "" as any,
+      studentsCount: 0,
+      lessonsCount: 0,
+      duration: "",
+      createdDate: "",
+      chapters: [],
+      enrolledCount: 0,
+      rating: 0,
+      durationHours: 0,
+      thumbnailUrl: "",
+    } as any);
+
+    expect(normalized.title).toBe("عنوان غير مسمى");
+    expect(normalized.category).toBe("غير مصنف");
+    expect(normalized.status).toBe("DRAFT");
+    expect(createCourseDuplicateTitle("React Basics")).toBe("React Basics (نسخة جديدة)");
   });
 });

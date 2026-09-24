@@ -93,6 +93,21 @@ export interface Company {
   updatedAt: string;
 }
 
+/**
+ * One employer-authored screening question.
+ *
+ * Mirrors common.JobQuestion. The id is minted by whichever surface creates
+ * the question (the employer form generates a UUID client-side; a payload
+ * without one gets one from the backend) and is then stable for the question's
+ * life — JobApplication.answers is keyed by it, so rewording a prompt must
+ * never change it.
+ */
+export interface JobQuestion {
+  id: string;
+  prompt: string;
+  required?: boolean;
+}
+
 export interface Job {
   id: string;
   companyId: string;
@@ -120,6 +135,12 @@ export interface Job {
   isFeatured: boolean;
   viewCount: number;
   applicationCount: number;
+  /**
+   * Screening questions every applicant answers. Always present on detail
+   * responses (the JSONB column marshals as `[]`, never null), but kept
+   * optional here because list payloads are allowed to trim it.
+   */
+  questions?: JobQuestion[];
   publishedAt?: string | null;
   expiresAt?: string | null;
   closedAt?: string | null;

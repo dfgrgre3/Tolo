@@ -96,11 +96,6 @@ export const aiClient = {
     method: 'POST',
     body: JSON.stringify(body),
   }),
-  tips: <T>(body: unknown, options: AIRequestOptions = {}) => aiRequest<T>(apiRoutes.ai.tips, {
-    ...options,
-    method: 'POST',
-    body: JSON.stringify(body),
-  }),
   teachers: <T>(body: unknown, options: AIRequestOptions = {}) => aiRequest<T>(apiRoutes.ai.teachers, {
     ...options,
     method: 'POST',

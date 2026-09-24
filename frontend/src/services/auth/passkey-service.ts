@@ -92,9 +92,15 @@ export async function registerPasskey(name: string): Promise<PasskeyResult> {
       return { success: false, error: "استجابة غير صالحة من الخادم" };
     }
     const attestation = await startRegistration({ optionsJSON: start.options as never });
+    // `name` is the user-chosen label from the PasskeysCard input. The backend
+    // contract (`POST finish { sessionId, credential }`) reads sessionId and
+    // credential; the label is sent alongside so the backend can persist it
+    // when supported — it is ignored otherwise (unknown JSON field).
+    const trimmedName = name.trim();
     await apiClient.post(apiRoutes.auth.passkeys.registerFinish, {
       sessionId: start.sessionId,
       credential: attestation,
+      ...(trimmedName ? { name: trimmedName } : {}),
     });
     return { success: true };
   } catch (err: unknown) {

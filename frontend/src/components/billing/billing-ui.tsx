@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
-import { m } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Inbox, Search, RefreshCw, ArrowUpDown, FileDown, AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 
 /* ── رأس الصفحة الموحد (نفس ستايل billing/page.tsx) ── */
-export function BillingPageHeader({
+export const BillingPageHeader = React.memo(function BillingPageHeader({
   badge,
   BadgeIcon,
   title,
@@ -39,17 +38,16 @@ export function BillingPageHeader({
       {action && <div className="shrink-0 w-full sm:w-auto">{action}</div>}
     </div>
   );
-}
+});
 
 /* ── كارت إحصائية موحد ── */
-export function BillingStatCard({
+export const BillingStatCard = React.memo(function BillingStatCard({
   icon: Icon,
   iconWrap,
   topLabel,
   topLabelClass = "text-gray-400",
   value,
   hint,
-  delay = 0,
 }: {
   icon: LucideIcon;
   iconWrap: string;
@@ -57,14 +55,9 @@ export function BillingStatCard({
   topLabelClass?: string;
   value: React.ReactNode;
   hint: string;
-  delay?: number;
 }) {
   return (
-    <m.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -5 }}
+    <div
       className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
     >
       <div className="flex items-center justify-between mb-4">
@@ -77,9 +70,9 @@ export function BillingStatCard({
       </div>
       <div className="text-2xl font-black text-gray-900 dark:text-white mb-1">{value}</div>
       <div className="text-gray-500 dark:text-gray-400 text-xs font-medium">{hint}</div>
-    </m.div>
+    </div>
   );
-}
+});
 
 /* ── شارة الحالة الموحدة ── */
 const STATUS_STYLES: Record<string, string> = {
@@ -100,7 +93,7 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ملغية",
 };
 
-export function BillingStatusBadge({ status }: { status: string }) {
+export const BillingStatusBadge = React.memo(function BillingStatusBadge({ status }: { status: string }) {
   const key = (status || "").toUpperCase();
   return (
     <span
@@ -112,10 +105,10 @@ export function BillingStatusBadge({ status }: { status: string }) {
       {STATUS_LABELS[key] ?? status}
     </span>
   );
-}
+});
 
 /* ── حالة فارغة موحدة (B-11: delegate للمركزي، نفس التوقيع) ── */
-export function BillingEmptyState({
+export const BillingEmptyState = React.memo(function BillingEmptyState({
   icon: Icon,
   title,
   hint,
@@ -129,9 +122,9 @@ export function BillingEmptyState({
   return (
     <EmptyState title={title} description={hint} icon={Icon} action={action} />
   );
-}
+});
 
-export function BillingTableShell({
+export const BillingTableShell = React.memo(function BillingTableShell({
   headers,
   children,
 }: {
@@ -161,12 +154,12 @@ export function BillingTableShell({
       </div>
     </div>
   );
-}
+});
 
 export { Inbox };
 
 /* ── ترقيم صفحات موحد ── */
-export function BillingPagination({
+export const BillingPagination = React.memo(function BillingPagination({
   page,
   totalPages,
   onChange,
@@ -184,7 +177,7 @@ export function BillingPagination({
       <button
         onClick={() => onChange(Math.max(1, page - 1))}
         disabled={page === 1}
-        className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-40 transition-all"
+        className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-40"
       >
         السابق
       </button>
@@ -194,7 +187,7 @@ export function BillingPagination({
           <button
             onClick={() => onChange(n)}
             aria-current={n === page ? "page" : undefined}
-            className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${
+            className={`w-10 h-10 rounded-xl text-sm font-black ${
               n === page
                 ? "bg-primary text-white shadow-lg"
                 : "bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/10"
@@ -207,16 +200,16 @@ export function BillingPagination({
       <button
         onClick={() => onChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
-        className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-40 transition-all"
+        className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-40"
       >
         التالي
       </button>
     </div>
   );
-}
+});
 
 /* ── شريط فلاتر موحد: بحث + تبويبات حالة + ترتيب + تحديث + تصدير ── */
-export function BillingFilterBar({
+export const BillingFilterBar = React.memo(function BillingFilterBar({
   query,
   onQuery,
   searchPlaceholder = "بحث...",
@@ -255,7 +248,7 @@ export function BillingFilterBar({
             onChange={(e) => onQuery(e.target.value)}
             placeholder={searchPlaceholder}
             aria-label={searchLabel}
-            className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-2.5 pr-11 pl-10 text-sm text-gray-900 dark:text-white font-bold outline-none focus:border-primary/50 transition-all w-full placeholder:text-gray-400 dark:placeholder:text-gray-600"
+            className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-2.5 pr-11 pl-10 text-sm text-gray-900 dark:text-white font-bold outline-none focus:border-primary/50 w-full placeholder:text-gray-400 dark:placeholder:text-gray-600"
           />
         </div>
         <div className="flex bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-gray-200 dark:border-white/10 w-fit" role="tablist" aria-label="فلتر الحالة">
@@ -265,7 +258,7 @@ export function BillingFilterBar({
               role="tab"
               aria-selected={activeTab === t.value}
               onClick={() => onTab(t.value)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${
+              className={`px-4 py-1.5 rounded-xl text-xs font-black whitespace-nowrap ${
                 activeTab === t.value ? "bg-primary text-white shadow-lg" : "text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
@@ -280,16 +273,16 @@ export function BillingFilterBar({
             <button
               onClick={onRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-50"
             >
-              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+              <RefreshCw size={14} />
               تحديث
             </button>
           )}
           {sortLabel && onSort && (
             <button
               onClick={onSort}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10"
             >
               <ArrowUpDown size={14} />
               {sortLabel}
@@ -299,7 +292,7 @@ export function BillingFilterBar({
             <button
               onClick={onExport}
               disabled={exportDisabled}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-black text-primary hover:bg-primary hover:text-white transition-all disabled:opacity-40"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-black text-primary hover:bg-primary hover:text-white disabled:opacity-40"
             >
               <FileDown size={14} />
               تصدير CSV
@@ -309,13 +302,13 @@ export function BillingFilterBar({
       )}
     </div>
   );
-}
+});
 
 /* ── حالات التحميل والخطأ الموحدة ── */
-export function BillingLoadingGrid({ cards = 4 }: { cards?: number }) {
+export const BillingLoadingGrid = React.memo(function BillingLoadingGrid({ cards = 4 }: { cards?: number }) {
   return (
     <div className="min-h-screen bg-transparent py-12 px-4 md:px-8 xl:px-12" dir="rtl">
-      <div className="max-w-7xl mx-auto space-y-8 animate-pulse">
+      <div className="max-w-7xl mx-auto space-y-8">
         <div className="h-10 w-64 bg-white/10 rounded-full" />
         <div className="h-20 w-2/3 bg-white/5 rounded-[2rem]" />
         <div className={`grid grid-cols-1 md:grid-cols-2 ${cards > 2 ? "lg:grid-cols-4" : ""} gap-6`}>
@@ -327,9 +320,9 @@ export function BillingLoadingGrid({ cards = 4 }: { cards?: number }) {
       </div>
     </div>
   );
-}
+});
 
-export function BillingErrorState({
+export const BillingErrorState = React.memo(function BillingErrorState({
   title,
   hint,
   debugCode,
@@ -352,15 +345,15 @@ export function BillingErrorState({
         <p className="text-gray-500 dark:text-gray-400 font-medium mb-8 leading-relaxed">{hint}</p>
         <div className="flex flex-col gap-3">
           {loginLink ? (
-            <a href="/login" className="px-8 py-3 bg-white text-gray-900 rounded-2xl font-black hover:bg-gray-200 transition-all active:scale-95 text-center">
+            <a href="/login" className="px-8 py-3 bg-white text-gray-900 rounded-2xl font-black hover:bg-gray-200 text-center">
               تسجيل الدخول
             </a>
           ) : onRetry ? (
-            <button onClick={onRetry} className="px-8 py-3 bg-primary text-white rounded-2xl font-black hover:bg-primary/90 transition-all active:scale-95">
+            <button onClick={onRetry} className="px-8 py-3 bg-primary text-white rounded-2xl font-black hover:bg-primary/90">
               إعادة المحاولة
             </button>
           ) : null}
-          <a href="/" className="text-gray-500 hover:text-white transition-colors text-sm text-center font-bold">
+          <a href="/" className="text-gray-500 hover:text-white text-sm text-center font-bold">
             العودة للرئيسية
           </a>
         </div>
@@ -372,7 +365,7 @@ export function BillingErrorState({
       </div>
     </div>
   );
-}
+});
 
 /* ── تنسيق العملة المصري الموحد ── */
 export function formatEGP(value: number): string {
@@ -397,7 +390,7 @@ export function exportToCsv(filename: string, rows: Record<string, string | numb
 }
 
 /* ── عنوان قسم موحد ── */
-export function BillingSectionTitle({
+export const BillingSectionTitle = React.memo(function BillingSectionTitle({
   icon: Icon,
   title,
   hint,
@@ -420,4 +413,4 @@ export function BillingSectionTitle({
       {extra}
     </div>
   );
-}
+});

@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { useJobCategories } from '@/hooks/use-jobs';
 import type { JobSearchParams } from '@/services/api/contracts-jobs-service';
+import { JobCompanyFilter } from './JobCompanyFilter';
 import {
   datePostedLabels,
   employmentTypeLabels,
@@ -13,6 +17,7 @@ import {
   jobsStrings,
   workplaceTypeLabels,
 } from '../labels';
+import { prettifyFilterValue } from '../search-params';
 
 /**
  * The filter panel body, shared verbatim between the desktop sidebar and the
@@ -29,9 +34,20 @@ interface CheckboxGroupProps {
   options: Record<string, string>;
   selected: string[];
   onChange: (next: string[]) => void;
+  /** Live totals per option, shown as a trailing badge where known. */
+  counts?: Record<string, number>;
+  /** Renders placeholder rows instead of options while the list loads. */
+  loading?: boolean;
 }
 
-function CheckboxGroup({ legend, options, selected, onChange }: CheckboxGroupProps) {
+function CheckboxGroup({
+  legend,
+  options,
+  selected,
+  onChange,
+  counts,
+  loading,
+}: CheckboxGroupProps) {
   // This panel is mounted in both the desktop sidebar and the mobile drawer,
   // so a static id would exist twice in the DOM and a label click in the
   // drawer would resolve to the hidden sidebar instance. useId is unique per
@@ -47,26 +63,42 @@ function CheckboxGroup({ legend, options, selected, onChange }: CheckboxGroupPro
   return (
     <fieldset className="space-y-2">
       <legend className="mb-2 text-sm font-medium">{legend}</legend>
-      {Object.entries(options).map(([value, label]) => {
-        // The legend is an Arabic label that can contain spaces (e.g.
-        // "مكان العمل"), and spaces are invalid inside an HTML id — which
-        // would break the Label htmlFor and stop label clicks from toggling
-        // the checkbox. Slugifying keeps the id readable; the uid prefix
-        // keeps it unique.
-        const id = `${uid}-${legend.replace(/\s+/g, '-')}-${value}`;
-        return (
-          <div key={value} className="flex items-center gap-2">
-            <Checkbox
-              id={id}
-              checked={selected.includes(value)}
-              onCheckedChange={() => toggle(value)}
-            />
-            <Label htmlFor={id} className="cursor-pointer text-sm font-normal">
-              {label}
-            </Label>
-          </div>
-        );
-      })}
+      {loading ? (
+        // Placeholder rows match the height of a real option so the panel does
+        // not jump when the list arrives.
+        <div className="space-y-2" aria-hidden="true">
+          {[0, 1, 2].map((row) => (
+            <Skeleton key={row} className="h-5 w-full" />
+          ))}
+        </div>
+      ) : (
+        Object.entries(options).map(([value, label]) => {
+          // The legend is an Arabic label that can contain spaces (e.g.
+          // "مكان العمل"), and spaces are invalid inside an HTML id — which
+          // would break the Label htmlFor and stop label clicks from toggling
+          // the checkbox. Slugifying keeps the id readable; the uid prefix
+          // keeps it unique.
+          const id = `${uid}-${legend.replace(/\s+/g, '-')}-${value}`;
+          const count = counts?.[value];
+          return (
+            <div key={value} className="flex items-center gap-2">
+              <Checkbox
+                id={id}
+                checked={selected.includes(value)}
+                onCheckedChange={() => toggle(value)}
+              />
+              <Label htmlFor={id} className="cursor-pointer text-sm font-normal">
+                {label}
+              </Label>
+              {count !== undefined ? (
+                <span className="ms-auto text-xs text-muted-foreground">
+                  {count.toLocaleString('ar-EG')}
+                </span>
+              ) : null}
+            </div>
+          );
+        })
+      )}
     </fieldset>
   );
 }
@@ -83,8 +115,57 @@ export function JobFilters({
   // Same rationale as CheckboxGroup: the panel is rendered per surface.
   const uid = React.useId();
 
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } =
+    useJobCategories();
+
+  /**
+   * Why only the category and company groups are data-driven.
+   *
+   * `jobType`, `workplace`, `experience` and `datePosted` are closed enums in
+   * the API contract: swagger enumerates their accepted values, and datePosted
+   * takes only 1, 3, 7 or 30. Their option sets cannot change without a
+   * coordinated deploy, so listing them statically keeps the panel paintable
+   * with zero requests. Categories and companies are open sets owned by the
+   * data — a category shows up the moment an employer posts under it, and an
+   * employer the moment a company signs up — so those two are fetched from
+   * /jobs/categories and /companies.
+   */
+  const categoryOptions = React.useMemo(() => {
+    const options: Record<string, string> = {};
+    const counts: Record<string, number> = {};
+
+    for (const item of categories ?? []) {
+      options[item.category] = prettifyFilterValue(item.category);
+      counts[item.category] = item.count;
+    }
+    // A shared link can carry a category with no open posting left, so
+    // /jobs/categories no longer returns it. Without this merge the only way to
+    // drop that filter would be the clear-all button.
+    for (const selected of filters.category ?? []) {
+      if (!(selected in options)) options[selected] = prettifyFilterValue(selected);
+    }
+
+    return { options, counts };
+  }, [categories, filters.category]);
+
   return (
     <div className="space-y-6">
+      {/*
+        Remote is a switch, not a checkbox: the API documents it as shorthand for
+        workplace=REMOTE, so presenting it as a third workplace option would make
+        the two controls contradict each other.
+      */}
+      <div className="flex items-center justify-between gap-3">
+        <Label htmlFor={`${uid}-remote`} className="cursor-pointer text-sm font-medium">
+          {jobsStrings.remoteOnly}
+        </Label>
+        <Switch
+          id={`${uid}-remote`}
+          checked={filters.remote === true}
+          onCheckedChange={(checked) => onChange({ remote: checked ? true : undefined })}
+        />
+      </div>
+
       <CheckboxGroup
         legend={jobsStrings.workplace}
         options={workplaceTypeLabels}
@@ -105,6 +186,24 @@ export function JobFilters({
         selected={filters.experience ?? []}
         onChange={(experience) => onChange({ experience })}
       />
+
+      {/*
+        A failed /jobs/categories request hides this section rather than showing
+        an empty box: every other filter still works, and the chips row keeps an
+        already-applied category visible and removable.
+      */}
+      {categoriesError ? null : (
+        <CheckboxGroup
+          legend={jobsStrings.category}
+          options={categoryOptions.options}
+          counts={categoryOptions.counts}
+          loading={categoriesLoading}
+          selected={filters.category ?? []}
+          onChange={(category) => onChange({ category })}
+        />
+      )}
+
+      <JobCompanyFilter filters={filters} onChange={onChange} />
 
       <fieldset className="space-y-2">
         <legend className="mb-2 text-sm font-medium">{jobsStrings.datePosted}</legend>

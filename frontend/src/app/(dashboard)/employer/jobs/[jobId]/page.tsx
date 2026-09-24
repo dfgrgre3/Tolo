@@ -2,11 +2,12 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, Trash2 } from 'lucide-react';
+import { Copy, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,7 +47,14 @@ import {
   jobPostingStatusStyles,
   jobsStrings,
 } from '@/features/jobs/labels';
-import type { JobPostingStatus } from '@/types/job';
+import {
+  JOB_QUESTION_PROMPT_MAX,
+  JOB_QUESTIONS_MAX,
+  validateQuestionDrafts,
+  type QuestionDraftError,
+} from '@/features/jobs/questions';
+import { generateId } from '@/lib/utils';
+import type { JobPostingStatus, JobQuestion } from '@/types/job';
 
 /**
  * Job edit form + lifecycle actions.
@@ -223,6 +231,14 @@ interface JobFormValues {
   salaryMin?: number;
   salaryMax?: number;
   isSalaryVisible?: boolean;
+  /**
+   * The full question set is sent on every save — including an empty array —
+   * so removing the last question actually clears it on the server instead of
+   * reading as "field untouched". New rows get their id from generateId() the
+   * moment they are added: answers are keyed by that id, and minting it here
+   * keeps it stable across later edits without waiting for the save echo.
+   */
+  questions?: JobQuestion[];
 }
 
 /** The employer-editable slice of a Job the form hydrates from. */
@@ -232,6 +248,7 @@ type JobFormInitial = {
   companyId?: string;
   employmentType?: string;
   workplaceType?: string;
+  questions?: JobQuestion[];
 };
 
 function JobForm({
@@ -249,7 +266,19 @@ function JobForm({
     companyId: initial?.companyId ?? companies[0]?.id ?? '',
     title: initial?.title ?? '',
     description: (initial?.description as string) ?? '',
+    questions: initial?.questions ?? [],
   });
+
+  // Per-row prompt errors, computed on every render — the set is capped at 10
+  // rows, so there is nothing here worth memoizing.
+  const questionErrors = validateQuestionDrafts(values.questions ?? []);
+  const hasQuestionErrors = Object.keys(questionErrors).length > 0;
+
+  const updateQuestion = (id: string, patch: Partial<JobQuestion>) =>
+    setValues((s) => ({
+      ...s,
+      questions: (s.questions ?? []).map((q) => (q.id === id ? { ...q, ...patch } : q)),
+    }));
 
   return (
     <Card>
@@ -341,9 +370,92 @@ function JobForm({
           </div>
         </div>
 
+        <div className="space-y-3 border-t pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <Label>{jobsStrings.screeningQuestions}</Label>
+              <p className="text-xs text-muted-foreground">
+                {jobsStrings.screeningQuestionsHint}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={(values.questions ?? []).length >= JOB_QUESTIONS_MAX}
+              onClick={() =>
+                setValues((s) => ({
+                  ...s,
+                  questions: [
+                    ...(s.questions ?? []),
+                    { id: generateId(), prompt: '', required: false },
+                  ],
+                }))
+              }
+            >
+              <Plus className="h-4 w-4" />
+              {jobsStrings.addQuestion}
+            </Button>
+          </div>
+          {(values.questions ?? []).length >= JOB_QUESTIONS_MAX ? (
+            <p className="text-xs text-muted-foreground">
+              {jobsStrings.questionsMaxReached}
+            </p>
+          ) : null}
+
+          {(values.questions ?? []).map((question, index) => (
+            <div key={question.id} className="space-y-2 rounded-md border p-3">
+              <div className="flex items-start gap-2">
+                <Textarea
+                  rows={2}
+                  maxLength={JOB_QUESTION_PROMPT_MAX}
+                  className="flex-1"
+                  placeholder={jobsStrings.questionPromptPlaceholder}
+                  value={question.prompt}
+                  aria-label={`${jobsStrings.screeningQuestions} ${index + 1}`}
+                  aria-invalid={!!questionErrors[index]}
+                  onChange={(e) => updateQuestion(question.id, { prompt: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={jobsStrings.removeQuestion}
+                  onClick={() =>
+                    setValues((s) => ({
+                      ...s,
+                      questions: (s.questions ?? []).filter((q) => q.id !== question.id),
+                    }))
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <label
+                htmlFor={`question-required-${question.id}`}
+                className="flex items-center gap-2 text-sm"
+              >
+                <Checkbox
+                  id={`question-required-${question.id}`}
+                  checked={question.required ?? false}
+                  onCheckedChange={(checked) =>
+                    updateQuestion(question.id, { required: checked === true })
+                  }
+                />
+                {jobsStrings.questionRequired}
+              </label>
+              {questionErrors[index] ? (
+                <p className="text-xs text-destructive">
+                  {QUESTION_ERROR_LABELS[questionErrors[index]]}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
         <div className="flex justify-end">
           <Button
-            disabled={submitting || !values.companyId || !values.title}
+            disabled={submitting || !values.companyId || !values.title || hasQuestionErrors}
             onClick={() => onSubmit(values)}
           >
             {submitting ? jobsStrings.saving : jobsStrings.saveJob}
@@ -361,6 +473,12 @@ const EMPLOYMENT_TYPES: Record<string, string> = {
   TEMPORARY: 'مؤقت',
   INTERNSHIP: 'تدريب',
   FREELANCE: 'عمل حر',
+};
+
+const QUESTION_ERROR_LABELS: Record<QuestionDraftError, string> = {
+  tooShort: jobsStrings.questionTooShort,
+  tooLong: jobsStrings.questionTooLong,
+  duplicateId: jobsStrings.questionDuplicate,
 };
 
 const WORKPLACE_TYPES: Record<string, string> = {

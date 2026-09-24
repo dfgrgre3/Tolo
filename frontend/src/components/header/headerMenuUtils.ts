@@ -67,11 +67,35 @@ function buildMobileSearchResults(navItems: NavItemWithMegaMenu[]): MobileSearch
 // ─── Public API ──────────────────────────────────────────────────
 
 /**
- * تصفية عناصر التنقل الرئيسية لاستخدامها في قائمة الموبايل
- * (تستبعد الصفحة الرئيسية لأنها موجودة أصلاً تحت الشعار)
+ * بناء عناصر القائمة الجانبية للموبايل بترتيب الظهور:
+ * 1. عناصر الصف الأول (المدارس وميجامنيوها) — تظهر أولاً لأن الديسكتوب
+ *    يعرضها في صف مستقل أعلى الهيدر.
+ * 2. عناصر التنقل الرئيسية (المزيد / التدريس على Tolo / وظائف Tolo ...).
+ * 3. الروابط السريعة الثابتة (التدريس على Tolo / وظائف Tolo) كشبكة أمان
+ *    قبل وصول رد الـ API أو عند تعذّره.
+ *
+ * تُستبعد الرئيسية (موجودة تحت الشعار) ويُمنع تكرار نفس الوجهة أو نفس
+ * العنوان، حتى لا يظهر العنصر مرتين إذا أرسله الـ API وأضافه الـ frontend.
  */
-export function buildMobileNavItems(navItems: NavItemWithMegaMenu[]): NavItemWithMegaMenu[] {
-	return navItems.filter((item) => item.href !== "/");
+export function buildMobileNavItems(
+	navItems: NavItemWithMegaMenu[],
+	headerNavItems: NavItemWithMegaMenu[] = [],
+	quickLinks: NavItemWithMegaMenu[] = []
+): NavItemWithMegaMenu[] {
+	const seen = new Set<string>();
+	const items: NavItemWithMegaMenu[] = [];
+
+	for (const item of [...headerNavItems, ...navItems, ...quickLinks]) {
+		if (item.href === "/") continue;
+
+		const dedupeKeys = [createDedupeKey(item.href, item.label), `label::${item.label}`];
+		if (dedupeKeys.some((key) => seen.has(key))) continue;
+
+		for (const key of dedupeKeys) seen.add(key);
+		items.push(item);
+	}
+
+	return items;
 }
 
 /**

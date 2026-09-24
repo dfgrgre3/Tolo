@@ -3,22 +3,25 @@ import { client, type components } from '@/lib/api/generated-client';
 
 type Schemas = components['schemas'];
 
+// swag names each schema after the Go import path used at its reference
+// site; the application DTO package is imported unaliased by the jobs
+// handlers currently referencing these types, hence the full-path prefix.
 export type ContractJobListResponse =
-  Schemas['authdto.JobListResponse'];
+  Schemas['thanawy-backend_internal_application_dto.JobListResponse'];
 export type ContractJobDetailResponse =
-  Schemas['authdto.JobDetailResponse'];
+  Schemas['thanawy-backend_internal_application_dto.JobDetailResponse'];
 export type ContractCompanyListResponse =
-  Schemas['authdto.CompanyListResponse'];
+  Schemas['thanawy-backend_internal_application_dto.CompanyListResponse'];
 export type ContractCompanyDetailResponse =
-  Schemas['authdto.CompanyDetailResponse'];
+  Schemas['thanawy-backend_internal_application_dto.CompanyDetailResponse'];
 export type ContractSavedJobListResponse =
-  Schemas['authdto.SavedJobListResponse'];
+  Schemas['thanawy-backend_internal_application_dto.SavedJobListResponse'];
 export type ContractJobApplicationListResponse =
-  Schemas['authdto.JobApplicationListResponse'];
+  Schemas['thanawy-backend_internal_application_dto.JobApplicationListResponse'];
 export type ContractJobApplicationDetailResponse =
-  Schemas['authdto.JobApplicationDetailResponse'];
+  Schemas['thanawy-backend_internal_application_dto.JobApplicationDetailResponse'];
 export type ContractJobsOverviewResponse =
-  Schemas['authdto.JobsOverviewResponse'];
+  Schemas['thanawy-backend_internal_application_dto.JobsOverviewResponse'];
 
 /**
  * Search filters, mirroring the backend's accepted query params.
@@ -170,9 +173,9 @@ export function contractWithdrawApplication(id: string) {
 // decides whether the caller may act on it.
 
 export type ContractEmployerJobListResponse =
-  Schemas['authdto.EmployerJobListResponse'];
+  Schemas['thanawy-backend_internal_application_dto.EmployerJobListResponse'];
 export type ContractEmployerJobDetailResponse =
-  Schemas['authdto.EmployerJobDetailResponse'];
+  Schemas['thanawy-backend_internal_application_dto.EmployerJobDetailResponse'];
 
 export function contractListMyCompanies() {
   return client.GET('/api/v1/employer/companies', {});
@@ -222,6 +225,14 @@ export interface EmployerJobInput {
   salaryPeriod?: string;
   isSalaryVisible?: boolean;
   expiresAt?: string;
+  /**
+   * Screening questions asked to every applicant of this posting.
+   *
+   * Omit the id only for a question being added now — the backend mints one
+   * and returns it with the saved posting. Keep the id when editing so the
+   * answers already stored against the question stay reachable.
+   */
+  questions?: components['schemas']['internal_infrastructure_api_handlers_jobs.EmployerJobQuestion'][];
 }
 
 export function contractListEmployerJobs(params?: {

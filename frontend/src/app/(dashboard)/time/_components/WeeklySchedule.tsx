@@ -144,7 +144,18 @@ export default function WeeklySchedule({
   }, [timeBlocks, currentWeek]);
 
   const saveSchedule = useCallback(async () => {
+    // Preserve sibling keys written by other consumers (e.g. `dailyPlans` from
+    // the smart planner) instead of overwriting planJson wholesale.
+    const base: Record<string, unknown> = {};
+    try {
+      const existing = JSON.parse(schedule?.planJson ?? '') as unknown;
+      if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+        Object.assign(base, existing);
+      }
+    } catch { /* legacy/empty shapes carry nothing to preserve */ }
+
     const scheduleData = {
+      ...base,
       timeBlocks,
       lastUpdated: new Date().toISOString(),
       version: '2.0'

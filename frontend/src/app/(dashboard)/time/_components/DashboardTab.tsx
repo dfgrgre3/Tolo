@@ -17,17 +17,21 @@ import {
   ShieldAlert } from
 'lucide-react';
 import { formatTime } from '../utils/timeUtils';
-import type { Task, Reminder, StudySession, TimeStats } from '../types';
+import type { Task, Reminder, StudySession, Schedule, TimeStats } from '../types';
 import QuickActions from './QuickActions';
 import UpcomingTasksCard from './UpcomingTasksCard';
 import UpcomingRemindersCard from './UpcomingRemindersCard';
 import MasterySystem from './MasterySystem';
 import StudyAdvisor from './StudyAdvisor';
+import SmartPlannerSection from './dashboard/SmartPlannerSection';
 
 interface DashboardTabProps {
   stats: TimeStats;
   subjects: string[];
   tasks: Task[];
+  /** Unfiltered task list — the planner must see every open task. */
+  plannerTasks?: Task[];
+  schedule: Schedule | null;
   reminders: Reminder[];
   studySessions: StudySession[];
   showCompletedTasks: boolean;
@@ -41,6 +45,8 @@ interface DashboardTabProps {
 export default function DashboardTab({
   stats,
   tasks,
+  plannerTasks,
+  schedule,
   reminders,
   studySessions,
   showCompletedTasks,
@@ -76,6 +82,14 @@ export default function DashboardTab({
         <MasterySystem stats={stats} />
         <StudyAdvisor stats={stats} />
       </m.div>
+
+      {/* Smart Planner: Now/Next/Later, workload, advisor, daily plan */}
+      <SmartPlannerSection
+        schedule={schedule}
+        tasks={plannerTasks ?? tasks}
+        studySessions={studySessions}
+        onTimerToggle={onTimerToggle}
+      />
 
       {/* RPG Stats Indicators (Minified) */}
       <m.div

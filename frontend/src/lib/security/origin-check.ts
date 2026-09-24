@@ -38,10 +38,20 @@ function isLocalHost(hostname: string): boolean {
  * Canonicalize an origin string so protocol/host/port comparison is
  * deterministic: lowercased host, default ports omitted, no trailing slash.
  * Returns null when the input is not a parseable absolute URL.
+ *
+ * Development-only relaxation: a dev server is routinely browsed as both
+ * `localhost` and `127.0.0.1` (same machine, same port), so loopback
+ * hostnames normalize to one canonical name. The port still must match, and
+ * production keeps the strict exact-origin comparison above.
  */
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
 function canonicalizeOrigin(raw: string): string | null {
   try {
     const url = new URL(raw);
+    if (!IS_PRODUCTION && isLocalHost(url.hostname)) {
+      url.hostname = "localhost";
+    }
     // URL already strips default ports (80/443) and lowercases hostname.
     return url.origin.toLowerCase();
   } catch {
@@ -57,6 +67,22 @@ function canonicalizeOrigin(raw: string): string | null {
  * set (typically local development).
  */
 function getCanonicalOrigin(request: Request): string | null {
+  // In development/test, derive the canonical origin from the request URL
+  // itself instead of NEXT_PUBLIC_BASE_URL. The dev server is routinely
+  // browsed through multiple addresses (localhost, 127.0.0.1, or a LAN IP
+  // like http://192.168.1.15:3000), and pinning the canonical origin to a
+  // single configured value rejects genuine same-origin requests arriving
+  // through any of the other addresses. The Origin/Referer header must
+  // still match the request origin exactly, which browsers guarantee for
+  // real same-origin requests, so CSRF protection is preserved.
+  if (!IS_PRODUCTION) {
+    try {
+      return canonicalizeOrigin(new URL(request.url).origin);
+    } catch {
+      // fall through to the configured/fallback logic below
+    }
+  }
+
   const configured = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (configured) {
     return canonicalizeOrigin(configured);

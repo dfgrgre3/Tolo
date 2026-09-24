@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchUserProfile } from "@/features/auth/api";
+import { dashboardProfile } from "@/lib/query/query-profiles";
 import { useAuthContext } from "@/contexts/auth-context";
 
 export interface UserProfileData {
@@ -27,7 +28,7 @@ export function useProfileData(): UseProfileDataResult {
   const query = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: () => fetchUserProfile<UserProfileData>(),
-    enabled: Boolean(userId), staleTime: 60_000, gcTime: 10 * 60_000,
+    enabled: Boolean(userId), ...dashboardProfile,
   });
   return {
     profile: userId ? query.data ?? null : null,

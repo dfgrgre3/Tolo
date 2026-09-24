@@ -41,6 +41,13 @@ interface TimeTrackerState {
   currentPomodoroState: PomodoroState;
   pomodoroCount: number;
   sessionStartTime: string | null;
+  /**
+   * Timestamp-based timing (drift/sleep/refresh safe):
+   * elapsed = elapsedBeforeCurrentRun + (now - phaseStartedAt) while running.
+   */
+  phaseStartedAt: number | null;
+  /** Seconds accumulated while paused (before the current running stretch). */
+  elapsedBeforeCurrentRun: number;
 
   // Context
   activeTaskId: string | null;
@@ -94,6 +101,8 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
       currentPomodoroState: 'work',
       pomodoroCount: 0,
       sessionStartTime: null,
+      phaseStartedAt: null,
+      elapsedBeforeCurrentRun: 0,
       activeTaskId: null,
       activeTaskTitle: null,
       activeCourseId: null,
@@ -106,11 +115,22 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
         set({
           isRunning: true,
           sessionStartTime: state.sessionStartTime || new Date().toISOString(),
+          // Resume from accumulated elapsed; never restart the phase clock.
+          phaseStartedAt: Date.now(),
         });
       },
 
       pauseTimer: () => {
-        set({ isRunning: false });
+        const state = get();
+        const now = Date.now();
+        set({
+          isRunning: false,
+          elapsedBeforeCurrentRun:
+            state.phaseStartedAt !== null
+              ? state.elapsedBeforeCurrentRun + (now - state.phaseStartedAt) / 1000
+              : state.elapsedBeforeCurrentRun,
+          phaseStartedAt: null,
+        });
       },
 
       resetTimer: () => {
@@ -119,6 +139,8 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           isRunning: false,
           timeLeft: getDuration(currentPomodoroState, settings),
           sessionStartTime: null,
+          phaseStartedAt: null,
+          elapsedBeforeCurrentRun: 0,
         });
       },
 
@@ -126,13 +148,21 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
         const state = get();
         if (!state.isRunning) return;
 
-        const newTimeLeft = state.timeLeft - 1;
+        // Timestamp-based countdown: immune to interval drift, tab throttling,
+        // device sleep, and page refresh (elapsed is derived, never decremented).
+        const now = Date.now();
+        const elapsed =
+          state.elapsedBeforeCurrentRun +
+          (state.phaseStartedAt !== null ? (now - state.phaseStartedAt) / 1000 : 0);
+        const total = getDuration(state.currentPomodoroState, state.settings);
+        const timeLeft = Math.max(0, Math.ceil(total - elapsed));
 
-        if (newTimeLeft <= 0) {
+        if (timeLeft <= 0) {
           // Complete the current session
+          set({ timeLeft: 0 });
           get().completeSession();
-        } else {
-          set({ timeLeft: newTimeLeft });
+        } else if (timeLeft !== state.timeLeft) {
+          set({ timeLeft });
         }
       },
 
@@ -196,13 +226,16 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           const isCustom = customDurationMin !== undefined;
           const newCount = pomodoroCount + (isCustom ? 0 : 1);
           const nextState: PomodoroState = newCount % settings.goalTarget === 0 ? 'longBreak' : 'shortBreak';
+          const autoStartNext = isCustom ? false : settings.autoStartBreak;
 
           set({
             pomodoroCount: newCount,
             currentPomodoroState: isCustom ? 'work' : nextState,
             timeLeft: getDuration(isCustom ? 'work' : nextState, settings),
-            isRunning: isCustom ? false : settings.autoStartBreak,
-            sessionStartTime: (isCustom ? false : settings.autoStartBreak) ? new Date().toISOString() : null,
+            isRunning: autoStartNext,
+            sessionStartTime: autoStartNext ? new Date().toISOString() : null,
+            phaseStartedAt: autoStartNext ? Date.now() : null,
+            elapsedBeforeCurrentRun: 0,
             sessions: [newSession, ...get().sessions].slice(0, 100),
           });
         } else {
@@ -212,6 +245,8 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
             timeLeft: getDuration('work', settings),
             isRunning: settings.autoStartBreak,
             sessionStartTime: settings.autoStartBreak ? new Date().toISOString() : null,
+            phaseStartedAt: settings.autoStartBreak ? Date.now() : null,
+            elapsedBeforeCurrentRun: 0,
           });
         }
       },
@@ -248,6 +283,8 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
           timeLeft: getDuration(nextState, settings),
           isRunning: false,
           sessionStartTime: null,
+          phaseStartedAt: null,
+          elapsedBeforeCurrentRun: 0,
         });
       },
 
@@ -293,10 +330,27 @@ export const useTimeTrackerStore = create<TimeTrackerState>()(
         activeCourseTitle: state.activeCourseTitle,
         sessions: state.sessions,
         settings: state.settings,
-        // Don't persist isRunning — always start paused after refresh
-        isRunning: false,
-        sessionStartTime: null,
+        // Persist the real timing state: the countdown is recomputed from
+        // timestamps on rehydrate, so refresh/sleep never corrupts the timer.
+        isRunning: state.isRunning,
+        sessionStartTime: state.sessionStartTime,
+        phaseStartedAt: state.phaseStartedAt,
+        elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state || !state.sessionStartTime) return;
+        const now = Date.now();
+        const elapsed =
+          state.elapsedBeforeCurrentRun +
+          (state.isRunning && state.phaseStartedAt !== null
+            ? (now - state.phaseStartedAt) / 1000
+            : 0);
+        const total = getDuration(state.currentPomodoroState, state.settings);
+        const timeLeft = Math.max(0, Math.ceil(total - elapsed));
+        // If the phase expired while the page was closed, the next tick()
+        // (timeLeft === 0) finalizes it through completeSession().
+        useTimeTrackerStore.setState({ timeLeft });
+      },
     }
   )   // closes persist(...)
   )   // closes subscribeWithSelector(...)

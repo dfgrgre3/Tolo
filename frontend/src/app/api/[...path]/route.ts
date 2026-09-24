@@ -7,6 +7,7 @@ import { decodeStorageSegments, isPublicStorageBucket, FORWARDED_COOKIE_NAMES } 
 import { getUpstreamAuthorization, resolveTrustedClientIp } from '@/lib/security/policy/auth-policy';
 import { isSameOriginRequest } from '@/lib/security/origin-check';
 import { logger } from '@/lib/logging/unified-logger';
+import { clearAuthCookies } from '@/proxy-pipeline/cookies';
 
 // =============================================================================
 // Configuration
@@ -609,7 +610,27 @@ async function handleProxy(
         excerpt: errorText.substring(0, 200),
       });
 
-      return handleErrorResponse(response, errorText);
+      const errorResponse = handleErrorResponse(response, errorText);
+
+      // A 401 from the session-probe endpoint while the request presented an
+      // access token is the backend — the session authority — saying "this
+      // token is not a session" (revoked, signed by a rotated key, or
+      // otherwise rejected). Expire the stale auth cookies so the browser
+      // stops sending them; otherwise the root layout keeps reporting
+      // hasSessionHint and /auth/me re-401s on every page load.
+      //
+      // Scoped to /auth/me deliberately: other 401s (login, reauthenticate,
+      // MFA) happen inside credential flows where a *valid* session may
+      // exist alongside the failed attempt and must not be wiped.
+      if (
+        response.status === 401 &&
+        path === 'v1/auth/me' &&
+        request.cookies.has('access_token')
+      ) {
+        clearAuthCookies(errorResponse, request);
+      }
+
+      return errorResponse;
     }
 
     const responseHeaders = copyResponseHeaders(response, 'no-store');

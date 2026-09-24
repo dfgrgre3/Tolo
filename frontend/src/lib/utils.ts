@@ -258,3 +258,31 @@ export function toggleThemeWithTransition(
   }
   setTheme(theme);
 }
+
+/**
+ * True when visual effects have been deliberately suppressed — either the
+ * device is in one of the efficiency modes (see `use-efficiency`) or the
+ * visitor asked the OS for reduced motion.
+ *
+ * Overlays that stay mounted for the length of an exit animation (MegaMenu,
+ * the mobile drawer) must check this before waiting: `@layer base` rules like
+ * `.efficiency-mode * { transform: none !important; opacity: 1 !important }`
+ * outrank the transition opt-in in globals.css, because important
+ * declarations inside a cascade layer beat unlayered important ones. There is
+ * therefore no animation to wait for, and holding the node would just park a
+ * fully opaque overlay on screen.
+ */
+export function prefersInstantEffects(): boolean {
+  if (typeof document === "undefined") return false;
+
+  const root = document.documentElement;
+  if (
+    root.classList.contains("efficiency-mode") ||
+    root.classList.contains("ultra-lite-mode") ||
+    root.classList.contains("lite-mode")
+  ) {
+    return true;
+  }
+
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}

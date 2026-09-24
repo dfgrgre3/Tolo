@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { MegaMenuProps } from "./types";
 import { MegaMenuContent } from "./MegaMenuContent";
 import { HeaderMenuTrigger } from "@/components/navigation";
-import { cn } from "@/lib/utils";
+import { cn, prefersInstantEffects } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { trackMegaMenuRaw } from "@/features/discovery/api/discovery-gateway";
 import { repairMojibake } from "@/lib/i18n/repair-mojibake";
@@ -99,7 +99,13 @@ export function MegaMenu({
   const [isRendered, setIsRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const closeAnimationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const CLOSE_ANIMATION_MS = 120;
+  /**
+   * Must stay >= the panel's exit transition in globals.css
+   * (`[data-mega-menu-content]` animates opacity/transform for 180ms).
+   * Unmounting earlier truncates the fade-out mid-flight, which reads as a
+   * flicker; leaving it longer just keeps an invisible node alive.
+   */
+  const CLOSE_ANIMATION_MS = 200;
 
   /**
    * The portal container is inserted immediately AFTER the <header> element
@@ -153,10 +159,13 @@ export function MegaMenu({
     }
 
     setIsVisible(false);
+    // Efficiency modes and reduced motion strip `transform`/`opacity` from the
+    // panel via `!important`, so there is no exit animation to wait for.
+    const exitDelay = prefersInstantEffects() ? 0 : CLOSE_ANIMATION_MS;
     closeAnimationRef.current = setTimeout(() => {
       setIsRendered(false);
       closeAnimationRef.current = null;
-    }, CLOSE_ANIMATION_MS);
+    }, exitDelay);
     return () => {
       if (closeAnimationRef.current) {
         clearTimeout(closeAnimationRef.current);
@@ -282,7 +291,8 @@ export function MegaMenu({
       <div
         data-mega-menu-backdrop
         className={cn(
-          "fixed left-0 right-0 bottom-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm transition-opacity duration-100 ease-out",
+          // Fade timing comes from globals.css (`[data-mega-menu-backdrop]`).
+          "fixed left-0 right-0 bottom-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm",
           isRendered ? (isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none") : "hidden"
         )}
         style={{ zIndex: safeZIndex - 1, top: anchorTop }}
@@ -302,7 +312,15 @@ export function MegaMenu({
           aria-label={repairMojibake(label)}
           dir={direction}
           className={cn(
-            "fixed left-0 right-0 transition-[opacity,transform] duration-100 ease-out will-change-transform",
+            // Motion lives in globals.css under `[data-mega-menu-content]`: the
+            // app-wide `* { transition: none !important }` policy outranks any
+            // untagged utility class, so `duration-*`/`ease-*` here would be
+            // dead weight (see MegaMenuContainer for the same reasoning).
+            "fixed left-0 right-0",
+            // No `scale` here on purpose: the panel spans `left-0 right-0`, so
+            // scaling it down would pull its edges inward and flash the page
+            // background down both sides while opening. Plain fade + 4px slide
+            // reads just as smooth and keeps the full-bleed edges pinned.
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
           )}
           style={{ zIndex: safeZIndex, top: anchorTop }}

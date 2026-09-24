@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React, { useState, Suspense, useEffect } from "react";
-import { m } from "framer-motion";
 import { CheckCircle2, ArrowRight, Download, LayoutDashboard, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -9,14 +8,14 @@ import { toast } from "sonner";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
 import { fetchPaymentByOrderRaw } from "@/features/payments/api/payments-gateway";
-import { formatEGP } from "@/lib/payments";
+import { formatEGP } from "@/features/payments";
 
 export default function PaymentSuccessPage() {
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-transparent flex items-center justify-center">
-          <div className="h-12 w-12 border-t-2 border-emerald-500 rounded-full animate-spin" />
+          <div className="h-12 w-12 border-t-2 border-emerald-500 rounded-full" />
         </div>
       }
     >
@@ -102,14 +101,11 @@ function PaymentSuccessContent() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-green-500" />
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-        <m.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", damping: 12, stiffness: 200 }}
+        <div
           className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-400 shadow-[0_0_30px_rgba(34,197,94,0.2)]"
         >
           <CheckCircle2 size={48} />
-        </m.div>
+        </div>
 
         <h1 className="text-3xl font-black mb-4">تم تفعيل اشتراكك!</h1>
         <p className="text-gray-400 font-medium mb-8 leading-relaxed">
@@ -123,7 +119,7 @@ function PaymentSuccessContent() {
             </div>
             {verifyState === "verifying" && (
               <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-400">
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={16} />
                 جاري التحقق من حالة الدفع...
               </div>
             )}
@@ -141,10 +137,10 @@ function PaymentSuccessContent() {
             <button
               onClick={startDownload}
               disabled={downloading}
-              className="w-full py-4 border border-primary/30 bg-primary/10 text-primary rounded-2xl flex items-center justify-center gap-3 font-black hover:bg-primary/20 transition-all disabled:opacity-50"
+              className="w-full py-4 border border-primary/30 bg-primary/10 text-primary rounded-2xl flex items-center justify-center gap-3 font-black hover:bg-primary/20 disabled:opacity-50"
             >
               {downloading ? (
-                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
               ) : (
                 <>
                   <Download size={18} />
@@ -177,14 +173,14 @@ function PaymentSuccessContent() {
         <div className="flex flex-col gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95"
+            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black shadow-lg"
           >
             الذهاب للوحة التحكم
             <ArrowRight size={18} className="rotate-180" />
           </Link>
           <Link
             href="/subscription"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl font-black text-sm transition-all"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl font-black text-sm"
           >
             <LayoutDashboard size={16} />
             عرض الاشتراك والفواتير

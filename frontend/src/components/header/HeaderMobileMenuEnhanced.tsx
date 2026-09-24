@@ -8,7 +8,7 @@ import { ChevronDown, Search, X, Moon, Sun, LogIn, UserPlus, LogOut } from "luci
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import type { NavItemWithMegaMenu } from "@/components/mega-menu/navData";
+import { mobileQuickNavItems, type NavItemWithMegaMenu } from "@/components/mega-menu/navData";
 import { buildMobileNavItems, buildMobileSearchResultsWithExtras } from "./headerMenuUtils";
 import type { MobileSearchResult } from "./headerMenuUtils";
 import { HeaderNavLink } from "@/components/navigation";
@@ -16,7 +16,7 @@ import { MobileSearchResultItem } from "./_components/MobileSearchResultItem";
 import { SearchLoadingState } from "./_components/SearchLoadingState";
 import type { SearchResult } from "./_components/search-types";
 import { SITE } from "@thanawy/shared/site-config";
-import { cn, toggleThemeWithTransition } from "@/lib/utils";
+import { cn, prefersInstantEffects, toggleThemeWithTransition } from "@/lib/utils";
 import { useTheme } from "@/providers/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { searchDirectoryRaw } from "@/features/discovery/api/discovery-gateway";
@@ -58,6 +58,17 @@ export function HeaderMobileMenuEnhanced({
 	const [apiResults, setApiResults] = useState<SearchResult[]>([]);
 	const [isApiSearching, setIsApiSearching] = useState(false);
 
+	// ── Mount/unmount animation state ───────────────
+	// The drawer has to stay mounted while it slides out; unmounting the
+	// instant `isMobileMenuOpen` flips false makes closing a hard cut with no
+	// exit animation. Same pattern the MegaMenu uses: render through the
+	// length of the exit transition, then drop the node.
+	const CLOSE_ANIMATION_MS = 300;
+	const [isRendered, setIsRendered] = useState(false);
+	const [isVisible, setIsVisible] = useState(false);
+	const closeAnimationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const hasOpenedRef = useRef(false);
+
 	// ── Close menu helper ─────────────────────────────────────────
 
 	const closeMobileMenu = useCallback(() => {
@@ -67,20 +78,78 @@ export function HeaderMobileMenuEnhanced({
 		setApiResults([]);
 	}, [setIsMobileMenuOpen]);
 
-	// ── Lock body scroll when open (without layout shift) ────────
-	// Mobile menu is a fullscreen drawer, so scroll lock is justified.
-	// We use scrollbar-gutter: stable on <html> (set in globals.css)
-	// so the scrollbar placeholder remains visible and no layout shift occurs.
+	// ── Open / close animation ──────────────────────────
+	// Mount the panel for the duration of the exit animation so that closing
+	// animates exactly like opening instead of vanishing.
 	useEffect(() => {
 		if (isMobileMenuOpen) {
-			document.body.style.overflow = "hidden";
-		} else {
-			document.body.style.overflow = "";
+			if (closeAnimationRef.current) {
+				clearTimeout(closeAnimationRef.current);
+				closeAnimationRef.current = null;
+			}
+			hasOpenedRef.current = true;
+			// Gated by the isMobileMenuOpen transition (not every render), needed
+			// to mount the panel one frame before the open transition runs; it
+			// does not cascade the way an unconditional effect setState would.
+			// eslint-disable-next-line react-hooks/set-state-in-effect
+			setIsRendered(true);
+			// إطار إضافي لضمان تطبيق حالة الإغلاق أولاً قبل الانتقال إلى الفتح
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+
+		setIsVisible(false);
+		// Nothing to animate out when effects are suppressed, so skip the wait.
+		const exitDelay = prefersInstantEffects() ? 0 : CLOSE_ANIMATION_MS;
+		closeAnimationRef.current = setTimeout(() => {
+			setIsRendered(false);
+			closeAnimationRef.current = null;
+		}, exitDelay);
+		return () => {
+			if (closeAnimationRef.current) {
+				clearTimeout(closeAnimationRef.current);
+				closeAnimationRef.current = null;
+			}
+		};
+	}, [isMobileMenuOpen]);
+
+	// ── Return focus to the hamburger when the drawer closes ───
+	// Focus sits inside the panel while it is open, and the panel is later
+	// marked inert/aria-hidden — leaving focus stranded inside a hidden
+	// subtree is what assistive tech reports as "aria-hidden on a focused
+	// element".
+	useEffect(() => {
+		if (isMobileMenuOpen) return;
+		// Never steal focus on first mount; only after the drawer was opened.
+		if (!hasOpenedRef.current) return;
+
+		const active = document.activeElement;
+		const isFocusStranded =
+			!active || active === document.body || !!active.closest?.("#mobile-menu");
+		if (!isFocusStranded) return;
+
+		document
+			.querySelector<HTMLElement>("[data-mobile-menu-trigger]")
+			?.focus({ preventScroll: true });
+	}, [isMobileMenuOpen]);
+
+	// ── Lock body scroll while the drawer is mounted ──────────
+	// Keyed on `isRendered`, not `isMobileMenuOpen`, so the page cannot
+	// scroll behind the drawer during its exit animation.
+	// `scrollbar-gutter: stable` on <html> (see globals.css) keeps the
+	// scrollbar space reserved, so locking causes no layout shift.
+	//
+	// Only the branch that locked unlocks (via its own cleanup). Clearing
+	// `overflow` unconditionally whenever the drawer is closed would stomp on
+	// a Radix dialog that locked the body before the drawer was ever opened.
+	useEffect(() => {
+		if (!isRendered) return;
+
+		document.body.style.overflow = "hidden";
 		return () => {
 			document.body.style.overflow = "";
 		};
-	}, [isMobileMenuOpen]);
+	}, [isRendered]);
 
 	// ── Close & reset on route change ─────────────────────────────
 	// The drawer holds transient state (expanded sections, search query,
@@ -116,12 +185,15 @@ export function HeaderMobileMenuEnhanced({
 	}, [closeMobileMenu, isMobileMenuOpen, mounted]);
 
 	// ── Focus trap & initial focus ────────────────────────────────
-
+	// Gated on `isRendered`, not `isMobileMenuOpen`: the panel is mounted one
+	// commit after the open flag flips (see the open/close animation effect),
+	// so keying off `isMobileMenuOpen` alone would run this while the ref is
+	// still null and the close button would never receive focus.
 	useEffect(() => {
-		if (!isMobileMenuOpen || !mobileMenuRef.current) return;
+		if (!isMobileMenuOpen || !isRendered || !mobileMenuRef.current) return;
 
 		// Move focus to close button when menu opens
-		setTimeout(() => closeButtonRef.current?.focus(), 50);
+		const focusTimer = setTimeout(() => closeButtonRef.current?.focus(), 50);
 
 		const panel = mobileMenuRef.current;
 		const FOCUSABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -155,8 +227,11 @@ export function HeaderMobileMenuEnhanced({
 		};
 
 		panel.addEventListener("keydown", handleKeyDown);
-		return () => panel.removeEventListener("keydown", handleKeyDown);
-	}, [isMobileMenuOpen, closeMobileMenu]);
+		return () => {
+			clearTimeout(focusTimer);
+			panel.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [isMobileMenuOpen, isRendered, closeMobileMenu]);
 
 	// ── Toggle mega menu section ──────────────────────────────────
 
@@ -181,15 +256,22 @@ export function HeaderMobileMenuEnhanced({
 
 	// ── Nav items & search ────────────────────────────────────────
 
-	const allNavItems = useMemo(() => buildMobileNavItems(navItems), [navItems]);
+	// القائمة الجانبية للهاتف تعرض عناصر الصف الأول (المدارس وميجامنيوها) أولاً
+	// لأن الديسكتوب يضعها في صف مستقل أعلى الهيدر، ثم عناصر التنقل القادمة من
+	// الـ API، ثم الروابط السريعة الثابتة (التدريس على Tolo / وظائف Tolo)
+	// حتى تظهر على الهاتف قبل وصول رد الـ API أو عند تعذّره.
+	const allNavItems = useMemo(
+		() => buildMobileNavItems(navItems, headerNavItems, mobileQuickNavItems),
+		[navItems, headerNavItems]
+	);
 
 	const searchResults = useMemo<MobileSearchResult[]>(() => {
 		const query = searchQuery.trim().toLowerCase();
 		if (!query) return [];
 
-		return buildMobileSearchResultsWithExtras(allNavItems, [
-			{ label: headerNavItems[0]?.label ?? "", categories: headerNavItems[0]?.megaMenu }
-		])
+		// allNavItems يحمل بالفعل المدارس وميجامنيوها والروابط السريعة، فلم
+		// تعد هناك حاجة لإضافة أقسام إضافية لنتائج البحث.
+		return buildMobileSearchResultsWithExtras(allNavItems)
 			.filter(
 				(entry) =>
 					entry.label.toLowerCase().includes(query) ||
@@ -197,7 +279,7 @@ export function HeaderMobileMenuEnhanced({
 					entry.section?.toLowerCase().includes(query)
 			)
 			.slice(0, 12);
-	}, [allNavItems, searchQuery, headerNavItems]);
+	}, [allNavItems, searchQuery]);
 
 	const handleSearch = useCallback(
 		(e: React.FormEvent) => {
@@ -285,13 +367,14 @@ export function HeaderMobileMenuEnhanced({
 
 	return (
 		<>
-			{isMobileMenuOpen && (
+			{isRendered && (
 			<>
 			{/* Backdrop */}
 			<div
+				data-mobile-menu-backdrop
 				className={cn(
 					"fixed inset-0 bg-black/65 dark:bg-black/80 z-[60] lg:hidden backdrop-blur-sm",
-					isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+					isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
 				)}
 				onClick={closeMobileMenu}
 				aria-hidden="true"
@@ -306,9 +389,12 @@ export function HeaderMobileMenuEnhanced({
 				aria-modal="true"
 				aria-label="قائمة التنقل"
 				className={cn(
-					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/90 dark:bg-background/80 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] ltr:pr-[env(safe-area-inset-right)] rtl:pl-[env(safe-area-inset-left)]",
-					isMobileMenuOpen ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full"
+					"fixed top-0 bottom-0 ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto w-[85%] max-w-sm bg-background/95 dark:bg-background/90 backdrop-blur-md z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl ltr:border-l rtl:border-r border-primary/10 shadow-primary/5 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] ltr:pr-[env(safe-area-inset-right)] rtl:pl-[env(safe-area-inset-left)]",
+					// الحركة نفسها تفرضها globals.css عبر [data-mobile-menu-panel]،
+					// لأن قاعدة الـ`*` العامة تُلغي أي transition غير مُعلَّم بـ !important.
+					isVisible ? "translate-x-0" : "ltr:translate-x-full rtl:-translate-x-full"
 				)}
+				inert={!isVisible}
 			>
 				{/* ── Header ──────────────────────────────────────── */}
 				<div className="flex items-center justify-between p-4 pb-2 border-b border-border/20">
@@ -347,7 +433,7 @@ export function HeaderMobileMenuEnhanced({
 				</div>
 
 				{/* ── Scrollable Content ──────────────────────────── */}
-				<div className="flex-1 overflow-y-auto overflow-x-hidden -webkit-overflow-scrolling: touch">
+				<div className="flex-1 overflow-y-auto overflow-x-hidden">
 					{/* Search */}
 					<div className="px-4 py-3">
 						<form onSubmit={handleSearch} className="relative">

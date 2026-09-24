@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   Search,
   Store,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -31,9 +32,10 @@ interface NavItem {
  * Navigation for the Jobs module.
  *
  * Only the sections backed by shipped routes appear here. The module's wider
- * information architecture (alerts, interviews, offers, career profile) is
- * intentionally absent rather than rendered as dead links — a nav entry that
- * leads nowhere is worse than no entry.
+ * information architecture (alerts, interviews, offers) is intentionally
+ * absent rather than rendered as dead links — a nav entry that leads nowhere
+ * is worse than no entry. The career profile is the exception that proves the
+ * rule: once /jobs/profile shipped, it earned its row.
  *
  * The employer console is the exception: every route below is backed by a
  * mounted page, so the section renders for signed-in visitors.
@@ -48,6 +50,12 @@ const SEEKER_NAV: NavItem[] = [
     icon: FileText,
     requiresAuth: true,
     badge: 'applied',
+  },
+  {
+    href: '/jobs/profile',
+    label: jobsStrings.careerProfile,
+    icon: User,
+    requiresAuth: true,
   },
   { href: '/jobs/companies', label: jobsStrings.companies, icon: Building2 },
 ];

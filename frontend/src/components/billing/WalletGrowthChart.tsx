@@ -14,11 +14,11 @@ export interface GrowthPoint {
   balance: number;
 }
 
-export default function WalletGrowthChart({ data }: { data: GrowthPoint[] }) {
+function WalletGrowthChart({ data }: { data: GrowthPoint[] }) {
   if (data.length <= 1) {
     return (
       <div className="h-[80%] flex flex-col items-center justify-center text-gray-500 gap-4">
-        <TrendingUp className="w-16 h-16 opacity-10 animate-pulse" />
+        <TrendingUp className="w-16 h-16 opacity-10" />
         <p className="text-sm font-bold opacity-40">بيانات النمو ستظهر هنا قريباً</p>
       </div>
     );
@@ -50,9 +50,14 @@ export default function WalletGrowthChart({ data }: { data: GrowthPoint[] }) {
           strokeWidth={6}
           fillOpacity={1}
           fill="url(#colorBalance)"
-          animationDuration={2500}
+          isAnimationActive={false}
         />
       </AreaChart>
     </ResponsiveContainer>
   );
 }
+
+const MemoizedWalletGrowthChart = React.memo(WalletGrowthChart);
+MemoizedWalletGrowthChart.displayName = "WalletGrowthChart";
+
+export default MemoizedWalletGrowthChart;

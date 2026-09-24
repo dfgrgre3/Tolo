@@ -21,7 +21,6 @@ import {
   Crown,
   ArrowUpLeft,
 } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
 
 type BillingTab = "wallet" | "upgrade";
 
@@ -54,13 +53,11 @@ function BillingPageContent() {
               role="tab"
               aria-selected={activeTab === "wallet"}
               onClick={() => switchTab("wallet")}
-              className={`relative flex items-center gap-3 px-8 md:px-10 py-4 rounded-[2rem] font-black transition-all duration-500 z-10 ${activeTab === "wallet" ? "text-gray-900" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+              className={`relative flex items-center gap-3 px-8 md:px-10 py-4 rounded-[2rem] font-black z-10 ${activeTab === "wallet" ? "text-gray-900" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
             >
               {activeTab === "wallet" &&
-                <m.div
-                  layoutId="activeTabBg"
-                  className="absolute inset-0 bg-white rounded-[2rem] shadow-2xl -z-10"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                <div
+                  className="absolute inset-0 bg-white rounded-[2rem] shadow-2xl -z-10" />
               }
               <Wallet className="w-5 h-5" />
               <span>المحفظة والفواتير</span>
@@ -70,13 +67,11 @@ function BillingPageContent() {
               role="tab"
               aria-selected={activeTab === "upgrade"}
               onClick={() => switchTab("upgrade")}
-              className={`relative flex items-center gap-3 px-8 md:px-10 py-4 rounded-[2rem] font-black transition-all duration-500 z-10 ${activeTab === "upgrade" ? "text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
+              className={`relative flex items-center gap-3 px-8 md:px-10 py-4 rounded-[2rem] font-black z-10 ${activeTab === "upgrade" ? "text-white" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"}`}
             >
               {activeTab === "upgrade" &&
-                <m.div
-                  layoutId="activeTabBg"
-                  className="absolute inset-0 bg-primary rounded-[2rem] shadow-[0_10px_30px_rgba(var(--primary-rgb),0.4)] -z-10"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                <div
+                  className="absolute inset-0 bg-primary rounded-[2rem] shadow-[0_10px_30px_rgba(var(--primary-rgb),0.4)] -z-10" />
               }
               <Sparkles className={`w-5 h-5 ${activeTab === "upgrade" ? "text-amber-300" : "text-amber-500"}`} />
               <span>ترقية الحساب</span>
@@ -97,36 +92,27 @@ function BillingPageContent() {
               key={s.href + s.title}
               href={s.href}
               onClick={s.href.includes("tab=upgrade") ? (e) => { e.preventDefault(); switchTab("upgrade"); } : undefined}
-              className={`group flex items-center gap-4 rounded-[1.8rem] border p-5 transition-all hover:-translate-y-1 ${
+              className={`group flex items-center gap-4 rounded-[1.8rem] border p-5 ${
                 s.active
                   ? "border-primary/40 bg-primary/5"
                   : "border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-primary/40 hover:bg-primary/5"
               }`}
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary transition-transform group-hover:scale-110">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary">
                 <s.icon size={22} />
               </span>
               <span className="flex-1 text-start">
                 <span className="block font-black text-gray-900 dark:text-white">{s.title}</span>
                 <span className="block text-xs text-gray-500 font-medium">{s.hint}</span>
               </span>
-              <ArrowUpLeft size={18} className="text-gray-400 shrink-0 transition-transform group-hover:-translate-x-1 group-hover:-translate-y-1" />
+              <ArrowUpLeft size={18} className="text-gray-400 shrink-0" />
             </Link>
           ))}
         </nav>
 
-        <AnimatePresence mode="wait">
-          <m.div
-            key={activeTab}
-            role="tabpanel"
-            initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -40, filter: "blur(10px)" }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
-
-            {activeTab === "wallet" ? <WalletDashboard /> : <SubscriptionPlans />}
-          </m.div>
-        </AnimatePresence>
+        <div role="tabpanel">
+          {activeTab === "wallet" ? <WalletDashboard /> : <SubscriptionPlans />}
+        </div>
       </div>
 
       {/* Footer Assurance */}
@@ -146,7 +132,7 @@ function BillingPageContent() {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<div className="h-[400px] w-full bg-gray-50 dark:bg-white/5 animate-pulse rounded-2xl" />}>
+    <Suspense fallback={<div className="h-[400px] w-full bg-gray-50 dark:bg-white/5 rounded-2xl" />}>
       <BillingPageContent />
     </Suspense>
   );

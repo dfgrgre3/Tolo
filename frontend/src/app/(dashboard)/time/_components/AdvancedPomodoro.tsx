@@ -41,45 +41,60 @@ export default function AdvancedPomodoro({ onSessionComplete }: Props) {
   const [left, setLeft] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const phaseStartedAt = useRef<number | null>(null);
+  const elapsedBeforeRun = useRef(0);
 
   const phaseLen = phase === 'work' ? work * 60 : phase === 'short' ? shortB * 60 : longB * 60;
 
-  useEffect(() => { setLeft(phaseLen); }, [work, shortB, longB, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Settings define the next phase; never rewrite elapsed time of a running phase.
+    if (!running) {
+      setLeft(phaseLen);
+      elapsedBeforeRun.current = 0;
+      phaseStartedAt.current = null;
+    }
+  }, [work, shortB, longB, phase, running, phaseLen]);
 
   useEffect(() => {
     if (!running) return;
-    timerRef.current = setInterval(() => {
-      setLeft(prev => {
-        if (prev <= 1) {
-          if (sound) beep(phase === 'work' ? 880 : 520, 0.4);
-          if (phase === 'work') {
-            const nd = done + 1;
-            setDone(nd);
-            onSessionComplete?.(work);
-            toast.success(`اكتملت جلسة تركيز #${nd} (${work} دقيقة)`);
-            const next = nd % cycles === 0 ? 'long' : 'short';
-            setPhase(next);
-            if (!autoSwitch) setRunning(false);
-            return next === 'long' ? longB * 60 : shortB * 60;
-          } else {
-            toast.success('انتهت الاستراحة — جاهز للتركيز؟');
-            setPhase('work');
-            if (!autoSwitch) setRunning(false);
-            return work * 60;
-          }
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [running, phase, work, shortB, longB, cycles, autoSwitch, sound, done, onSessionComplete]);
+    const timer = window.setInterval(() => {
+      if (phaseStartedAt.current === null) phaseStartedAt.current = Date.now();
+      const elapsed = elapsedBeforeRun.current + Math.floor((Date.now() - phaseStartedAt.current) / 1000);
+      const nextLeft = Math.max(0, phaseLen - elapsed);
+      if (nextLeft === left) return;
+      if (nextLeft > 0) { setLeft(nextLeft); return; }
+      elapsedBeforeRun.current = 0;
+      phaseStartedAt.current = null;
+      if (sound) beep(phase === 'work' ? 880 : 520, 0.4);
+      if (phase === 'work') {
+        const nd = done + 1;
+        setDone(nd);
+        onSessionComplete?.(work);
+        toast.success(`اكتملت جلسة تركيز #${nd} (${work} دقيقة)`);
+        const next = nd % cycles === 0 ? 'long' : 'short';
+        setPhase(next);
+        if (!autoSwitch) setRunning(false);
+        setLeft(next === 'long' ? longB * 60 : shortB * 60);
+      } else {
+        toast.success('انتهت الاستراحة — جاهز للتركيز؟');
+        setPhase('work');
+        if (!autoSwitch) setRunning(false);
+        setLeft(work * 60);
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [running, phase, phaseLen, work, shortB, longB, cycles, autoSwitch, sound, done, onSessionComplete, left]);
 
   useEffect(() => {
     document.title = running ? `${fmt(left)} • ${phase === 'work' ? 'تركيز' : 'استراحة'} | ثانوي` : 'إدارة الوقت | ثانوي';
   }, [left, running, phase]);
 
-  const reset = () => { setRunning(false); setLeft(phaseLen); };
+  const reset = () => {
+    setRunning(false);
+    elapsedBeforeRun.current = 0;
+    phaseStartedAt.current = null;
+    setLeft(phaseLen);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" dir="rtl">
@@ -99,11 +114,11 @@ export default function AdvancedPomodoro({ onSessionComplete }: Props) {
             ))}
           </div>
           <div className="flex items-center gap-3 mt-6">
-            <Button variant="ghost" size="icon" onClick={reset} className="rounded-full border border-border"><RotateCcw className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" onClick={reset} aria-label="إعادة ضبط جلسة التركيز" className="rounded-full border border-border"><RotateCcw className="h-5 w-5" /></Button>
             <Button onClick={() => setRunning(r => !r)} className={`h-14 px-10 rounded-2xl font-bold ${running ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}>
               {running ? <><Pause className="h-5 w-5 ms-2" /> إيقاف مؤقت</> : <><Play className="h-5 w-5 ms-2" /> بدء التركيز</>}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => { setPhase(phase === 'work' ? 'short' : 'work'); setRunning(false); }} className="rounded-full border border-border"><SkipForward className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => { setPhase(phase === 'work' ? 'short' : 'work'); setRunning(false); elapsedBeforeRun.current = 0; phaseStartedAt.current = null; }} aria-label="تخطي المرحلة الحالية" className="rounded-full border border-border"><SkipForward className="h-5 w-5" /></Button>
           </div>
           <p className="text-xs text-muted-foreground mt-4">نصيحة: ضع هاتفك على الصامت، وركز على مهمة واحدة فقط.</p>
         </div>

@@ -5,49 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Briefcase, CalendarCheck, FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
 import { useJobSearch, useJobsOverview } from '@/hooks/use-jobs';
 import { JobCard } from '@/features/jobs/components/JobCard';
+import { JobStatCard } from '@/features/jobs/components/JobStatCard';
 import { JobListSkeleton, JobsEmptyState, JobsErrorState } from '@/features/jobs/components/JobStates';
 import { jobsStrings } from '@/features/jobs/labels';
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  href,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number | undefined;
-  href?: string;
-}) {
-  const body = (
-    <Card className={href ? 'transition-colors hover:border-primary/40' : undefined}>
-      <CardContent className="flex items-center gap-3 p-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xl font-semibold tabular-nums">
-            {value === undefined ? '—' : value.toLocaleString('ar-EG')}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  return href ? (
-    <Link href={href} className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      {body}
-    </Link>
-  ) : (
-    body
-  );
-}
 
 export default function JobsOverviewPage() {
   const router = useRouter();
@@ -89,15 +53,15 @@ export default function JobsOverviewPage() {
 
       {isAuthenticated ? (
         <section aria-label={jobsStrings.overview} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
+          <JobStatCard
             icon={FileText}
             label={jobsStrings.applied}
             value={overview?.applied}
             href="/jobs/applications"
           />
-          <StatCard icon={CalendarCheck} label={jobsStrings.interviews} value={overview?.interviews} />
-          <StatCard icon={Briefcase} label={jobsStrings.offers} value={overview?.offers} />
-          <StatCard
+          <JobStatCard icon={CalendarCheck} label={jobsStrings.interviews} value={overview?.interviews} />
+          <JobStatCard icon={Briefcase} label={jobsStrings.offers} value={overview?.offers} />
+          <JobStatCard
             icon={Bookmark}
             label={jobsStrings.saved}
             value={overview?.saved}

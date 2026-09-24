@@ -32,6 +32,7 @@ import {
   clearAllCachesViaServiceWorker,
   skipWaitingViaServiceWorker,
 } from "@/lib/service-worker";
+import { broadcastCacheClear } from "@/lib/cache/cross-tab-sync";
 import type { QueryClient } from "@tanstack/react-query";
 
 /**
@@ -111,6 +112,15 @@ export interface ClearClientCachesOptions {
    * flows like full sign-out from a shared device. Default: `false`.
    */
   unregisterServiceWorker?: boolean;
+  /**
+   * If `true` (default), broadcasts the wipe to every other open tab via
+   * BroadcastChannel so they clear their caches too (see cross-tab-sync.ts).
+   * Pass `false` when this call is itself triggered BY a broadcast, to
+   * prevent an infinite echo loop between tabs.
+   */
+  broadcast?: boolean;
+  /** Log-friendly reason forwarded with the broadcast ("logout", ...). */
+  reason?: string;
 }
 
 /**
@@ -134,13 +144,20 @@ export interface ClearClientCachesOptions {
 export async function clearClientCaches(
   options: ClearClientCachesOptions = {},
 ): Promise<void> {
-  const { queryClient, unregisterServiceWorker = false } = options;
+  const { queryClient, unregisterServiceWorker = false, broadcast = true, reason } = options;
 
   // Synchronous in-memory clears first — these cannot fail and must
   // be observable to subsequent calls in the same tick.
   requestCache.clear();
   requestCache.setIdentity(null);
   clearCsrfToken();
+
+  // Fan the wipe out to sibling tabs BEFORE the async work so a slow
+  // Service Worker round-trip doesn't delay their cleanup. Receivers
+  // re-enter this function with `broadcast: false` (loop-safe).
+  if (broadcast) {
+    broadcastCacheClear(reason);
+  }
 
   // QueryClient.clear() is synchronous but returns void; awaiting it
   // would not be useful. We still wrap it so future async work fits

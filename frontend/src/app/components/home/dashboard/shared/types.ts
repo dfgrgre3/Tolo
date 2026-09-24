@@ -82,17 +82,6 @@ export interface Recommendation {
     actionUrl: string;
 }
 
-/** Mirrors TipReadModel from GET /api/tips. */
-export interface Tip {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    href: string;
-    action: string;
-    color: string;
-}
-
 /** Mirrors CourseProgressReadModel from GET /api/users/progress/courses. */
 export interface CourseProgress {
     id: string;

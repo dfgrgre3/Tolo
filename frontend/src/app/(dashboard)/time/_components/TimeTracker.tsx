@@ -14,6 +14,8 @@ import {
   Clock,
   Zap,
   BookOpen,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -225,10 +227,58 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
   // Recent sessions
   const recentSessions = sessions.slice(0, 6);
 
+  // ── Focus (fullscreen) mode ──
+  // Best-effort Fullscreen API: if the browser denies requestFullscreen(), the
+  // overlay still works and the keydown Esc handler exits. When fullscreen does
+  // succeed, the browser's own Esc exits it → fullscreenchange closes the overlay.
+  const [focusMode, setFocusMode] = React.useState(false);
+
+  const exitFocus = useCallback(() => {
+    setFocusMode(false);
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  const enterFocus = useCallback(() => {
+    setFocusMode(true);
+    if (
+      typeof document !== 'undefined' &&
+      !document.fullscreenElement &&
+      document.documentElement.requestFullscreen
+    ) {
+      void document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!focusMode) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') exitFocus();
+    };
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setFocusMode(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+    };
+  }, [focusMode, exitFocus]);
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 rtl" dir="rtl">
+    <div
+      dir="rtl"
+      className={cn(
+        'gap-6 rtl',
+        focusMode
+          ? 'fixed inset-0 z-[70] bg-background overflow-y-auto grid grid-cols-1 content-start justify-items-center p-6 md:p-10'
+          : 'grid grid-cols-1 xl:grid-cols-3',
+      )}
+    >
       {/* ── Main Timer Card ── */}
-      <div className="xl:col-span-2">
+      <div className={cn('min-w-0', focusMode ? 'w-full max-w-2xl' : 'xl:col-span-2')}>
         <div className={cn(
           'relative overflow-hidden rounded-3xl border bg-card backdrop-blur-2xl',
           'shadow-[0_20px_80px_rgba(0,0,0,0.4)]',
@@ -247,12 +297,27 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
           />
 
           <div className="relative z-10 p-6 md:p-8 flex flex-col items-center">
-            {/* Title row */}
-            <div className={cn('flex items-center gap-2.5 mb-1 transition-all duration-300', theme.color)}>
-              {theme.icon}
-              <h2 className="text-xl font-bold text-foreground">متتبع الوقت</h2>
+            {/* Title row (+ focus-mode toggle) */}
+            <div className="relative flex items-center justify-between w-full mb-1">
+              <div className={cn('flex items-center gap-2.5 transition-all duration-300', theme.color)}>
+                {theme.icon}
+                <h2 className="text-xl font-bold text-foreground">متتبع الوقت</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={focusMode ? exitFocus : enterFocus}
+                title={focusMode ? 'الخروج من وضع التركيز (Esc)' : 'وضع التركيز — ملء الشاشة'}
+                aria-label={focusMode ? 'الخروج من وضع التركيز' : 'دخول وضع التركيز'}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground border border-border bg-muted/50 hover:bg-muted"
+              >
+                {focusMode ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              </Button>
             </div>
-            <p className={cn('text-sm font-medium mb-6 transition-all duration-300', theme.color)}>{theme.label}</p>
+            <p className={cn('text-sm font-medium transition-all duration-300', focusMode ? 'mb-3' : 'mb-6', theme.color)}>{theme.label}</p>
+            {focusMode && (
+              <p className="text-[11px] text-muted-foreground mb-6">وضع التركيز نشط — اضغط Esc للخروج</p>
+            )}
 
             {/* Context badge */}
             {(activeCourseTitle || activeTaskTitle) && (
@@ -344,8 +409,8 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
               <span className="text-xs text-muted-foreground me-2">{pomodoroCount} جلسة</span>
             </div>
 
-            {/* Task Selector */}
-            {tasks.length > 0 && (
+            {/* Task Selector — hidden in focus mode to avoid distractions */}
+            {!focusMode && tasks.length > 0 && (
               <div className="w-full max-w-md">
                 <p className="text-xs text-muted-foreground mb-2 text-center">اختر مهمة لتتبع وقتها</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -372,7 +437,8 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
           </div>
         </div>
 
-        {/* ── Stats Row ── */}
+        {/* ── Stats Row (hidden in focus mode) ── */}
+        {!focusMode && (
         <div className="grid grid-cols-3 gap-4 mt-4">
           {[
             {
@@ -411,9 +477,11 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
             </div>
           ))}
         </div>
+        )}
       </div>
 
-      {/* ── Right Column: Sessions History ── */}
+      {/* ── Right Column: Sessions History (hidden in focus mode) ── */}
+      {!focusMode && (
       <div className="flex flex-col gap-4">
         <div className="rounded-3xl bg-card border border-border backdrop-blur-xl p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -477,6 +545,7 @@ export default function TimeTracker({ tasks, onStudySessionCreate }: TimeTracker
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ export const MegaMenuContainer = memo(function MegaMenuContainer({
       className={cn("w-full bg-background border-b border-border overflow-hidden", className)}
       data-mega-menu-container
     >
-      <div className={cn("mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-auto overscroll-contain", menuWidth)}>
+      <div className={cn("header-dropdown-scroll mx-auto w-full py-6 max-h-[calc(100dvh-var(--header-bottom,64px)-1rem)] overflow-auto overscroll-contain", menuWidth)}>
         {children}
       </div>
     </div>

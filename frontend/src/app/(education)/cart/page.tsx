@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,37 +10,24 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api/api-client";
 import {
-  checkoutCartRaw,
-  fetchCartRaw,
-  fetchWalletBalanceRaw,
-  removeCartItemRaw,
-} from "@/features/courses/api/courses-gateway";
+  addCartItem,
+  calcCartTotals,
+  checkoutCart,
+  clearCartItems,
+  emitCartUpdated,
+  fetchCart,
+  removeCartItem,
+  type CartCoupon,
+  type CartItem,
+} from "@/features/cart";
+import { fetchWalletBalance } from "@/features/payments";
 import {
   getFawryCode,
   resolvePaymentAction,
   validateCoupon,
   type PaymentMethod,
-} from "@/lib/payments";
+} from "@/features/payments";
 
-type CartItem = {
-  id: string;
-  subjectId: string;
-  subject: {
-    id: string;
-    name: string;
-    nameAr?: string | null;
-    price: number;
-    thumbnailUrl?: string | null;
-    instructorName?: string | null;
-  };
-};
-
-type CouponState = {
-  code: string;
-  discountType: string;
-  discount: number;
-  message: string;
-} | null;
 
 const PAYMENT_METHODS: { method: PaymentMethod; label: string; sub: string; icon: typeof Wallet }[] = [
   { method: "internal_wallet", label: "الدفع من المحفظة", sub: "استخدم رصيدك داخل المنصة", icon: Wallet },
@@ -67,67 +54,94 @@ export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
+  const [clearing, setClearing] = useState(false);
   const [couponInput, setCouponInput] = useState("");
-  const [coupon, setCoupon] = useState<CouponState>(null);
+  const [coupon, setCoupon] = useState<CartCoupon | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [checkingOutMethod, setCheckingOutMethod] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
-  const fetchCart = async (silent = false) => {
+  const loadCart = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await fetchCartRaw<{ items?: CartItem[] }>();
-      setItems(data.items || []);
+      const list = await fetchCart();
+      setItems(list);
+      emitCartUpdated(list.length);
     } catch {
       if (!silent) toast.error("تعذر تحميل السلة — تحقق من الاتصال");
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchCart();
+    loadCart();
     // رصيد المحفظة للتحقق المسبق قبل الدفع الداخلي (أفضل جهد — يبقى صامتاً عند الفشل)
-    fetchWalletBalanceRaw<{ balance?: unknown }>()
+    fetchWalletBalance()
       .then((w) => {
         const b = typeof w?.balance === "number" ? w.balance : Number(w?.balance);
         if (Number.isFinite(b) && (b as number) >= 0) setWalletBalance(b as number);
       })
       .catch(() => {});
-  }, []);
+  }, [loadCart]);
 
   const handleRemove = async (subjectId: string) => {
     setRemoving((prev) => ({ ...prev, [subjectId]: true }));
+    const snapshot = items;
+    setItems((prev) => prev.filter((item) => (item.subjectId || item.id) !== subjectId));
     try {
-      await removeCartItemRaw(subjectId);
-      setItems((prev) => prev.filter((item) => item.subjectId !== subjectId));
-      toast.success("تم الحذف من السلة");
+      await removeCartItem(subjectId);
+      emitCartUpdated(Math.max(0, snapshot.length - 1));
+      toast.success("تم الحذف من السلة — تراجع؟", {
+        action: {
+          label: "تراجع",
+          onClick: async () => {
+            try {
+              await addCartItem(subjectId);
+              loadCart(true);
+            } catch {
+              toast.error("تعذر التراجع");
+            }
+          },
+        },
+      });
     } catch {
+      setItems(snapshot);
       toast.error("فشل الحذف");
     } finally {
       setRemoving((prev) => ({ ...prev, [subjectId]: false }));
     }
   };
 
-  const rawTotal = items.reduce((sum, item) => sum + (item.subject?.price || 0), 0);
-  const discountAmount = coupon
-    ? coupon.discountType === "PERCENTAGE"
-      ? rawTotal * (coupon.discount / 100)
-      : coupon.discount
-    : 0;
-  const finalTotal = Math.max(0, rawTotal - discountAmount);
+  const handleClearAll = async () => {
+    if (items.length === 0 || clearing) return;
+    setClearing(true);
+    try {
+      await clearCartItems(items);
+      setItems([]);
+      emitCartUpdated(0);
+      toast.success("تم إفراغ السلة");
+    } catch {
+      toast.error("تعذر إفراغ السلة");
+      loadCart(true);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const { rawTotal, discountAmount, finalTotal } = calcCartTotals(items, coupon);
 
   const handleValidateCoupon = async () => {
     if (!couponInput.trim()) return;
     setValidatingCoupon(true);
     setCouponError(null);
     try {
-      const result = await validateCoupon(couponInput);
+      const result = await validateCoupon(couponInput, rawTotal);
       if (result.valid) {
         setCoupon({
-          code: couponInput.trim(),
-          discountType: result.discountType || "FIXED",
+          code: couponInput.trim().toUpperCase(),
+          discountType: result.discountType === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
           discount: Number(result.discount ?? result.discountAmount ?? 0) || 0,
           message: result.message || "تم تطبيق الخصم",
         });
@@ -156,14 +170,7 @@ export default function CartPage() {
     }
     setCheckingOutMethod(paymentMethod);
     try {
-      const payload = await checkoutCartRaw<{
-        success?: boolean;
-        redirectUrl?: string;
-        paymentKey?: string;
-        iframeId?: string;
-        fawryCode?: string;
-        billReference?: string;
-      }>(
+      const payload = await checkoutCart(
         paymentMethod,
         coupon?.code || undefined
       );
@@ -198,7 +205,7 @@ export default function CartPage() {
         router.push("/login?redirect=/cart");
       } else if (error instanceof ApiError && error.status === 409) {
         toast.error(error.message || "أنت مسجّل بالفعل في إحدى دورات السلة");
-        fetchCart();
+        loadCart(true);
       } else if (error instanceof ApiError) {
         toast.error(error.message || "فشلت عملية الدفع، حاول مرة أخرى");
       } else {
@@ -211,10 +218,29 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10" dir="rtl">
-      <h1 className="mb-8 flex items-center gap-3 text-2xl font-black text-gray-900 dark:text-white">
-        <ShoppingCart className="h-7 w-7" />
-        سلة التسوق
-      </h1>
+      <div className="mb-8 flex items-center justify-between gap-3">
+        <h1 className="flex items-center gap-3 text-2xl font-black text-gray-900 dark:text-white">
+          <ShoppingCart className="h-7 w-7" />
+          سلة التسوق
+          {items.length > 0 && (
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
+              {items.length.toLocaleString("ar-EG")}
+            </span>
+          )}
+        </h1>
+        {items.length > 0 && !loading && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClearAll}
+            disabled={clearing}
+            className="gap-2 text-sm font-bold text-red-500 hover:text-red-600"
+          >
+            {clearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            إفراغ السلة
+          </Button>
+        )}
+      </div>
 
       {loading ? (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

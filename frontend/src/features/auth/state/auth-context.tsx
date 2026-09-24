@@ -28,6 +28,7 @@ import { setSessionPresence } from "@/lib/api/redirect-loop-guard";
 import type { SessionPresence } from "@/lib/api/redirect-loop-guard";
 import { apiRoutes } from "@/lib/api/routes";
 import { clearClientCaches } from "@/lib/cache/clear-client-caches";
+import { onCacheClearBroadcast } from "@/lib/cache/cross-tab-sync";
 import { getDeviceRiskSignal } from "@/lib/auth/device-fingerprint";
 import {
   deriveAccountStatus,
@@ -379,6 +380,16 @@ export function AuthProvider({
   useEffect(() => {
     setSessionPresence(mapAuthStatusToSessionPresence(state.status));
   }, [state.status]);
+
+  // Cross-tab cache sync: when another tab wipes the identity-scoped caches
+  // (logout / account switch / MFA transition), wipe them here too so no
+  // stale tab keeps rendering the previous user's data. `broadcast: false`
+  // prevents an echo loop between tabs — see lib/cache/cross-tab-sync.ts.
+  useEffect(() => {
+    return onCacheClearBroadcast(() => {
+      void clearClientCaches({ queryClient, broadcast: false });
+    });
+  }, [queryClient]);
 
   const redirectToLogin = useCallback(async () => {
     window.location.href = "/login";

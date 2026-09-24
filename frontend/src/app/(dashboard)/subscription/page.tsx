@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { m } from "framer-motion";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Wallet,
   Clock,
@@ -19,13 +18,10 @@ import {
   Bot,
   BookOpen,
   GraduationCap,
-  Search,
   Receipt,
   Crown,
   RefreshCw,
   Eye,
-  FileDown,
-  ArrowUpDown,
   X,
 } from "lucide-react";
 
@@ -237,7 +233,7 @@ export default function SubscriptionPage() {
     }, 350);
   };
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
       const updated = await fetchBillingSummaryRaw<BillingSummary>();
@@ -248,7 +244,7 @@ export default function SubscriptionPage() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, []);
 
   const reloadSummarySilent = async () => {
     try {
@@ -415,7 +411,16 @@ export default function SubscriptionPage() {
 
   const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pagedPayments = filteredPayments.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pagedPayments = useMemo(
+    () => filteredPayments.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filteredPayments, safePage, PAGE_SIZE]
+  );
+
+  const handleFilterTab = useCallback((v: string) => setFilter(v as InvoiceFilter), []);
+  const handleSortToggle = useCallback(
+    () => setSortDir((d) => (d === "desc" ? "asc" : "desc")),
+    []
+  );
 
   useEffect(() => {
     setPage(1);
@@ -429,7 +434,7 @@ export default function SubscriptionPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const handleExportCsv = () => {
+  const handleExportCsv = useCallback(() => {
     if (!summary) return;
     exportToCsv(
       "invoices",
@@ -444,7 +449,7 @@ export default function SubscriptionPage() {
       }))
     );
     toast.success("تم تصدير الفواتير CSV");
-  };
+  }, [summary, filteredPayments]);
 
   if (loading) {
     return <BillingLoadingGrid cards={4} />;
@@ -478,7 +483,7 @@ export default function SubscriptionPage() {
         action={
           <Link
             href="/billing?tab=upgrade"
-            className="px-8 py-4 bg-primary hover:bg-primary/90 rounded-[2rem] font-black text-white flex items-center gap-2 transition-all shadow-[0_20px_50px_rgba(var(--primary-rgb),0.4)] active:scale-95"
+            className="px-8 py-4 bg-primary hover:bg-primary/90 rounded-[2rem] font-black text-white flex items-center gap-2 shadow-[0_20px_50px_rgba(var(--primary-rgb),0.4)]"
           >
             تجديد أو ترقية الاشتراك
             <ArrowUpRight size={18} />
@@ -496,7 +501,6 @@ export default function SubscriptionPage() {
             topLabelClass="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
             value={<>{summary.balance.toLocaleString()} <span className="text-sm text-gray-500 font-bold">ج.م</span></>}
             hint="متاح للاستخدام في المنصة"
-            delay={0}
           />
           <BillingStatCard
             icon={TrendingUp}
@@ -504,7 +508,6 @@ export default function SubscriptionPage() {
             topLabel="إجمالي المدفوعات"
             value={<>{summary.stats.totalSpent.toLocaleString()} <span className="text-sm text-gray-500 font-bold">ج.م</span></>}
             hint="مجموع العمليات الناجحة"
-            delay={0.05}
           />
           <BillingStatCard
             icon={CheckCircle2}
@@ -512,7 +515,6 @@ export default function SubscriptionPage() {
             topLabel="عمليات ناجحة"
             value={summary.stats.successCount}
             hint="عمليات مكتملة بنجاح"
-            delay={0.1}
           />
           <BillingStatCard
             icon={XCircle}
@@ -520,7 +522,6 @@ export default function SubscriptionPage() {
             topLabel="معلقة / فاشلة"
             value={summary.stats.pendingCount + summary.stats.failedCount}
             hint="تحتاج لمراجعة"
-            delay={0.15}
           />
         </div>
 
@@ -530,8 +531,8 @@ export default function SubscriptionPage() {
             { icon: Bot, wrap: "bg-primary/15 text-primary", label: "رصيد المساعد الذكي (AI)", val: summary.additionalAiCredits, unit: "رسالة إضافية" },
             { icon: GraduationCap, wrap: "bg-emerald-500/10 text-emerald-400", label: "رصيد الامتحانات الإضافية", val: summary.additionalExamCredits, unit: "محاولة" },
           ].map((c) => (
-            <div key={c.label} className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-xl p-6 rounded-[2rem] relative overflow-hidden group hover:border-primary/30 transition-all">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all" />
+            <div key={c.label} className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-xl p-6 rounded-[2rem] relative overflow-hidden group hover:border-primary/30">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10" />
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${c.wrap}`}>
                   <c.icon size={24} />
@@ -565,12 +566,11 @@ export default function SubscriptionPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {addons.map((addon) => (
-                <m.div
+                <div
                   key={addon.id}
-                  whileHover={{ y: -8 }}
-                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center group relative overflow-hidden hover:border-primary/30 hover:shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.25)] transition-all"
+                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center group relative overflow-hidden hover:border-primary/30 hover:shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.25)]"
                 >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-all" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100" />
                   <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center ${
                     addon.type === "EXAM_PACK" ? "bg-purple-500/10 text-purple-400" :
                     addon.type === "AI_CREDITS" ? "bg-primary/10 text-primary" :
@@ -587,19 +587,19 @@ export default function SubscriptionPage() {
                     <button
                       onClick={() => handlePurchaseAddon(addon.id)}
                       disabled={purchasing === addon.id || summary.balance < addon.price}
-                      className={`w-full py-3 rounded-2xl font-black text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                      className={`w-full py-3 rounded-2xl font-black text-sm flex items-center justify-center gap-2 ${
                         summary.balance < addon.price
                           ? "bg-gray-50 dark:bg-white/5 text-gray-500 cursor-not-allowed border border-gray-200 dark:border-white/10"
                           : "bg-white text-gray-900 hover:bg-primary hover:text-white shadow-lg"}`}
                     >
                       {purchasing === addon.id ? (
-                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full" />
                       ) : (
                         <>{summary.balance < addon.price ? "الرصيد غير كافٍ" : "شراء الآن"} <ArrowUpRight size={16} /></>
                       )}
                     </button>
                   </div>
-                </m.div>
+                </div>
               ))}
             </div>
           )}
@@ -613,7 +613,7 @@ export default function SubscriptionPage() {
               الاشتراك الحالي
             </h2>
             <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary via-purple-600 to-primary/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-              <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/10 rounded-full blur-[80px] group-hover:bg-white/20 transition-all" />
+              <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/10 rounded-full blur-[80px] group-hover:bg-white/20" />
               {summary.activeSubscription ? (
                 <>
                   <div className="mb-6 relative">
@@ -630,23 +630,23 @@ export default function SubscriptionPage() {
                       <span className="text-sm font-bold">دفع مؤمن عبر {summary.activeSubscription.payments?.[0]?.provider || "Paymob"}</span>
                     </div>
                   </div>
-                  <Link href="/dashboard" className="relative w-full py-4 bg-white text-primary rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-white/90 transition-all">
+                  <Link href="/dashboard" className="relative w-full py-4 bg-white text-primary rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-white/90">
                     فتح لوحة الطالب
                   </Link>
                   <div className="relative mt-3 flex gap-2">
                     <button
                       onClick={handleRenewSubscription}
                       disabled={subAction !== null}
-                      className="flex-1 py-3 rounded-2xl bg-white/15 border border-white/25 text-white text-sm font-black hover:bg-white/25 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 py-3 rounded-2xl bg-white/15 border border-white/25 text-white text-sm font-black hover:bg-white/25 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      <RefreshCw size={15} className={subAction === "renew" ? "animate-spin" : ""} />
+                      <RefreshCw size={15} />
                       {subAction === "renew" ? "جاري التجديد..." : "تجديد الاشتراك"}
                     </button>
                     <button
                       onClick={handleCancelSubscription}
                       onBlur={() => setConfirmingCancel(false)}
                       disabled={subAction !== null}
-                      className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 ${
+                      className={`flex-1 py-3 rounded-2xl text-sm font-black disabled:opacity-50 flex items-center justify-center gap-2 ${
                         confirmingCancel
                           ? "bg-rose-600 text-white hover:bg-rose-500"
                           : "bg-black/20 border border-white/15 text-white/80 hover:bg-black/30"
@@ -694,7 +694,7 @@ export default function SubscriptionPage() {
                   role="tab"
                   aria-selected={historyTab === t.value}
                   onClick={() => setHistoryTab(t.value)}
-                  className={`rounded-full border px-4 py-2 text-xs font-black transition-all active:scale-95 ${
+                  className={`rounded-full border px-4 py-2 text-xs font-black ${
                     historyTab === t.value
                       ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
                       : "border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-gray-500 hover:border-primary/40 hover:text-gray-900 dark:hover:text-white"
@@ -724,9 +724,9 @@ export default function SubscriptionPage() {
                 { value: "FAILED", label: "فاشلة" },
               ]}
               activeTab={filter}
-              onTab={(v) => setFilter(v as InvoiceFilter)}
+              onTab={handleFilterTab}
               sortLabel={sortDir === "desc" ? "الأحدث أولاً" : "الأقدم أولاً"}
-              onSort={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+              onSort={handleSortToggle}
               onRefresh={refresh}
               refreshing={refreshing}
               onExport={handleExportCsv}
@@ -739,7 +739,7 @@ export default function SubscriptionPage() {
                 title={summary.paymentHistory.length === 0 ? "لا توجد أي عمليات دفع حتى الآن" : "لا توجد نتائج مطابقة"}
                 hint="جرّب تغيير البحث أو الفلتر، أو ابدأ أول عملية شحن من صفحة الفواتير."
                 action={
-                  <Link href="/billing" className="px-6 py-3 bg-primary text-white rounded-2xl text-sm font-black hover:bg-primary/90 transition-all">
+                  <Link href="/billing" className="px-6 py-3 bg-primary text-white rounded-2xl text-sm font-black hover:bg-primary/90">
                     الذهاب للمركز المالي
                   </Link>
                 }
@@ -748,7 +748,7 @@ export default function SubscriptionPage() {
               <>
                 <BillingTableShell headers={["الخطة", "القيمة", "الحالة", "التاريخ", "الفاتورة", "رقم العملية"]}>
                   {pagedPayments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-primary/5 transition-colors border-l-2 border-transparent hover:border-primary/40">
+                    <tr key={payment.id} className="hover:bg-primary/5 border-l-2 border-transparent hover:border-primary/40">
                       <td className="px-6 py-4 text-start">
                         <div className="font-black text-gray-900 dark:text-white">{payment.subscription?.plan?.nameAr || "رصيد / شحن"}</div>
                         <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{payment.paymentMethod || "Card"}</div>
@@ -781,7 +781,7 @@ export default function SubscriptionPage() {
                             <>
                               <button
                                 onClick={() => setPreview(payment)}
-                                className="p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-200 dark:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110 active:scale-95"
+                                className="p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-200 dark:bg-white/10 hover:text-gray-900 dark:hover:text-white"
                                 title="معاينة الفاتورة"
                                 aria-label={`معاينة فاتورة ${payment.id}`}
                               >
@@ -789,7 +789,7 @@ export default function SubscriptionPage() {
                               </button>
                               <button
                                 onClick={() => handleDownloadInvoice(payment)}
-                                className="p-2.5 bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all hover:scale-110 active:scale-95"
+                                className="p-2.5 bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white"
                                 title="تحميل الفاتورة"
                                 aria-label={`تحميل فاتورة ${payment.id}`}
                               >
@@ -857,16 +857,11 @@ export default function SubscriptionPage() {
 
       {preview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="معاينة الفاتورة">
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={() => setPreview(null)}
             className="absolute inset-0 bg-black/80 backdrop-blur-md"
           />
-          <m.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+          <div
             className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-[2rem] shadow-2xl"
           >
             <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-white/95 backdrop-blur border-b border-gray-100 px-6 py-4" dir="rtl">
@@ -874,14 +869,14 @@ export default function SubscriptionPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => generateInvoicePDF(`invoice-${preview.id}`, `invoice-${preview.id}`)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-black hover:bg-primary/90 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-black hover:bg-primary/90"
                 >
                   <Download size={14} />
                   تحميل PDF
                 </button>
                 <button
                   onClick={() => setPreview(null)}
-                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all"
+                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600"
                   aria-label="إغلاق المعاينة"
                 >
                   <X size={16} />
@@ -905,7 +900,7 @@ export default function SubscriptionPage() {
                 paymentMethod: preview.paymentMethod || "Card",
               }}
             />
-          </m.div>
+          </div>
         </div>
       )}
     </div>

@@ -25,16 +25,15 @@ import { toast } from "sonner";
 import {
   checkoutCourseRaw,
   fetchCourseByIdRaw,
-  fetchWalletBalanceRaw,
 } from "@/features/courses/api/courses-gateway";
+import { fetchWalletBalance } from "@/features/payments";
 import {
   resolvePaymentAction,
   type PaymentInitResponse,
   type PaymentMethod,
-} from "@/lib/payments";
+} from "@/features/payments";
 import type { CourseDetailResponse } from "@/types/domain/mappers";
 
-interface WalletResponse { balance?: unknown; }
 interface CheckoutResponse extends PaymentInitResponse {}
 
 interface CourseCheckoutInfo {
@@ -70,7 +69,7 @@ export default function CourseCheckoutPage() {
       try {
         const [courseData, walletData] = await Promise.all([
           fetchCourseByIdRaw<CourseDetailResponse>(courseSlug),
-          fetchWalletBalanceRaw<WalletResponse>(),
+          fetchWalletBalance(),
         ]);
 
         if (courseData?.subject) {
