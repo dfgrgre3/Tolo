@@ -2,7 +2,6 @@
 
 import { memo } from "react";
 import { Volume2, SunMedium, FastForward, Rewind, Zap } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type GestureOverlayProps = {
@@ -50,13 +49,13 @@ const SeekIndicator = ({ value }: { value: number }) => {
     <div className="mb-3 flex items-center gap-1">
       {isForward ? (
         <>
-          <FastForward className="h-6 w-6 text-cyan-400 animate-pulse" />
-          <FastForward className="h-6 w-6 text-cyan-400/60 animate-pulse" style={{ animationDelay: "0.1s" }} />
+          <FastForward className="h-6 w-6 text-cyan-400" />
+          <FastForward className="h-6 w-6 text-cyan-400/60" />
         </>
       ) : (
         <>
-          <Rewind className="h-6 w-6 text-cyan-400/60 animate-pulse" style={{ animationDelay: "0.1s" }} />
-          <Rewind className="h-6 w-6 text-cyan-400 animate-pulse" />
+          <Rewind className="h-6 w-6 text-cyan-400/60" />
+          <Rewind className="h-6 w-6 text-cyan-400" />
         </>
       )}
     </div>
@@ -93,19 +92,12 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
   const isCircular = mode === "volume" || mode === "brightness";
 
   return (
-    <AnimatePresence>
-      <m.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.8 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+    <>
+      <div
         className="pointer-events-none absolute inset-0 z-[100] flex items-center justify-center"
       >
         {isSeek && (
-          <m.div
-            initial={{ scale: 0, opacity: 0.6 }}
-            animate={{ scale: 3, opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+          <div
             className={cn(
               "absolute h-24 w-24 rounded-full bg-cyan-400/20",
               Number(value) > 0 ? "right-1/4" : "left-1/4"
@@ -114,9 +106,9 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
         )}
 
         <div className={cn(
-          "flex min-h-[140px] min-w-[140px] flex-col items-center justify-center rounded-[36px] border-2 bg-black/60 p-6 backdrop-blur-xl transition-all duration-300",
+          "flex min-h-[140px] min-w-[140px] flex-col items-center justify-center rounded-2xl border-2 bg-black/85 p-6",
           colors.ring,
-          visible ? "scale-100 opacity-100" : "scale-90 opacity-0"
+          visible ? "opacity-100" : "opacity-0"
         )}>
           {isCircular && percentage !== null && (
             <CircularProgress percentage={percentage} colorClass={colors.text} />
@@ -124,13 +116,11 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
 
           {mode === "speed" && (
             <div className="mb-3 flex items-center justify-center">
-              <m.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              <div
                 className="rounded-2xl bg-orange-500 p-4 text-white shadow-lg shadow-orange-500/30"
               >
                 {renderGestureIcon(mode, value, "h-8 w-8")}
-              </m.div>
+              </div>
             </div>
           )}
 
@@ -149,8 +139,8 @@ export const GestureOverlay = memo(({ mode, value, visible }: GestureOverlayProp
             </span>
           </div>
         </div>
-      </m.div>
-    </AnimatePresence>
+      </div>
+    </>
   );
 });
 

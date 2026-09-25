@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { Inbox, Search, RefreshCw, ArrowUpDown, FileDown, AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -353,9 +354,9 @@ export const BillingErrorState = React.memo(function BillingErrorState({
               إعادة المحاولة
             </button>
           ) : null}
-          <a href="/" className="text-gray-500 hover:text-white text-sm text-center font-bold">
+          <Link href="/" className="text-gray-500 hover:text-white text-sm text-center font-bold">
             العودة للرئيسية
-          </a>
+          </Link>
         </div>
         {debugCode && (
           <div className="mt-8 pt-8 border-t border-white/10">

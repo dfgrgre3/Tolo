@@ -28,7 +28,6 @@ export interface UseUploadReturn {
 export function useUpload(options: UseUploadOptions): UseUploadReturn {
   const {
     bucket,
-    folder,
     allowedTypes = [],
     maxSize = 100 * 1024 * 1024,
     useLargeFileUpload = true,
@@ -135,7 +134,7 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
         setCurrentFile(null);
       }
     },
-    [bucket, folder, useLargeFileUpload, validateFile, handleProgress, onSuccess, onError]
+    [bucket, useLargeFileUpload, validateFile, handleProgress, onSuccess, onError]
   );
 
   const uploadMultiple = useCallback(

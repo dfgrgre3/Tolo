@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { m } from "framer-motion";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 
 interface SocialGoalSectionProps {
@@ -10,10 +10,7 @@ interface SocialGoalSectionProps {
 
 export function SocialGoalSection({ glassStyle }: SocialGoalSectionProps) {
   return (
-    <m.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+    <div
       className={glassStyle + " p-10 border-white/5 group relative"}
     >
       <div className="absolute inset-0 bg-gradient-to-l from-emerald-500/5 to-transparent pointer-events-none" />
@@ -21,21 +18,14 @@ export function SocialGoalSection({ glassStyle }: SocialGoalSectionProps) {
         <div className="relative h-40 w-40 flex-shrink-0">
           <svg className="w-full h-full -rotate-90">
             <circle cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/5" />
-            <m.circle
-              initial={{ strokeDashoffset: 452 }}
-              whileInView={{ strokeDashoffset: 452 * (1 - 0.75) }}
-              viewport={{ once: true }}
-              transition={{ duration: 2, ease: "easeOut" }}
-              cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={452} className="text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+            <circle cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={452} className="text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <m.span
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 3, repeat: Infinity }}
+            <div
               className="text-4xl font-black text-white"
             >
               75%
-            </m.span>
+            </div>
             <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">اكتمال الهدف</span>
           </div>
         </div>
@@ -51,14 +41,12 @@ export function SocialGoalSection({ glassStyle }: SocialGoalSectionProps) {
             <div className="flex flex-col items-center md:items-end gap-3">
               <div className="flex -space-x-4 space-x-reverse">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <m.div
+                  <div
                     key={i}
-                    whileHover={{ y: -5, scale: 1.1, zIndex: 50 }}
                     className="h-12 w-12 rounded-full border-2 border-background bg-card flex items-center justify-center overflow-hidden hover:border-primary transition-all cursor-pointer shadow-xl relative"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} alt="user" width={48} height={48} className="object-cover" />
-                  </m.div>
+                    <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} alt="user" width={48} height={48} loading="lazy" className="object-cover" />
+                  </div>
                 ))}
                 <div className="h-12 w-12 rounded-full border-2 border-background bg-primary flex items-center justify-center text-xs font-black text-white relative z-10 shadow-xl shadow-primary/20">
                   +1.2k
@@ -79,6 +67,6 @@ export function SocialGoalSection({ glassStyle }: SocialGoalSectionProps) {
           </div>
         </div>
       </div>
-    </m.div>
+    </div>
   );
 }

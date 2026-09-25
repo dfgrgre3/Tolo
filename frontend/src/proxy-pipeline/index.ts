@@ -17,6 +17,21 @@ import { canonicalizeCourseUrl } from './course-canonical-redirect';
 export async function runProxyPipeline(request: NextRequest): Promise<NextResponse> {
   const { pathname, nonce, requestHeaders } = createProxyContext(request);
 
+  const isProtected = isProtectedPage(pathname);
+  const isGuest = isGuestPage(pathname);
+
+  // Fast path: fully public pages (landing, blog, marketing) need only the
+  // CSP nonce — skip course canonicalization + all session work (zero
+  // backend/verify budget) so TTFB stays minimal for guests.
+  if (!isProtected && !isGuest && !isApiRequest(pathname)) {
+    if (!pathname.startsWith('/courses/')) {
+      return finalizeProxyResponse(
+        NextResponse.next({ request: { headers: requestHeaders } }),
+        nonce,
+      );
+    }
+  }
+
   // Canonicalize legacy /courses/<uuid> links to the slug URL with a 301 before
   // any session work, so a stale link spends no auth budget on a redirect.
   const canonicalRedirect = await canonicalizeCourseUrl(request);
@@ -24,8 +39,6 @@ export async function runProxyPipeline(request: NextRequest): Promise<NextRespon
     return finalizeProxyResponse(canonicalRedirect, nonce);
   }
 
-  const isProtected = isProtectedPage(pathname);
-  const isGuest = isGuestPage(pathname);
   const accessToken = request.cookies.get('access_token')?.value;
   const refreshToken = request.cookies.get('refresh_token')?.value;
 

@@ -101,7 +101,7 @@ export function BestTeachersSection({ instructors, loading }: BestTeachersSectio
                     group-hover:ring-[#0F766E] dark:group-hover:ring-orange-500
                   `}>
                     {avatar ? (
-                      <Image src={avatar} alt={name} fill className="object-cover" />
+                      <Image src={avatar} alt={name} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-[#0F766E] to-emerald-500 dark:from-orange-500 dark:to-orange-600 text-white font-bold flex items-center justify-center text-xl">
                         {initial}

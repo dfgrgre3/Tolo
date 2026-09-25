@@ -88,7 +88,7 @@ export function CourseCard({
         <div className="flex items-center gap-2 mb-3">
           <div className="relative h-6 w-6 rounded-full overflow-hidden bg-slate-200 shrink-0">
             {instructorAvatar ? (
-              <Image src={instructorAvatar} alt={instructorName} fill className="object-cover" />
+              <Image src={instructorAvatar} alt={instructorName} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
             ) : (
               <div className="h-full w-full bg-[#0F766E] text-white text-[10px] font-bold flex items-center justify-center">
                 {instructorName.charAt(0)}

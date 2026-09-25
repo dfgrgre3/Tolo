@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BookOpenText, Loader2, ListChecks, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,10 +33,8 @@ export default function LessonSummarizer() {
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<SumHistory[]>([]);
+  const [history, setHistory] = useState<SumHistory[]>(() => (typeof window === "undefined" ? [] : loadLocal<SumHistory[]>(HISTORY_KEY, [])));
   const { copied, copy } = useCopyText();
-
-  useEffect(() => { setHistory(loadLocal<SumHistory[]>(HISTORY_KEY, [])); }, []);
 
   const generateSummary = async () => {
     if (content.trim().length < 50) { setError('الصق نصاً لا يقل عن 50 حرفاً للحصول على تلخيص جيد'); return; }

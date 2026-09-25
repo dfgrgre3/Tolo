@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ChevronDown, HelpCircle } from 'lucide-react';
 import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION } from '../design-system';
 
@@ -14,7 +15,7 @@ interface FAQItem {
 const FAQ_ITEMS: FAQItem[] = [
   {
     id: '1',
-    question: 'كيف أبدأ في التعلم على منصة ثنائي؟',
+    question: 'كيف أبدأ في التعلم على منصة تولو؟',
     answer: 'بسيط جداً! قم بالتسجيل المجاني، ابحث عن الكورس الذي تريده، وابدأ التعلم فوراً. جميع الكورسات متاحة فوراً بعد التسجيل.',
     category: 'البدء',
   },
@@ -164,15 +165,18 @@ export function FAQSection() {
             فريقنا متاح لمساعدتك 24/7 عبر البريد الإلكتروني والدردشة المباشرة
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <button className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors">
-              📧 اتصل بنا
-            </button>
-            <button className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors">
-              💬 الدردشة المباشرة
-            </button>
-            <button className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors">
-              📚 مركز المساعدة
-            </button>
+            <Link
+              href="/contact"
+              className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors inline-flex items-center gap-1.5"
+            >
+              اتصل بنا
+            </Link>
+            <Link
+              href="/contact"
+              className="px-4 py-2 bg-white dark:bg-slate-800 text-[#0F766E] dark:text-orange-500 border border-[#0F766E] dark:border-orange-500 text-sm font-bold rounded-[8px] hover:bg-[#F8FAFC] dark:hover:bg-slate-700 transition-colors inline-flex items-center gap-1.5"
+            >
+              الدعم الفني
+            </Link>
           </div>
         </div>
       </div>

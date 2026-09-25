@@ -68,7 +68,7 @@ export function CourseActionCard({
           streaming a raw video URL inline on a catalog page. */}
       <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-950 border border-gray-100 dark:border-white/5">
         {course.thumbnailUrl ? (
-          <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(min-width: 1024px) 384px, 100vw" className="object-cover transition-transform duration-500 hover:scale-105" unoptimized />
+          <Image src={course.thumbnailUrl} alt={course.title} fill sizes="(min-width: 1024px) 384px, 100vw" className="object-cover transition-transform duration-500 hover:scale-105" />
         ) : (
           <div className="flex items-center justify-center h-full">
             <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-700" />

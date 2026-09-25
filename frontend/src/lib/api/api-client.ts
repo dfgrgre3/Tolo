@@ -21,7 +21,6 @@ import {
 import {
     AppError,
     ContractError,
-    TransportError,
     mapStatusToDomainError,
 } from '../errors/domain-errors';
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Image from "next/image";
 import { Download, Eye, Star, Book as BookIcon, Sparkles } from "lucide-react";
 import { Book } from "./types";
@@ -12,56 +11,23 @@ interface BookCardProps {
   onClick?: (book: Book) => void;
   index: number;
 }
-
-export function BookCard({ book, onClick, index }: BookCardProps) {
+export function BookCard({ book, onClick, index: _index }: BookCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // 3D Hover Effect
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const mouseXSpring = useSpring(x);
-  const mouseYSpring = useSpring(y);
-
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-
-    x.set(xPct);
-    y.set(yPct);
-  };
-
   const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
     setIsHovered(false);
   };
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.5 }}
-      style={{ perspective: 1000 }}
+    <div
+      
       className="group relative h-full"
     >
-      <m.div
-        onMouseMove={handleMouseMove}
+      <div
         onMouseLeave={handleMouseLeave}
         onMouseEnter={() => setIsHovered(true)}
         onClick={() => onClick?.(book)}
         style={{
-          rotateX,
-          rotateY,
           transformStyle: "preserve-3d",
         }}
         className="rpg-glass relative h-full cursor-pointer flex flex-col overflow-visible border-white/5 bg-white/[0.03] transition-all duration-300 hover:border-amber-500/30"
@@ -130,21 +96,19 @@ export function BookCard({ book, onClick, index }: BookCardProps) {
              </div>
              
              {isHovered && (
-               <m.div 
-                 initial={{ opacity: 0, scale: 0.8 }}
-                 animate={{ opacity: 1, scale: 1 }}
+               <div
                  className="flex items-center gap-1 text-amber-500"
                >
                  <Sparkles className="w-3 h-3 animate-pulse" />
                  <span className="text-[9px] font-black uppercase tracking-widest">عرض التفاصيل</span>
-               </m.div>
+               </div>
              )}
            </div>
         </div>
-      </m.div>
+      </div>
       
       {/* Decorative Shadow/Glow */}
       <div className="absolute -inset-1 bg-amber-500/20 blur-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 -z-10" />
-    </m.div>
+    </div>
   );
 }

@@ -43,7 +43,7 @@ export const SkipIntroButton = memo(({ markers, onSkip }: SkipIntroButtonProps) 
     <button
       onClick={() => onSkip(activeMarker.endTime!)}
       className={cn(
-        "absolute bottom-28 left-8 z-[60] flex items-center gap-2 rounded-xl border border-white/10 bg-black/60 px-5 py-3 font-bold text-white backdrop-blur-xl transition-all hover:bg-black/80 active:scale-95 animate-in fade-in slide-in-from-left-4 duration-500"
+        "absolute bottom-28 left-8 z-[60] flex items-center gap-2 rounded-xl border border-white/20 bg-black/85 px-5 py-3 font-bold text-white hover:bg-black cursor-pointer"
       )}
     >
       <SkipForward className="h-5 w-5" />

@@ -70,7 +70,7 @@ describe("teaching course payload", () => {
       level: "INTERMEDIATE",
       categoryId: "cat-1",
       category: "",
-      status: "" as any,
+      status: "" as unknown as Parameters<typeof normalizeTeachingCourse>[0]["status"],
       studentsCount: 0,
       lessonsCount: 0,
       duration: "",
@@ -80,7 +80,7 @@ describe("teaching course payload", () => {
       rating: 0,
       durationHours: 0,
       thumbnailUrl: "",
-    } as any);
+    } as unknown as Parameters<typeof normalizeTeachingCourse>[0]);
 
     expect(normalized.title).toBe("عنوان غير مسمى");
     expect(normalized.category).toBe("غير مصنف");

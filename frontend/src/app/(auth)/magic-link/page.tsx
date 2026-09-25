@@ -29,6 +29,7 @@ export default function MagicLinkPage() {
 
   useEffect(() => {
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- validating external token on mount; error state sync is intentional
       setStatus("error");
       setError("الرابط غير صالح: رمز تسجيل الدخول مفقود.");
       return;

@@ -26,7 +26,6 @@ export function AISectionShell({
   title,
   description,
   icon,
-  accent = "primary",
   children,
   actions,
 }: {

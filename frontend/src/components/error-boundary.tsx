@@ -224,10 +224,9 @@ class ErrorBoundary extends Component<Props, State> {
     const { showDetails, className = "" } = this.props;
     
     return (
-      <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-xl bg-red-50/50 dark:bg-red-950/20 text-center animate-in fade-in zoom-in duration-300 ${className}`} dir="rtl">
-        <div className="relative mb-4">
-          <div className="absolute inset-0 bg-red-500/10 rounded-full blur-lg animate-pulse"></div>
-          <AlertTriangle className="relative h-10 w-10 text-red-500" />
+      <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-destructive/30 rounded-xl bg-destructive/5 text-center ${className}`} dir="rtl">
+        <div className="mb-4">
+          <AlertTriangle className="h-10 w-10 text-destructive" />
         </div>
         
         <h3 className="text-lg font-bold mb-1">حدث خطأ في هذا الجزء</h3>

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { m, AnimatePresence } from "framer-motion";
 import { Sparkles, Zap, LayoutDashboard, BookOpen, Play, BarChart3, Clock as ClockIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -31,15 +30,12 @@ export function DashboardHero({
   userLevel,
   userXP,
   nextLevelXP,
-  xpPercentage,
   lastCourse,
   userProgress,
   styles
 }: DashboardHeroProps) {
   return (
-    <m.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
+    <div
       className={styles.glass + " p-4 sm:p-6 md:p-8 lg:p-12 border-primary/20 shadow-primary/5 group transition-all duration-700 hover:border-primary/40 relative"}
     >
       {/* Animated Background Decoration */}
@@ -48,25 +44,22 @@ export function DashboardHero({
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 md:gap-10 lg:gap-12 relative z-10">
         <div className="space-y-4 sm:space-y-5 md:space-y-6 flex-1 w-full md:w-auto text-center md:text-start">
           <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 sm:gap-3 md:gap-4">
-            <m.div
-              whileHover={{ scale: 1.05 }}
+            <div
               className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]"
             >
               <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 animate-pulse" />
               <span>القائد العام للمنصة</span>
-            </m.div>
+            </div>
             <Clock />
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-none">
             أهلاً، <span className={styles.neonText}>{displayName}</span>
-            <m.span
-              animate={{ rotate: [0, 10, -10, 10, 0] }}
-              transition={{ duration: 5, repeat: Infinity }}
+            <div
               className="inline-block me-4 scale-75 md:scale-100"
             >
               🛡️
-            </m.span>
+            </div>
           </h1>
 
           <p className="max-w-2xl text-base sm:text-lg md:text-xl text-gray-400 font-medium leading-relaxed mx-auto md:mx-0">
@@ -87,11 +80,7 @@ export function DashboardHero({
 
         {/* Level Hexagon Display */}
         <div className="relative shrink-0">
-          <m.div
-            animate={{
-              boxShadow: ["0 0 40px rgba(var(--primary), 0.1)", "0 0 80px rgba(var(--primary), 0.3)", "0 0 40px rgba(var(--primary), 0.1)"]
-            }}
-            transition={{ duration: 4, repeat: Infinity }}
+          <div
             className="absolute inset-0 bg-primary/20 blur-3xl opacity-60"
             aria-hidden="true"
           />
@@ -113,31 +102,22 @@ export function DashboardHero({
 
             <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-3 sm:p-4" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
               <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
-              <m.circle
-                initial={{ strokeDashoffset: 552 }}
-                animate={{ strokeDashoffset: 552 * (1 - xpPercentage / 100) }}
-                transition={{ duration: 2.5, ease: "circOut" }}
-                cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={552} className="text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.6)]" />
+              <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={552} className="text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.6)]" />
             </svg>
           </div>
 
-          <m.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1 }}
+          <div
             className="absolute -bottom-3 sm:-bottom-4 md:-bottom-6 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] sm:text-[10px] font-black px-3 py-1 sm:px-4 sm:py-1.5 rounded-full shadow-2xl z-20 whitespace-nowrap"
           >
             متبقي {(nextLevelXP - userXP % nextLevelXP).toLocaleString()} XP للترقية التالية 🎉
-          </m.div>
+          </div>
         </div>
       </div>
 
       {/* --- Continue Learning Banner --- */}
-      <AnimatePresence>
+      <>
         {lastCourse && (
-          <m.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+          <div
             className="mt-8"
           >
             <div className="relative group overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-r from-primary/10 via-background to-background p-6 md:p-8 shadow-xl">
@@ -146,7 +126,7 @@ export function DashboardHero({
               <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
                 <div className="relative h-32 w-48 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-2xl">
                   {lastCourse.thumbnailUrl ? (
-                    <Image src={lastCourse.thumbnailUrl} alt={lastCourse.title} fill sizes="192px" className="object-cover" unoptimized />
+                    <Image src={lastCourse.thumbnailUrl} alt={lastCourse.title} fill sizes="192px" className="object-cover" />
                   ) : (
                     <div className="w-full h-full bg-primary/20 flex items-center justify-center">
                       <BookOpen className="w-12 h-12 text-primary" />
@@ -171,9 +151,8 @@ export function DashboardHero({
                     </div>
                   </div>
                   <div className="w-full h-2 bg-white/5 rounded-full mt-4 overflow-hidden border border-white/5">
-                    <m.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${lastCourse.progress}%` }}
+                    <div
+                      style={{ width: `${lastCourse.progress}%` }}
                       className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                     />
                   </div>
@@ -189,9 +168,9 @@ export function DashboardHero({
                 </Button>
               </div>
             </div>
-          </m.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       <div className={styles.divider} />
 
@@ -200,6 +179,6 @@ export function DashboardHero({
         totalXP={userXP}
         achievementsCount={userProgress?.achievements?.length || 0}
       />
-    </m.div>
+    </div>
   );
 }

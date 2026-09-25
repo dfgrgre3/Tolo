@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { m } from "framer-motion";
 import {
   BookOpen,
   GraduationCap,
@@ -172,10 +171,7 @@ export function LearningSuggestions() {
   if (suggestions.length === 0) return null;
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
+    <div
       className="relative overflow-hidden rounded-[2rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5"
     >
       {/* Decorative gradient */}
@@ -292,6 +288,6 @@ export function LearningSuggestions() {
           </div>
         </div>
       </div>
-    </m.div>
+    </div>
   );
 }

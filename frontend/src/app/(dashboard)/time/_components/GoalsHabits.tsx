@@ -64,6 +64,7 @@ export default function GoalsHabits({ studyMinutesWeek }: { studyMinutesWeek: nu
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating from localStorage then merging server snapshot; restructuring risks behavior change
     setGoals(load<Goal[]>(GOALS_KEY, [
       { id: 'g1', title: 'ساعات المذاكرة الأسبوعية', target: 600, current: 0, unit: 'دقيقة' },
       { id: 'g2', title: 'جلسات بومودورو', target: 20, current: 0, unit: 'جلسة' },

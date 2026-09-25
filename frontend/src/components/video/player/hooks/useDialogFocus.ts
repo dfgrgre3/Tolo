@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef } from "react";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -24,7 +24,7 @@ type DialogFocusOptions = {
  * and previous-focus restore on close. Mount-safe (no-ops on the server).
  */
 export function useDialogFocus(
-  containerRef: RefObject<HTMLElement | null>,
+  containerRef: { current: HTMLElement | null },
   open: boolean,
   options: DialogFocusOptions = {}
 ) {

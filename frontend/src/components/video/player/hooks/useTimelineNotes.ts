@@ -52,7 +52,9 @@ export function useTimelineNotes({
   const [notesFreeformContent, setNotesFreeformContent] = useState("");
   const [isNotesSyncing, setIsNotesSyncing] = useState(false);
   const notesRef = useRef(notes);
-  notesRef.current = notes;
+  useEffect(() => {
+    notesRef.current = notes;
+  });
 
   // Syncing = initial load OR any queued note mutation for this lesson.
   const refreshSyncFlag = useCallback(() => {
@@ -63,6 +65,7 @@ export function useTimelineNotes({
   }, [lessonId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing React state from external/subscription source; intentional effect sync
     refreshSyncFlag();
     return offlineMutationQueue.subscribe(refreshSyncFlag);
   }, [refreshSyncFlag]);

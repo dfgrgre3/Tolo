@@ -76,11 +76,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Read nonce for html element (required to allow inline scripts under CSP).
-  // Default to undefined to ensure consistent SSR/CSR rendering
-  // (avoids hydration mismatch when nonce prop is undefined).
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const cookieStore = await cookies();
+  // headers()+cookies() in parallel: halves the per-request wait vs sequential awaits.
+  const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
+  const nonce = headerStore.get('x-nonce') ?? undefined;
   const hasSessionHint = Boolean(
     cookieStore.get('access_token')?.value || cookieStore.get('refresh_token')?.value,
   );
@@ -155,7 +153,7 @@ export default async function RootLayout({
               instead. */}
           <a
             href="#main-content"
-            className="fixed top-4 start-4 z-[200] px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold shadow-lg outline-none opacity-0 pointer-events-none focus:opacity-100 focus:pointer-events-auto transition-opacity"
+            className="fixed top-4 start-4 z-[200] px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold shadow-lg outline-none opacity-0 pointer-events-none focus:opacity-100 focus:pointer-events-auto"
           >
             تخطى إلى المحتوى الرئيسي
           </a>

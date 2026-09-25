@@ -24,6 +24,7 @@ export default function PhoneVerificationCard() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seeding form field from fetched profile once; intentional sync
     if (!sent && profile?.phone) setPhone(profile.phone);
   }, [profile?.phone, sent]);
 

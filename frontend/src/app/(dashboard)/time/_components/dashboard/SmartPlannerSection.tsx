@@ -8,7 +8,6 @@
  * and the generated daily plan (persistable into planJson.dailyPlans).
  */
 
-import { m } from "framer-motion";
 import { toast } from 'sonner';
 import { useDailyPlan } from '../../hooks/useDailyPlan';
 import NowNextLater from './NowNextLater';
@@ -42,20 +41,14 @@ export default function SmartPlannerSection({
 
   return (
     <>
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.05 }}
+      <div
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
         <NowNextLater now={now} items={plan.items} onStartTask={onTimerToggle} />
         <WorkloadCard workload={plan.workload} unscheduledCount={plan.unscheduled.length} />
-      </m.div>
+      </div>
 
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
+      <div
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
         <AdvisorRecommendations recommendations={recommendations} onStartTask={onTimerToggle} />
@@ -66,16 +59,13 @@ export default function SmartPlannerSection({
           isSaving={isSavingPlan}
           onSave={handleSave}
         />
-      </m.div>
+      </div>
 
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
+      <div
         className="max-w-2xl"
       >
         <BacklogCard backlog={backlog} recovery={recovery} />
-      </m.div>
+      </div>
     </>
   );
 }

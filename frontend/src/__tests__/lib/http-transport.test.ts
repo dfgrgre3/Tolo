@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { BrowserTransport, ServerTransport, createHttpTransport } from "@/lib/api/http-transport";
 
 describe("HttpTransport Abstraction (P0-8)", () => {

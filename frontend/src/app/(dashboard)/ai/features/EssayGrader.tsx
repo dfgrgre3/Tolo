@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PenLine, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,10 +25,8 @@ export default function EssayGrader() {
   const [isLoading, setIsLoading] = useState(false);
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<GradeHistory[]>([]);
+  const [history, setHistory] = useState<GradeHistory[]>(() => (typeof window === "undefined" ? [] : loadLocal<GradeHistory[]>(HISTORY_KEY, [])));
   const { copied, copy } = useCopyText();
-
-  useEffect(() => { setHistory(loadLocal<GradeHistory[]>(HISTORY_KEY, [])); }, []);
 
   const gradeEssay = async () => {
     if (content.trim().length < 100) { setError('اكتب موضوعاً لا يقل عن 100 حرف للحصول على تقييم دقيق'); return; }

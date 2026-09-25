@@ -83,7 +83,7 @@ export function BlogSection({ posts, loading }: BlogSectionProps) {
                     <Image
                       src={coverOf(featuredPost) as string}
                       alt={featuredPost.title}
-                      fill
+                      fill sizes="(min-width: 1024px) 33vw, 100vw"
                       className="object-cover"
                     />
                   ) : (
@@ -121,7 +121,7 @@ export function BlogSection({ posts, loading }: BlogSectionProps) {
                 >
                   <div className="relative aspect-video h-20 rounded-[8px] overflow-hidden bg-slate-100 shrink-0">
                     {coverOf(post) ? (
-                      <Image src={coverOf(post) as string} alt={post.title} fill className="object-cover" />
+                      <Image src={coverOf(post) as string} alt={post.title} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300" />
                     )}

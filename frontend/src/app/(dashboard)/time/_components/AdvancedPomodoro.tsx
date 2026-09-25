@@ -49,6 +49,7 @@ export default function AdvancedPomodoro({ onSessionComplete }: Props) {
   useEffect(() => {
     // Settings define the next phase; never rewrite elapsed time of a running phase.
     if (!running) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing timer display with phase settings change while paused; intentional sync
       setLeft(phaseLen);
       elapsedBeforeRun.current = 0;
       phaseStartedAt.current = null;

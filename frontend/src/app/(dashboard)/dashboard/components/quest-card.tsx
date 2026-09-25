@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React from "react";
-import { m } from "framer-motion";
 import { Clock, BookOpen, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +11,7 @@ export function QuestCard() {
   };
 
   return (
-    <m.div 
-      whileHover={{ y: -5 }}
+    <div
       className={STYLES.glass + " p-0 overflow-hidden border-orange-500/30 group"}
     >
        <div className="bg-orange-500/10 px-8 py-4 border-b border-orange-500/20 flex items-center justify-between relative overflow-hidden">
@@ -30,9 +28,7 @@ export function QuestCard() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-6">
               <div className="h-24 w-24 rounded-3xl border-4 border-orange-500/30 flex items-center justify-center bg-orange-500/5 relative shadow-inner overflow-hidden group">
-                  <m.div 
-                    animate={{ scale: [1, 1.1, 1] }} 
-                    transition={{ duration: 2, repeat: Infinity }}
+                  <div
                     className="absolute inset-0 bg-orange-500/10" 
                   />
                   <Play className="w-10 h-10 text-orange-500 fill-orange-500 ms-1 relative z-10 group-hover:scale-125 transition-transform" />
@@ -62,15 +58,12 @@ export function QuestCard() {
               <span className="text-orange-500">65%</span>
            </div>
            <div className="h-4 w-full bg-gray-900/50 rounded-full overflow-hidden border border-white/5 p-1">
-              <m.div 
-                initial={{ width: 0 }}
-                animate={{ width: "65%" }}
-                transition={{ duration: 1.5, delay: 0.5 }}
+              <div
                 className="h-full bg-gradient-to-r from-orange-600 via-orange-400 to-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.5)] rounded-full" 
               />
            </div>
         </div>
        </div>
-    </m.div>
+    </div>
   );
 }

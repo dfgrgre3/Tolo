@@ -57,8 +57,7 @@ interface Props {
 }
 
 export default function RecurringTasks({ subjects, onTaskCreate }: Props) {
-  const [rules, setRules] = useState<RecurringRule[]>([]);
-  const [ready, setReady] = useState(false);
+  const [rules, setRules] = useState<RecurringRule[]>(() => (typeof window === "undefined" ? [] : load()));
   const [title, setTitle] = useState('');
   const [pattern, setPattern] = useState<UiRecurrencePattern>('DAILY');
   const [priority, setPriority] = useState<RecurringRule['priority']>('MEDIUM');
@@ -66,11 +65,7 @@ export default function RecurringTasks({ subjects, onTaskCreate }: Props) {
   const [selectedDays, setSelectedDays] = useState<number[]>([6]);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    setRules(load());
-    setReady(true);
-  }, []);
-  useEffect(() => { if (ready) localStorage.setItem(KEY, JSON.stringify(rules)); }, [rules, ready]);
+  useEffect(() => { localStorage.setItem(KEY, JSON.stringify(rules)); }, [rules]);
 
   const needsDays = pattern === 'WEEKLY' || pattern === 'CUSTOM_DAYS';
 
@@ -144,11 +139,12 @@ export default function RecurringTasks({ subjects, onTaskCreate }: Props) {
 
   // توليد تلقائي مرة واحدة عند فتح الصفحة
   useEffect(() => {
-    if (!ready || rules.length === 0) return;
+    if (rules.length === 0) return;
     const due = rules.some(r => shouldGenerateToday(r));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- generating today recurring tasks once on mount from hydrated rules; intentional one-shot sync
     if (due) generateToday();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, []);
 
   const describeDays = (r: RecurringRule) => {
     if (r.pattern === 'DAILY') return 'يوميًا';

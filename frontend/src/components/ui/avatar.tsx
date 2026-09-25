@@ -60,7 +60,7 @@ const AvatarImage = React.forwardRef<
       ref={ref}
       src={src}
       alt={alt}
-      fill
+      fill sizes="(min-width: 1024px) 33vw, 100vw"
       priority
       unoptimized
       className={cn("aspect-square h-full w-full object-cover", className)}

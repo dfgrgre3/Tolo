@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Metadata } from "next";
-import { LoaderCircle } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
+import { SimpleSkeleton } from "@/components/ux/simple-skeleton";
 
 export const metadata: Metadata = {
   title: "تسجيل الدخول | Tolo",
@@ -14,9 +14,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-[460px]">
         <Suspense
           fallback={
-            <div className="flex min-h-48 items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900" role="status" aria-label="جاري التحميل">
-              <LoaderCircle className="h-6 w-6 text-primary" />
-            </div>
+            <SimpleSkeleton label="جاري تحميل صفحة تسجيل الدخول…" className="min-h-48" />
           }
         >
           <LoginForm />

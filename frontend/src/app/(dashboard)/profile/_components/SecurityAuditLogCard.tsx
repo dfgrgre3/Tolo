@@ -120,6 +120,7 @@ export default function SecurityAuditLogCard() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching external data on mount/param change; setState in async callback is intentional sync
     load()
       .catch((err) => setError(err instanceof ApiError ? err.message : "تعذر تحميل سجل الأمان."))
       .finally(() => setIsLoading(false));

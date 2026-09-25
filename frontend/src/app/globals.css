@@ -1,9 +1,27 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
-/* ============================================
-   Header & MegaMenu — Lightweight Animations
-   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Global motion-off policy: the product intentionally has no visual animation. */
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Remove transition from the skip link so keyboard focus is immediate. */
+a, button, input, textarea, select, [tabindex] {
+  transition: none !important;
+}
 
 /*
  * scrollbar-gutter: stable — يضمن بقاء مساحة شريط التمرير محجوزة دائمًا
@@ -75,50 +93,9 @@ html body[data-scroll-locked] {
   border-radius: 999px;
 }
 
-/* Smooth header transition base */
-@keyframes header-slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes header-slide-up {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-}
-
-@keyframes mega-menu-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes mega-menu-fade-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-}
+/* Dead keyframes removed: global motion-off policy sets animation:none
+   on *, so no keyframes are needed. Loading spinners use Tailwind's
+   built-in animate-spin/animate-pulse utilities. */
 
 /* ============================================
    Smooth opt-in for Header / MegaMenu / Drawer
@@ -130,53 +107,17 @@ html body[data-scroll-locked] {
    policy or sprinkle motion classes through the app.
    ============================================ */
 
-/* Sticky header: only the scroll-state shadow/border changes animate. */
-[data-header-root] {
-  transition: box-shadow 200ms ease-out, border-color 200ms ease-out,
-    background-color 200ms ease-out !important;
-}
-
-/* MegaMenu dropdown panel — the core open/close motion. */
-[data-mega-menu-content] {
-  transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-  will-change: opacity, transform;
-}
-
-/* MegaMenu backdrop fade. */
-[data-mega-menu-backdrop] {
-  transition: opacity 180ms ease-out !important;
-}
-
-/* Mobile drawer overlay fade (matches the panel's 280ms slide). */
-[data-mobile-menu-backdrop] {
-  transition: opacity 280ms ease-out !important;
-}
-
-/* Mobile drawer slide + its overlay fade. */
-[data-mobile-menu-panel] {
-  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-  will-change: transform;
-}
-
-/* Hamburger trigger. */
-[data-mobile-menu-trigger] {
-  transition: background-color 150ms ease-out, color 150ms ease-out !important;
-}
-
-/* Nav rows (desktop links, mega-menu triggers, utility links) inside the header. */
+/* No-motion policy: header / menus open instantly, no transitions. */
+[data-header-root],
 [data-header-root] a,
 [data-header-root] button,
-[data-header-root] [role="button"] {
-  transition: background-color 150ms ease-out, border-color 150ms ease-out,
-    color 150ms ease-out !important;
-}
-
-/* Rows inside the mobile drawer / mega menu get the same treatment. */
-[data-mega-menu-content] a,
-[data-mobile-menu-panel] a,
-[data-mobile-menu-panel] button {
-  transition: background-color 150ms ease-out, color 150ms ease-out !important;
+[data-mega-menu-content],
+[data-mega-menu-backdrop],
+[data-mobile-menu-backdrop],
+[data-mobile-menu-panel],
+[data-mobile-menu-trigger] {
+  transition: none !important;
+  animation: none !important;
 }
 
 /*
@@ -751,15 +692,28 @@ button {
   transition: none !important;
 }
 
-/* The application uses a static interaction policy. Keep this rule global so
- * third-party components, utility classes, inline styles, SVGs, and future
- * components cannot re-introduce visual motion accidentally. */
+/* The application uses a strict static interaction policy: zero transitions, zero animations.
+ * Keeps interactions instant, maximizes performance, and avoids GPU layer overhead. */
 *,
 *::before,
 *::after {
   animation: none !important;
   transition: none !important;
   scroll-behavior: auto !important;
+}
+
+/* Minimal spinner exception for essential async progress feedback */
+.animate-spin {
+  animation: spin 0.8s linear infinite !important;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 html {

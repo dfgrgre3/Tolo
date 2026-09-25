@@ -39,22 +39,22 @@ const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & {
 Slot.displayName = "Slot";
 
 const buttonVariants = cva(
-  // Base: include touch target minimum size (44x44 on touch devices)
-  "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none no-tap-highlight",
+  // Base: include touch target minimum size (44x44 on touch devices), zero transitions, crisp states
+  "inline-flex items-center justify-center rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none no-tap-highlight",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-sm",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-muted hover:text-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        premium: "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white shadow-lg hover:shadow-violet-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300",
-        gradient: "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md hover:shadow-lg",
-        success: "bg-green-500 text-white hover:bg-green-600 shadow-sm",
-        warning: "bg-yellow-500 text-white hover:bg-yellow-600 shadow-sm",
-        neon: "bg-black text-primary border border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.5)] hover:bg-primary hover:text-white",
+        premium: "bg-accent text-accent-foreground hover:bg-accent/90",
+        gradient: "bg-primary text-primary-foreground hover:bg-primary/90",
+        success: "bg-emerald-600 text-white hover:bg-emerald-700",
+        warning: "bg-amber-600 text-white hover:bg-amber-700",
+        neon: "bg-primary text-primary-foreground hover:bg-primary/90",
       },
       size: {
         // Mobile-friendly touch targets (min 44px tall on mobile, 40px on desktop for buttons, 44px for icon)

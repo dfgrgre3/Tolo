@@ -423,6 +423,7 @@ export default function SubscriptionPage() {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting pagination on filter change is intentional sync, not derived render state
     setPage(1);
   }, [query, filter, historyTab]);
 

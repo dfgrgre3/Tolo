@@ -315,7 +315,7 @@ export default function CourseWizard({ course, onSave, onClose, isSaving = false
                 >
                   {thumbnail ? (
                     <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                      <Image src={thumbnail} alt="غلاف الكورس" fill sizes="384px" className="object-cover" unoptimized />
+                      <Image src={thumbnail} alt="غلاف الكورس" fill sizes="384px" className="object-cover" />
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

@@ -68,7 +68,7 @@ export default function CompanyDetailPage() {
       <Card className="overflow-hidden">
         {company.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- external cover host
-          <img src={company.coverUrl} alt="" className="h-32 w-full object-cover" />
+          <img src={company.coverUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" className="h-32 w-full object-cover" />
         ) : (
           <div className="h-24 w-full bg-gradient-to-l from-primary/15 to-primary/5" />
         )}
@@ -78,7 +78,7 @@ export default function CompanyDetailPage() {
             <span className="-mt-10 flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-4 border-background bg-muted">
               {company.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- external logo host
-                <img src={company.logoUrl} alt="" className="h-full w-full object-cover" />
+                <img src={company.logoUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
               ) : (
                 <Building2 className="h-6 w-6 text-muted-foreground" />
               )}

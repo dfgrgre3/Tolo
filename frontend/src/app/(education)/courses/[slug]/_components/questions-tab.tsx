@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { m } from "framer-motion";
 import { Loader2, HelpCircle, ChevronDown, ChevronUp, Send, GraduationCap, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,6 +44,7 @@ export function QuestionsTab({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching external data on mount/param change; setState in async callback is intentional sync
     fetchQuestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
@@ -97,9 +97,7 @@ export function QuestionsTab({
   };
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="max-w-3xl space-y-6">
 
       {/* Ask a question */}
@@ -237,6 +235,6 @@ export function QuestionsTab({
             </p>
           </div>
       }
-    </m.div>
+    </div>
   );
 }

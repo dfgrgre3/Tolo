@@ -29,6 +29,7 @@ export function useInteractiveQuestions({
   const [serverQuestions, setServerQuestions] = useState<InteractiveQuestion[] | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting cached questions when lesson changes before refetch; intentional sync
     setServerQuestions(null);
     if (disabled || !lessonId) return;
     let cancelled = false;

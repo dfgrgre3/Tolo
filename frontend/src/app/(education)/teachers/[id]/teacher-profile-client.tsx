@@ -142,6 +142,7 @@ export default function TeacherProfileClient({ profile, initialCourses, coursesT
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching external data on mount/param change; setState in async callback is intentional sync
     loadReviews(1);
   }, [loadReviews, profile.id]);
 

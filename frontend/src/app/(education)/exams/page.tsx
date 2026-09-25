@@ -8,7 +8,6 @@ import { useOfflineOutboxStore } from "@/hooks/use-offline-outbox-store";
 import { isCriticalError } from "@/lib/error-utils";
 import { toast } from "sonner";
 
-import { m, AnimatePresence } from "framer-motion";
 import {
 
    Sword,
@@ -179,9 +178,7 @@ function ExamsPageContent() {
          <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
 
             {/* --- Header: The Chamber Arrival --- */}
-            <m.div
-               initial={{ opacity: 0, y: -30 }}
-               animate={{ opacity: 1, y: 0 }}
+            <div
                className="text-center space-y-6">
 
                <div className="inline-flex items-center gap-3 rounded-full border border-red-500/30 bg-red-500/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
@@ -194,7 +191,7 @@ function ExamsPageContent() {
                <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
                   هنا تُختبر القدرات وتُصقل المهارات. اختر ساحة معركتك، دوّن إنجازاتك، وراقب نمو قوتك القتالية ضد أصعب العقبات.
                </p>
-            </m.div>
+            </div>
 
             {/* --- Main Grid: Portal & Registry --- */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -221,13 +218,10 @@ function ExamsPageContent() {
                      </div> :
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <AnimatePresence>
-                           {exams.map((exam, idx) =>
-                              <m.div
+                        <>
+                           {exams.map((exam, _idx) =>
+                              <div
                                  key={exam.id}
-                                 initial={{ opacity: 0, scale: 0.95 }}
-                                 animate={{ opacity: 1, scale: 1 }}
-                                 transition={{ delay: idx * 0.05 }}
                                  className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all hover:translate-y-[-5px]"}>
 
                                  <div className="flex flex-col h-full justify-between gap-6">
@@ -256,9 +250,9 @@ function ExamsPageContent() {
                                        </div>
                                     )}
                                  </div>
-                              </m.div>
+                              </div>
                            )}
-                        </AnimatePresence>
+                        </>
                      </div>
                   }
                </div>
@@ -363,13 +357,10 @@ function ExamsPageContent() {
                            <p className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">لم يتم خوض أي معارك رسمية حتى الآن</p>
                         </div> :
 
-                        <AnimatePresence>
-                           {results.map((result, idx) =>
-                              <m.div
+                        <>
+                           {results.map((result, _idx) =>
+                              <div
                                  key={result.id}
-                                 initial={{ opacity: 0, x: -30 }}
-                                 animate={{ opacity: 1, x: 0 }}
-                                 transition={{ delay: idx * 0.05 }}
                                  className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/[0.02] group transition-all">
 
                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 w-full">
@@ -401,9 +392,9 @@ function ExamsPageContent() {
 
                                     <Trash2 className="h-5 w-5" />
                                  </Button>
-                              </m.div>
+                              </div>
                            )}
-                        </AnimatePresence>
+                        </>
                      }
                   </div>
                </div>

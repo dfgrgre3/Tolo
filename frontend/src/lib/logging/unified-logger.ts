@@ -81,10 +81,10 @@ class UnifiedLogger {
           if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
           break;
         case 'info':
-          console.info(fullMessage);
+          if (process.env.NODE_ENV === 'development') console.info(fullMessage);
           break;
         case 'warn':
-          console.warn(fullMessage);
+          if (process.env.NODE_ENV === 'development') console.warn(fullMessage);
           break;
         case 'error':
           console.error(fullMessage);

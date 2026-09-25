@@ -1,80 +1,41 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Zap, Target, BookMarked } from 'lucide-react';
 import { CONTAINER, TYPOGRAPHY, SECTION_HEADER, SECTION } from '../design-system';
+import { apiClient } from '@/lib/api/api-client';
+
+interface ExamFromAPI {
+  id: string;
+  title?: string;
+  name?: string;
+  subject?: string;
+  description?: string;
+  questionsCount?: number;
+  questions_count?: number;
+  difficulty?: string;
+  duration?: number;
+  category?: string;
+}
 
 interface ExamTrack {
   id: string;
   title: string;
-  icon: React.ReactNode;
   description: string;
-  courses: number;
+  questionsCount: number;
   difficulty: string;
   href: string;
 }
 
-const EXAM_TRACKS: ExamTrack[] = [
-  {
-    id: 'tawjihi',
-    title: 'الثانوية العامة',
-    icon: <BookMarked className="h-6 w-6" />,
-    description: 'تحضير شامل لامتحانات الثانوية العامة',
-    courses: 24,
-    difficulty: 'متقدم',
-    href: '/courses?exam=tawjihi',
-  },
-  {
-    id: 'university',
-    title: 'امتحانات الجامعة',
-    icon: <Target className="h-6 w-6" />,
-    description: 'كورسات مخصصة للتحضير الجامعي',
-    courses: 18,
-    difficulty: 'متقدم',
-    href: '/courses?exam=university',
-  },
-  {
-    id: 'ielts',
-    title: 'IELTS',
-    icon: <Zap className="h-6 w-6" />,
-    description: 'تحضير متخصص لامتحان IELTS',
-    courses: 12,
-    difficulty: 'متوسط',
-    href: '/courses?exam=ielts',
-  },
-  {
-    id: 'toefl',
-    title: 'TOEFL',
-    icon: <Zap className="h-6 w-6" />,
-    description: 'كورسات TOEFL بشهادات معتمدة',
-    courses: 10,
-    difficulty: 'متقدم',
-    href: '/courses?exam=toefl',
-  },
-  {
-    id: 'certifications',
-    title: 'شهادات مهنية',
-    icon: <Target className="h-6 w-6" />,
-    description: 'شهادات احترافية معترف بها عالمياً',
-    courses: 20,
-    difficulty: 'متقدم',
-    href: '/courses?exam=certifications',
-  },
-  {
-    id: 'placement',
-    title: 'اختبارات التصنيف',
-    icon: <BookMarked className="h-6 w-6" />,
-    description: 'تحضير لاختبارات القبول والتصنيف',
-    courses: 15,
-    difficulty: 'متوسط',
-    href: '/courses?exam=placement',
-  },
-];
+const ICONS = [BookMarked, Target, Zap, BookMarked, Target, Zap];
 
 /**
  * ExamTrackCard Component
  */
-function ExamTrackCard({ track }: { track: ExamTrack }) {
+function ExamTrackCard({ track, index }: { track: ExamTrack; index: number }) {
+  const Icon = ICONS[index % ICONS.length] ?? Target;
+
   return (
     <Link href={track.href}>
       <div className={`
@@ -94,7 +55,7 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
           group-hover:bg-[#0F766E] dark:group-hover:bg-orange-600
           group-hover:text-white transition-colors duration-150
         `}>
-          {track.icon}
+          <Icon className="h-6 w-6" />
         </div>
 
         {/* Title */}
@@ -110,7 +71,7 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
         {/* Stats Row */}
         <div className="flex items-center justify-between pt-3 border-t border-[#E2E8F0] dark:border-slate-700">
           <span className="text-xs font-semibold text-[#0F766E] dark:text-orange-500">
-            {track.courses} كورس
+            {track.questionsCount > 0 ? `${track.questionsCount} سؤال` : 'امتحان متاح'}
           </span>
           <span className="text-xs px-2 py-1 bg-[#F8FAFC] dark:bg-slate-700 text-[#64748B] dark:text-slate-300 rounded-full font-medium">
             {track.difficulty}
@@ -121,13 +82,65 @@ function ExamTrackCard({ track }: { track: ExamTrack }) {
   );
 }
 
+/** Skeleton for loading state */
+function ExamSkeleton() {
+  return (
+    <div className="h-full p-4 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[12px] animate-pulse">
+      <div className="h-11 w-11 rounded-xl bg-slate-200 dark:bg-slate-700 mb-3" />
+      <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded mb-1.5" />
+      <div className="h-3 w-full bg-slate-100 dark:bg-slate-700 rounded mb-3" />
+      <div className="h-6 w-full bg-slate-50 dark:bg-slate-700 rounded" />
+    </div>
+  );
+}
+
 /**
  * ExamPreparationSection
  *
- * Displays specialized exam preparation tracks
- * to help students prepare for specific exams
+ * Fetches real exams from the backend API and displays them.
+ * Previously used hardcoded EXAM_TRACKS data.
  */
 export function ExamPreparationSection() {
+  const [tracks, setTracks] = useState<ExamTrack[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    apiClient.get<ExamFromAPI[] | { items?: ExamFromAPI[]; data?: ExamFromAPI[] }>('/exams?limit=6')
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data)
+          ? data
+          : (data as { items?: ExamFromAPI[]; data?: ExamFromAPI[] }).items
+            || (data as { items?: ExamFromAPI[]; data?: ExamFromAPI[] }).data
+            || [];
+
+        const mapped: ExamTrack[] = list
+          .filter((e) => e.title || e.name || e.subject)
+          .map((e) => ({
+            id: e.id,
+            title: e.title || e.name || e.subject || 'امتحان',
+            description: e.description || `امتحان في ${e.title || e.name || e.subject || 'مادة'}`,
+            questionsCount: e.questionsCount || e.questions_count || 0,
+            difficulty: e.difficulty || 'متنوع',
+            href: `/courses?exam=${e.id}`,
+          }))
+          .slice(0, 6);
+
+        setTracks(mapped);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hide section when no real exams available
+  if (!loading && tracks.length === 0) return null;
+
   return (
     <section className={`${SECTION.padding} bg-gradient-to-b from-white to-[#F8FAFC] dark:from-slate-900 dark:to-slate-950`}>
       <div className={CONTAINER.className}>
@@ -138,7 +151,7 @@ export function ExamPreparationSection() {
               🎯 استعد للامتحانات
             </h2>
             <p className={TYPOGRAPHY.sectionSubheading}>
-              مسارات تحضير متخصصة لامتحانات مهمة
+              امتحانات حقيقية للتدرب والتحضير
             </p>
           </div>
           <Link
@@ -151,9 +164,11 @@ export function ExamPreparationSection() {
 
         {/* Exam Tracks Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {EXAM_TRACKS.map((track) => (
-            <ExamTrackCard key={track.id} track={track} />
-          ))}
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <ExamSkeleton key={i} />)
+            : tracks.map((track, i) => (
+                <ExamTrackCard key={track.id} track={track} index={i} />
+              ))}
         </div>
       </div>
     </section>

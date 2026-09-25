@@ -20,16 +20,14 @@ import { TimeCoordinatorProvider } from '@/providers/TimeCoordinatorProvider';
 import { OfflineSyncManager } from '@/components/providers/OfflineSyncManager';
 import { useAuth } from '@/hooks/use-auth';
 import AccountStatusGate from '@/components/auth/AccountStatusGate';
-import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion';
-
 function makeQueryClient() {
   const isDev = process.env.NODE_ENV === 'development';
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // Safe default: 0ms staleTime (always fresh / revalidates on mount).
+        // Light default: 60s stale to avoid refetch storm on every nav/mount.
         // Specific queries MUST explicitly spread a profile from '@/lib/query/query-profiles'.
-        staleTime: 0,
+        staleTime: 60_000,
         // 10 min garbage-collect window (enough for navigation within a session)
         gcTime: 600_000,
         // Disable retry in development to speed up debugging, otherwise retry transient network errors
@@ -41,8 +39,8 @@ function makeQueryClient() {
         },
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
         refetchOnWindowFocus: false,
-        refetchOnReconnect: true,
-        refetchOnMount: true,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
         networkMode: 'online',
       },
       mutations: {
@@ -192,13 +190,7 @@ type GlobalProvidersProps = {
  */
 export function GlobalProviders({ children, hasSessionHint = false }: GlobalProvidersProps) {
   return (
-    // LazyMotion defers loading framer-motion (~100KB) until the first `m.*`
-    // component mounts instead of blocking the cold-open bundle.
-    <MotionConfig reducedMotion="always" transition={{ duration: 0 }}>
-      <LazyMotion features={domAnimation}>
-        <RuntimeProviders hasSessionHint={hasSessionHint}>{children}</RuntimeProviders>
-      </LazyMotion>
-    </MotionConfig>
+    <RuntimeProviders hasSessionHint={hasSessionHint}>{children}</RuntimeProviders>
   );
 }
 

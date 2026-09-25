@@ -69,33 +69,47 @@ function readPersistedSignals(): DeviceSignals | null {
 }
 
 /**
+ * SSR-hydration-safe default device profile.
+ *
+ * MUST be identical on the server and on the client's first render: it does
+ * NOT touch localStorage/navigator, so it can't diverge between SSR and the
+ * hydration pass (a divergence there flips `isEfficiencyMode` and causes a
+ * hydration mismatch in the Header, which conditionally renders an
+ * `ssr:false` component based on it).
+ */
+function defaultCapabilities(): PerformanceCapabilities {
+  return {
+    deviceMemory: 8,
+    hardwareConcurrency: 8,
+    effectiveType: "4g",
+    downlink: null,
+    rtt: null,
+    saveData: false,
+    gpuType: "hardware",
+    gpuRenderer: "",
+    cpuBenchMs: 0,
+    isMobile: false,
+    isTablet: false,
+    isLowEnd: false,
+    isMidRange: false,
+    isHighEnd: true,
+    score: 100,
+    reducedData: false,
+    reducedMotion: false,
+    lowBattery: false,
+    osName: "unknown",
+    browserName: "unknown",
+    recommended: "performance",
+  };
+}
+
+/**
  * Detect device capabilities (used as a fallback if perf-detect.js didn't run).
+ * Client-only: reads browser APIs / persisted signals. Never called during SSR.
  */
 function detectCapabilities(): PerformanceCapabilities {
   if (typeof navigator === "undefined") {
-    return {
-      deviceMemory: 8,
-      hardwareConcurrency: 8,
-      effectiveType: "4g",
-      downlink: null,
-      rtt: null,
-      saveData: false,
-      gpuType: "hardware",
-      gpuRenderer: "",
-      cpuBenchMs: 0,
-      isMobile: false,
-      isTablet: false,
-      isLowEnd: false,
-      isMidRange: false,
-      isHighEnd: true,
-      score: 100,
-      reducedData: false,
-      reducedMotion: false,
-      lowBattery: false,
-      osName: "unknown",
-      browserName: "unknown",
-      recommended: "performance",
-    };
+    return defaultCapabilities();
   }
 
   // Try persisted signals first (set by perf-detect.js)
@@ -247,8 +261,18 @@ function modeToClassNames(mode: EffectivePerformanceMode): string[] {
 }
 
 export function EfficiencyProvider({ children }: { children: React.ReactNode }) {
-  const [capabilities, setCapabilities] = useState<PerformanceCapabilities>(() => detectCapabilities());
+  // Initialize with the SSR-hydration-safe default so the server render and the
+  // client's first render agree (prevents `isEfficiencyMode`-driven hydration
+  // mismatches in consumers such as the Header). The real device profile is
+  // detected on the client right after mount.
+  const [capabilities, setCapabilities] = useState<PerformanceCapabilities>(defaultCapabilities);
   const [userMode, setUserMode] = useState<PerformanceMode>("auto");
+
+  useEffect(() => {
+    // Client-only: apply the actual persisted/live device signals after
+    // hydration. The resulting re-render is safe because it happens post-mount.
+    setCapabilities(detectCapabilities());
+  }, []);
 
   // Compute the effective mode:
   // - If user explicitly chose a mode, use it

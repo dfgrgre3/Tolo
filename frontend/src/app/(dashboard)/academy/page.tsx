@@ -1,9 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useAuth } from "@/hooks/use-auth";
 import { fetchCoursesListRaw } from "@/features/courses/api/courses-gateway";
 import React, { useEffect, useState } from "react";
-import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -86,26 +85,18 @@ export default function GamifiedCoursesDashboard() {
   if (loading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <div className="relative h-20 w-20">
-          <div className="absolute inset-0 animate-ping rounded-full border-2 border-primary/20" />
-          <div className="absolute inset-2 animate-spin rounded-full border-4 border-transparent border-t-primary" />
-          <Sword className="absolute inset-0 m-auto h-6 w-6 text-primary animate-pulse" />
-        </div>
+        <div className="h-10 w-10 rounded-full border-2 border-muted border-t-primary animate-spin" />
       </div>);
 
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700" dir="rtl">
+    <div className="space-y-8 " dir="rtl">
       {/* â”€â”€â”€ Stats Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, staggerChildren: 0.1 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Level Card */}
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-amber-500/20 shadow-[0_8px_32px_rgba(245,158,11,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -left-10 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl group-hover:bg-amber-500/30 transition-colors" />
@@ -122,10 +113,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </m.div>
+        </div>
 
         {/* Active Quests */}
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-blue-500/20 shadow-[0_8px_32px_rgba(59,130,246,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
@@ -141,10 +132,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </m.div>
+        </div>
 
         {/* Victories */}
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-emerald-500/20 shadow-[0_8px_32px_rgba(16,185,129,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
@@ -160,10 +151,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </m.div>
+        </div>
 
         {/* Streak */}
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-rose-500/20 shadow-[0_8px_32px_rgba(244,63,94,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
@@ -180,8 +171,8 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </m.div>
-      </m.div>
+        </div>
+      </div>
 
       {/* â”€â”€â”€ Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -220,15 +211,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardHeader>
             <CardContent className="pt-6 min-h-[400px]">
-              <AnimatePresence mode="wait">
+              <>
                 
                 {activeTab === "active" &&
-                <m.div
-                  key="active"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4">
+                <div key="active" className="space-y-4">
                   
                     {activeQuests.length > 0 ?
                   activeQuests.map((course, _idx) =>
@@ -275,16 +261,11 @@ export default function GamifiedCoursesDashboard() {
                         </Button>
                       </div>
                   }
-                  </m.div>
+                  </div>
                 }
 
                 {activeTab === "completed" &&
-                <m.div
-                  key="completed"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div key="completed" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   
                     {completedQuests.length > 0 ?
                   completedQuests.map((course) =>
@@ -314,16 +295,11 @@ export default function GamifiedCoursesDashboard() {
                         <p className="text-sm text-muted-foreground mt-1">Ø·Ø±ÙŠÙ‚ Ø§Ù„Ø£Ù„Ù Ù…ÙŠÙ„ ÙŠØ¨Ø¯Ø£ Ø¨Ø®Ø·ÙˆØ©. Ø£ÙƒÙ…Ù„ Ø¯ÙˆØ±Ø© Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø´Ø§Ø±Ø© Ø§Ù„Ù†ØµØ±.</p>
                       </div>
                   }
-                  </m.div>
+                  </div>
                 }
 
                 {activeTab === "explore" &&
-                <m.div
-                  key="explore"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="grid grid-cols-1 gap-4">
+                <div key="explore" className="grid grid-cols-1 gap-4">
                   
                     {exploreCourses.length > 0 ?
                   exploreCourses.map((course) =>
@@ -363,10 +339,10 @@ export default function GamifiedCoursesDashboard() {
                         <h4 className="text-lg font-bold">Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¯ÙˆØ±Ø§Øª Ø¬Ø¯ÙŠØ¯Ø© Ù…ØªØ§Ø­Ø© Ø­Ø§Ù„ÙŠØ§Ù‹</h4>
                       </div>
                   }
-                  </m.div>
+                  </div>
                 }
 
-              </AnimatePresence>
+              </>
             </CardContent>
           </Card>
         </div>

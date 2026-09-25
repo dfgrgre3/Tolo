@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { m, AnimatePresence } from "framer-motion";
 import { Plus, CheckSquare, Bell, Timer, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -27,22 +26,16 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
   return (
     <div className="fixed bottom-8 right-8 z-50">
       <div className="relative flex flex-col items-center gap-4">
-        <AnimatePresence>
+        <>
           {isOpen && (
-            <m.div 
-              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.8 }}
+            <div
               className="flex flex-col items-center gap-3 mb-2"
             >
-              {actions.map((action, idx) => (
+              {actions.map((action, _idx) => (
                 <TooltipProvider key={action.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <m.button
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
+                      <div
                         onClick={() => {
                           onAction(action.id);
                           setIsOpen(false);
@@ -50,7 +43,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
                         className={`w-12 h-12 rounded-full ${action.color} ${action.hover} text-white shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95`}
                       >
                         {action.icon}
-                      </m.button>
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="font-bold">
                       {action.label}
@@ -58,9 +51,9 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
                   </Tooltip>
                 </TooltipProvider>
               ))}
-            </m.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
 
         <Button
           onClick={() => setIsOpen(!isOpen)}

@@ -338,7 +338,7 @@ export function useProgressPersistence({
         completionSentRef.current = false;
       });
     },
-    [amLeader, computeDeltas, enqueueHeartbeat, getCurrentTime, getDuration, lessonId, sessionId, setUIState, storageKey, triggerAutoComplete]
+    [amLeader, computeDeltas, enqueueHeartbeat, getCurrentTime, getDuration, lessonId, sessionId, sessionStartedAtMs, setUIState, storageKey, triggerAutoComplete]
   );
 
   const loadResumeData = useCallback(async () => {
@@ -428,7 +428,7 @@ export function useProgressPersistence({
     return () => {
       window.removeEventListener("pagehide", onPageHide);
     };
-  }, [amLeader, computeDeltas, getCurrentTime, getDuration, lessonId, sessionId, storageKey]);
+  }, [amLeader, computeDeltas, getCurrentTime, getDuration, lessonId, sessionId, sessionStartedAtMs, storageKey]);
 
   return {
     saveProgress,

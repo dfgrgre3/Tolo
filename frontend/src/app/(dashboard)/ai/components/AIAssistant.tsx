@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare, BookOpen, Atom, FlaskConical, PenLine } from 'lucide-react';
+import { Send, Bot, User, Zap, Trash2, Plus, Menu, Copy, Check, Sparkles, MessageSquare, BookOpen, Atom, FlaskConical, PenLine, Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import {
   deleteAiConversationRaw,
@@ -538,11 +538,7 @@ export default function AIAssistant({
               </div>
               <div className="bg-muted border border-border rounded-2xl rounded-tl-md px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex space-x-1.5">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
+                  <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
                   <span className="text-xs text-muted-foreground me-2">جاري التفكير... يمكنك الضغط على إيقاف</span>
                 </div>
               </div>

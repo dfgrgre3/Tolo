@@ -250,7 +250,7 @@ export default function JobDetailPage() {
               <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted">
                 {job.company?.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- external company logos are not in the Next image allowlist
-                  <img src={job.company.logoUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={job.company.logoUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 ) : (
                   <Building2 className="h-6 w-6 text-muted-foreground" />
                 )}

@@ -115,6 +115,7 @@ export default function AccountSettingsForm() {
   // draft. Keep the draft, but make the overwrite decision explicit to the user.
   useEffect(() => {
     if (isDirty && initial && seededInitial && JSON.stringify(initial) !== JSON.stringify(seededInitial)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- deriving conflict flag from two external data sources; intentional sync
       setHasConflict(true);
     }
   }, [initial, seededInitial, isDirty]);

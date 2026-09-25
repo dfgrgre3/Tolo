@@ -12,7 +12,13 @@ const isDev =
 const nextConfig = {
   // السماح بالوصول لخادم التطوير من أجهزة أخرى على الشبكة المحلية
   // (مثلاً http://192.168.1.15:3000 من موبايل أو جهاز تاني على نفس الراوتر).
-  allowedDevOrigins: ["192.168.1.15", "localhost", "127.0.0.1"],
+  allowedDevOrigins: [
+    "192.168.1.15",
+    "172.26.16.1",
+    "172.29.208.1",
+    "localhost",
+    "127.0.0.1",
+  ],
   turbopack: {
     // Monorepo root so Turbopack can resolve files outside the frontend app
     root: path.resolve(__dirname, '..'),
@@ -78,7 +84,6 @@ const nextConfig = {
     // Tree-shake heavy packages — avoids importing the full library
     optimizePackageImports: [
       'lucide-react',
-      'framer-motion',
       '@radix-ui/react-checkbox',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
-import { m, AnimatePresence } from "framer-motion";
 import {
   Users,
   UserCheck,
@@ -199,9 +198,7 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
         
             {/* --- Page header --- */}
-        <m.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
                className="space-y-6 rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-10 text-center shadow-2xl shadow-black/20 md:px-12">
           
            <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
@@ -214,7 +211,7 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
                      تعرّف على المدرسين حسب التخصص، ثم أضف حصصك الواقعية إلى جدولك الدراسي في خطوات بسيطة.
            </p>
-        </m.div>
+        </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                {[
@@ -259,12 +256,9 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
                filteredTeachers.length === 0 ?
                   <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/[0.02] p-12 text-center"><Search className="h-10 w-10 text-gray-500" /><p className="font-bold text-gray-300">لا يوجد مدرسون يطابقون بحثك</p><Button variant="ghost" onClick={() => { setSearchQuery(""); setSubjectFilter("all"); }} className="text-primary">مسح الفلاتر</Button></div> :
                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                         {filteredTeachers.map((t, idx) =>
-            <m.div
+                         {filteredTeachers.map((t, _idx) =>
+            <div
               key={t.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
               className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all"}>
               
                        <div className="flex items-center gap-6">
@@ -296,7 +290,7 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
                                  <span>رابط خارجي</span>
                               </a>
                   }
-                    </m.div>
+                    </div>
             )}
               </div>
           }
@@ -379,13 +373,10 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
                           <p className="text-sm font-black text-gray-400">لا توجد حصص مجدولة حاليًا</p>
                         </div> :
 
-                <AnimatePresence>
-                           {sortedLessons.map((l, idx) =>
-                  <m.div
+                <>
+                           {sortedLessons.map((l, _idx) =>
+                  <div
                     key={l.id}
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
                     className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/[0.02] group transition-all">
                     
                                  <div className="flex items-center gap-8 text-right md:text-right w-full md:w-auto">
@@ -415,9 +406,9 @@ export default function TeachersPage({ initialTeachers }: TeachersClientProps) {
                                     </div>
                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{new Date(l.startTime).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                  </div>
-                              </m.div>
+                              </div>
                   )}
-                        </AnimatePresence>
+                        </>
                 }
                   </div>
                </div>

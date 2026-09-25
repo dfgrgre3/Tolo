@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/use-auth";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { m } from "framer-motion";
 import {
   CreditCard,
   Wallet,
@@ -137,7 +136,7 @@ export default function CourseCheckoutPage() {
           toast.error("تكوين الدفع غير مكتمل من السيرفر");
           return;
       }
-    } catch (error) {
+    } catch {
       toast.error("حدث خطأ أثناء الاتصال بنظام الدفع");
     } finally {
       setProcessing(false);
@@ -231,10 +230,10 @@ export default function CourseCheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Order Details Column */}
           <div className="lg:col-span-4 space-y-8">
-            <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-2 overflow-hidden shadow-2xl">
+            <div className="rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-2 overflow-hidden shadow-2xl">
                <div className="aspect-video rounded-[2rem] overflow-hidden relative">
                   {course.thumbnailUrl ?
-                <Image src={course.thumbnailUrl} alt={course.nameAr || course.name} fill sizes="(min-width: 1024px) 352px, 100vw" className="object-cover" unoptimized /> :
+                <Image src={course.thumbnailUrl} alt={course.nameAr || course.name} fill sizes="(min-width: 1024px) 352px, 100vw" className="object-cover" /> :
 
                 <div className="w-full h-full bg-[#101222] flex items-center justify-center">
                        <GraduationCap className="w-20 h-20 text-gray-700" />
@@ -269,7 +268,7 @@ export default function CourseCheckoutPage() {
                     <span>{course.price} <span className="text-lg">ج.م</span></span>
                   </div>
                </div>
-            </m.div>
+            </div>
 
             <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem] flex gap-4">
                <ShieldCheck className="w-8 h-8 text-emerald-500 shrink-0" />

@@ -1,4 +1,4 @@
-﻿import * as React from "react"
+import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/60",
       className
     )}
     {...props}
@@ -37,13 +37,10 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Mobile-first responsive: full-width with margin on mobile, centered with max-width on larger screens
-        "fixed z-50 grid gap-3 sm:gap-4 border bg-background shadow-lg duration-200",
+        "fixed z-50 grid gap-3 sm:gap-4 border border-border bg-background shadow-lg",
         "w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto",
         "left-2 right-2 top-1/2 -translate-y-1/2",
-        "rounded-lg p-4 sm:p-6",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "rounded-xl p-4 sm:p-6",
         // On larger screens, center horizontally with proper transform
         "sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:-translate-y-1/2",
         "sm:w-full sm:max-w-lg sm:max-h-[85vh]",
@@ -52,7 +49,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute end-3 top-3 sm:end-4 sm:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground p-1 min-w-[32px] min-h-[32px] flex items-center justify-center">
+      <DialogPrimitive.Close className="absolute end-3 top-3 sm:end-4 sm:top-4 rounded-md opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground p-1 min-w-[32px] min-h-[32px] flex items-center justify-center">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

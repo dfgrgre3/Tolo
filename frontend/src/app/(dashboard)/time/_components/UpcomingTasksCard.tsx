@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Eye, EyeOff, Play } from 'lucide-react';
-import { m } from "framer-motion";
 import type { Task } from '../types';
 
 interface UpcomingTasksCardProps {
@@ -46,26 +45,12 @@ export default function UpcomingTasksCard({
         </Button>
       </CardHeader>
       <CardContent className="p-4 relative z-10">
-        <m.div 
+        <div
           className="space-y-3 max-h-80 overflow-y-auto pe-1 custom-scrollbar"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: { staggerChildren: 0.1 }
-            }
-          }}
         >
           {displayTasks.map((task) => (
-            <m.div 
-              key={task.id} 
-              variants={{
-                hidden: { x: 20, opacity: 0 },
-                visible: { x: 0, opacity: 1 }
-              }}
-              whileHover={{ scale: 1.02 }}
+            <div
+              key={task.id}
               className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-border hover:border-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.15)] relative overflow-hidden"
               onClick={() => onTabChange("tasks")}
             >
@@ -106,19 +91,18 @@ export default function UpcomingTasksCard({
                   <Play className="h-4 w-4" />
                 </Button>
               </div>
-            </m.div>
+            </div>
           ))}
           {displayTasks.length === 0 && (
-            <m.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            <div
               className="text-center py-10 flex flex-col items-center"
             >
               <div className="mb-4 text-5xl opacity-50 grayscale">📝</div>
               <p className="text-muted-foreground font-semibold text-lg">لا توجد مهام قادمة</p>
               <p className="text-sm text-muted-foreground mt-1">ابدأ بمهمة ومغامرة جديدة!</p>
-            </m.div>
+            </div>
           )}
-        </m.div>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,10 +1,8 @@
-﻿'use client';
+'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-import { m } from "framer-motion";
 
 import {
   Clock,
@@ -70,18 +68,15 @@ export default function DashboardTab({
   slice(0, 3);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8">
       
       {/* RPG Mastery & Advisor */}
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+      <div
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
         <MasterySystem stats={stats} />
         <StudyAdvisor stats={stats} />
-      </m.div>
+      </div>
 
       {/* Smart Planner: Now/Next/Later, workload, advisor, daily plan */}
       <SmartPlannerSection
@@ -92,13 +87,10 @@ export default function DashboardTab({
       />
 
       {/* RPG Stats Indicators (Minified) */}
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1, staggerChildren: 0.1 }}
+      <div
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-blue-500/20 shadow-[0_8px_32px_rgba(59,130,246,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors" />
@@ -112,9 +104,9 @@ export default function DashboardTab({
               <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{stats.completedTasks} مهمة مكتملة</div>
             </CardContent>
           </Card>
-        </m.div>
+        </div>
 
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-orange-500/20 shadow-[0_8px_32px_rgba(249,115,22,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-colors" />
@@ -128,9 +120,9 @@ export default function DashboardTab({
                 <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{stats.studyHours} ساعات متراكمة</div>
             </CardContent>
           </Card>
-        </m.div>
+        </div>
 
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-purple-500/20 shadow-[0_8px_32px_rgba(168,85,247,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-colors" />
@@ -144,9 +136,9 @@ export default function DashboardTab({
                 <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">القوة والثبات</div>
             </CardContent>
           </Card>
-        </m.div>
+        </div>
 
-        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <div>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-orange-500/20 shadow-[0_8px_32px_rgba(249,115,22,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-colors" />
@@ -160,14 +152,11 @@ export default function DashboardTab({
                 <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">السيطرة التامة</div>
             </CardContent>
           </Card>
-        </m.div>
-      </m.div>
+        </div>
+      </div>
 
       {/* Main Boards */}
-      <m.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
+      <div
         className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <div className="lg:col-span-2 space-y-8">
@@ -345,7 +334,7 @@ export default function DashboardTab({
             </CardContent>
           </Card>
         </div>
-      </m.div>
+      </div>
     </div>);
 
 }

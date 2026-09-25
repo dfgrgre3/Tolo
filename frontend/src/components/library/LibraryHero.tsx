@@ -81,13 +81,6 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
           </div>
         </div>
       </div>
-
-      {/* Decorative Particles (Static simulation) */}
-      <div className="absolute bottom-0 right-0 w-1/3 h-full pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-amber-500 rounded-full blur-sm animate-pulse" />
-        <div className="absolute top-1/2 right-1/3 w-1 h-1 bg-blue-500 rounded-full blur-sm animate-bounce" />
-        <div className="absolute bottom-1/4 right-1/2 w-3 h-3 bg-amber-400/20 rounded-full blur-xl animate-pulse" />
-      </div>
     </section>
   );
 }

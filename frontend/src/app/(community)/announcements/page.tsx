@@ -241,7 +241,7 @@ export default function AnnouncementsPage() {
                   >
                      <div className="relative aspect-video overflow-hidden">
                         {item.imageUrl ? (
-                          <Image src={item.imageUrl} alt={item.title} fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized />
+                          <Image src={item.imageUrl} alt={item.title} fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover transition-transform duration-700 group-hover:scale-110" />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-primary/20 via-transparent to-transparent flex items-center justify-center">
                              <Megaphone className="w-16 h-16 text-primary/10" />

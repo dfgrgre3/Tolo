@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { m } from "framer-motion";
 import { Loader2, ShoppingCart, Trash2, Tag, ArrowLeft, CheckCircle2, XCircle, Wallet, CreditCard, Smartphone, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -29,6 +28,10 @@ import {
 } from "@/features/payments";
 
 
+function navigate(url: string): void {
+  window.location.href = url;
+}
+
 const PAYMENT_METHODS: { method: PaymentMethod; label: string; sub: string; icon: typeof Wallet }[] = [
   { method: "internal_wallet", label: "الدفع من المحفظة", sub: "استخدم رصيدك داخل المنصة", icon: Wallet },
   { method: "card", label: "الدفع بالبطاقة", sub: "Visa / Mastercard / Meeza", icon: CreditCard },
@@ -38,13 +41,13 @@ const PAYMENT_METHODS: { method: PaymentMethod; label: string; sub: string; icon
 
 function CartItemSkeleton() {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/[0.06] dark:bg-gray-900/70">
-      <div className="h-20 w-28 shrink-0 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+    <div role="status" aria-label="جاري تحميل السلة…" className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/[0.06] dark:bg-gray-900/70">
+      <div className="h-20 w-28 shrink-0 rounded-xl bg-gray-100 dark:bg-gray-800" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-        <div className="h-3 w-1/3 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+        <div className="h-4 w-2/3 rounded bg-gray-100 dark:bg-gray-800" />
+        <div className="h-3 w-1/3 rounded bg-gray-100 dark:bg-gray-800" />
       </div>
-      <div className="h-5 w-16 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+      <div className="h-5 w-16 rounded bg-gray-100 dark:bg-gray-800" />
     </div>
   );
 }
@@ -76,6 +79,7 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching external data on mount/param change; setState in async callback is intentional sync
     loadCart();
     // رصيد المحفظة للتحقق المسبق قبل الدفع الداخلي (أفضل جهد — يبقى صامتاً عند الفشل)
     fetchWalletBalance()
@@ -179,7 +183,7 @@ export default function CartPage() {
         case "redirect":
         case "iframe":
         case "wallet":
-          window.location.href = action.url;
+          navigate(action.url);
           return;
         case "fawry-code":
           toast.success(`كود فوري الخاص بك: ${action.code}`);
@@ -243,35 +247,33 @@ export default function CartPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3" role="status" aria-label="جاري تحميل السلة…">
           <div className="space-y-4 lg:col-span-2">
             {[1, 2].map((i) => (
               <CartItemSkeleton key={i} />
             ))}
           </div>
-          <div className="h-64 animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-800" />
+          <div className="h-64 rounded-2xl bg-gray-100 dark:bg-gray-800" />
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 py-20 text-center dark:border-white/10">
           <ShoppingCart className="mx-auto mb-4 h-14 w-14 text-gray-300" />
-          <p className="text-lg font-bold text-gray-500">سلتك فارغة</p>
-          <Link href="/courses" className="mt-4 inline-flex items-center gap-2 text-primary font-bold">
-            تصفح الدورات <ArrowLeft className="h-4 w-4" />
+          <p className="text-lg font-bold text-gray-500">سلتك فارغة — ابدأ التعلم الآن</p>
+          <Link href="/courses" className="mt-4 inline-flex min-h-[52px] items-center gap-2 rounded-2xl bg-primary px-8 text-base font-extrabold text-white">
+            تصفح الدورات <ArrowLeft className="h-5 w-5" />
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
             {items.map((item) => (
-              <m.div
+              <div
                 key={item.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
                 className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/[0.06] dark:bg-gray-900/70"
               >
                 <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
                   {item.subject?.thumbnailUrl && (
-                    <Image src={item.subject.thumbnailUrl} alt={item.subject.name} fill className="object-cover" />
+                    <Image src={item.subject.thumbnailUrl} alt={item.subject.name} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
                   )}
                 </div>
                 <div className="flex-1">
@@ -297,7 +299,7 @@ export default function CartPage() {
                     <Trash2 className="h-5 w-5" />
                   )}
                 </button>
-              </m.div>
+              </div>
             ))}
           </div>
 

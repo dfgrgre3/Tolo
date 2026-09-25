@@ -90,16 +90,12 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
     resetGenerator,
   } = useExamGenerator({ subjects, years });
 
-  const [history, setHistory] = useState<ExamHistoryEntry[]>([]);
+  const [history, setHistory] = useState<ExamHistoryEntry[]>(() => (typeof window === "undefined" ? [] : loadLocal<ExamHistoryEntry[]>(HISTORY_KEY, [])));
   const [showAnswers, setShowAnswers] = useState(true);
   const [practiceMode, setPracticeMode] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [score, setScore] = useState<number | null>(null);
   const { copied, copy } = useCopyText();
-
-  useEffect(() => {
-    setHistory(loadLocal<ExamHistoryEntry[]>(HISTORY_KEY, []));
-  }, []);
 
   useEffect(() => {
     if (examData?.questions?.length) {
@@ -110,6 +106,7 @@ export default function ExamGenerator({ subjects, years, className = "" }: ExamG
         count: examData.questions.length,
         at: new Date().toISOString(),
       };
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- appending fetched exam result to history; sync from async generation is intentional
       setHistory((prev) => {
         if (prev[0]?.lesson === entry.lesson && prev[0]?.subject === entry.subject) return prev;
         const next = [entry, ...prev].slice(0, 8);

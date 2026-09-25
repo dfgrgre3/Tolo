@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
@@ -244,7 +244,7 @@ export default function EventsPage() {
               
                      <div className="relative aspect-video overflow-hidden">
                         {event.imageUrl ?
-                <Image src={event.imageUrl} alt={event.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-all duration-700 group-hover:scale-110" unoptimized /> :
+                <Image src={event.imageUrl} alt={event.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-all duration-700 group-hover:scale-110" /> :
 
                 <div className="w-full h-full bg-gradient-to-br from-primary/10 via-black to-black flex items-center justify-center">
                              <Calendar className="w-16 h-16 text-primary/10 group-hover:scale-110 transition-transform" />
@@ -297,7 +297,7 @@ export default function EventsPage() {
             )}
              </div> :
 
-          <div className="py-40 text-center space-y-8 animate-in fade-in zoom-in">
+          <div className="py-24 text-center space-y-6">
                 <div className="p-8 bg-white/5 rounded-full w-max mx-auto border border-dashed border-white/10 text-gray-700">
                    <Info className="w-20 h-20" />
                 </div>

@@ -11,7 +11,6 @@ import path from 'node:path';
 
 const SRC_DIR = path.resolve('src');
 const PATTERN = /instanceof\s+ApiError/g;
-const STATUS_PATTERN = /err(?:or)?\.status\s*===?\s*(\d{3})|err(?:or)?\.(isUnauthorized|isForbidden|isNotFound|isValidation|isRateLimited)/g;
 
 function walk(dir, fileList = []) {
   const files = fs.readdirSync(dir);

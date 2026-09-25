@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useState, useMemo } from 'react';
-import { m } from "framer-motion";
 import { useGamification } from '@/features/gamification';
 import { useAuth } from '@/hooks/use-auth';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
@@ -21,7 +20,7 @@ import { useEfficiency } from "@/hooks/use-efficiency";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full p-6 transition-all",
+  card: "rpg-card h-full p-6 ",
   neonText: "rpg-neon-text font-black",
   goldText: "rpg-gold-text font-black"
 };
@@ -58,8 +57,7 @@ export default function LeaderboardPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="relative h-20 w-20">
-          <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-          <div className="flex h-full w-full animate-pulse items-center justify-center rounded-full bg-primary/10">
+                    <div className="flex h-full w-full  items-center justify-center rounded-full bg-primary/10">
              <Trophy className="h-10 w-10 text-primary" />
           </div>
         </div>
@@ -81,9 +79,7 @@ export default function LeaderboardPage() {
       <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
         
         {/* --- Header: Coliseum Entrance --- */}
-        <m.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="text-center space-y-6">
           
           <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
@@ -96,7 +92,7 @@ export default function LeaderboardPage() {
           <p className="text-lg text-gray-400 font-medium max-w-2xl mx-auto">
             Ù‡Ù†Ø§ ØªØ®Ù„Ø¯ Ø£Ø³Ù…Ø§Ø¡ Ø§Ù„Ø£Ø¨Ø·Ø§Ù„ Ø§Ù„Ø°ÙŠÙ† Ù‚Ù‡Ø±ÙˆØ§ Ø±ØºØ¨Ø§Øª Ø§Ù„Ø±Ø§Ø­Ø© ÙˆØ¨Ù†ÙˆØ§ Ù…Ø¬Ø¯Ù‡Ù… Ø¨Ø§Ù„Ø¹Ù„Ù… ÙˆØ§Ù„Ø§Ø¬ØªÙ‡Ø§Ø¯. Ù‡Ù„ Ø£Ù†Øª Ù…Ø³ØªØ¹Ø¯ Ù„ØªØ­Ø¯ÙŠ Ø§Ù„Ø¹Ø¸Ù…Ø§Ø¡ØŸ
           </p>
-        </m.div>
+        </div>
 
         {/* --- Top 3 Podium: The Champions --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-12">
@@ -110,18 +106,15 @@ export default function LeaderboardPage() {
             const isFirst = idx === 0;
 
             return (
-              <m.div
+              <div
                 key={entry.userId}
-                initial={isEfficiencyMode ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.2 }}
                 className={`${isFirst ? 'md:order-2 h-[450px]' : idx === 1 ? 'md:order-1 h-[380px]' : 'md:order-3 h-[350px]'} relative flex flex-col items-center justify-end pb-8`}>
                 
                    {/* Avatar Group */}
                    <div className="absolute top-0 flex flex-col items-center gap-4">
-                      <div className={`relative ${isFirst ? 'w-32 h-32' : 'w-24 h-24'} rounded-[2.5rem] p-1.5 ${colors.bg} border-2 ${colors.border} shadow-2xl transition-transform hover:scale-110 duration-500`}>
+                      <div className={`relative ${isFirst ? 'w-32 h-32' : 'w-24 h-24'} rounded-[2.5rem] p-1.5 ${colors.bg} border-2 ${colors.border} shadow-2xl `}>
                          <div className="absolute inset-x-0 -top-8 flex justify-center">
-                            {isFirst ? <Crown className="w-12 h-12 text-amber-500 animate-bounce drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" /> : <Medal className={`w-8 h-8 ${colors.text}`} />}
+                            {isFirst ? <Crown className="w-12 h-12 text-amber-500 " /> : <Medal className={`w-8 h-8 ${colors.text}`} />}
                          </div>
                           <div className="w-full h-full rounded-[2rem] bg-gradient-to-tr from-white/10 to-transparent flex items-center justify-center text-4xl font-black text-white">
                              {entry.username!.charAt(0).toUpperCase()}
@@ -144,21 +137,19 @@ export default function LeaderboardPage() {
                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">XP ÙƒÙ„ÙŠ</p>
                       </div>
                    </div>
-                </m.div>);
+                </div>);
 
           })}
         </div>
 
         {/* --- Current Player Status: Contender's Badge --- */}
         {userProgress &&
-        <m.div
-          initial={isEfficiencyMode ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <div
           className={STYLES.glass + " p-8 flex flex-col md:flex-row items-center justify-between gap-8 group"}>
           
               <div className="flex items-center gap-6">
                  <div className="relative">
-                    {!isEfficiencyMode && <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:bg-primary/60 transition-all duration-700" />}
+                    {!isEfficiencyMode && <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:bg-primary/60  duration-700" />}
                     <div className="relative h-20 w-20 rounded-3xl bg-black/40 border-2 border-primary/50 flex items-center justify-center text-4xl font-black text-white shadow-2xl">
                        {userRank || '?'}
                     </div>
@@ -178,11 +169,11 @@ export default function LeaderboardPage() {
                     <p className="text-white font-black text-2xl">{userProgress.longestStreak}</p>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Ø£Ø·ÙˆÙ„ Ø³Ù„Ø³Ù„Ø© Ø£ÙŠØ§Ù…</p>
                  </div>
-                 <Button className="h-14 px-10 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
+                 <Button className="h-14 px-10 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20 ">
                     ØªØ­Ø¯ÙŠ Ø£ØµØ¯Ù‚Ø§Ø¦Ùƒ
                  </Button>
               </div>
-           </m.div>
+           </div>
         }
 
         {/* --- Leaderboard List: Scroll of Rankings --- */}
@@ -191,14 +182,14 @@ export default function LeaderboardPage() {
               <div className="flex items-center gap-4">
                  <button
                 onClick={() => setLeaderboardType('global')}
-                className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'global' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
+                className={`h-12 px-8 flex items-center gap-3 font-black  rounded-2xl ${leaderboardType === 'global' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
                 
                     <Users className="w-5 h-5" />
                     <span>Ø§Ù„Ù…Ù…Ù„ÙƒØ© Ø¨Ø£ÙƒÙ…Ù„Ù‡Ø§</span>
                  </button>
                  <button
                 onClick={() => setLeaderboardType('friends')}
-                className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'friends' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
+                className={`h-12 px-8 flex items-center gap-3 font-black  rounded-2xl ${leaderboardType === 'friends' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
                 
                     <Sparkles className="w-5 h-5" />
                     <span>ÙƒØªÙŠØ¨Ø© Ø§Ù„Ø±ÙØ§Ù‚</span>
@@ -218,21 +209,18 @@ export default function LeaderboardPage() {
                        <p className="text-gray-500 font-black uppercase tracking-widest">Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ø­Ø§Ø±Ø¨ÙˆÙ† Ø¢Ø®Ø±ÙˆÙ† ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø© Ø­Ø§Ù„ÙŠØ§Ù‹</p>
                     </div> :
 
-              others.map((entry, idx) =>
-              <m.div
+              others.map((entry, _idx) =>
+              <div
                 key={entry.userId}
-                initial={isEfficiencyMode ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className={`p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/[0.03] transition-all group ${entry.userId === userId ? 'bg-primary/10' : ''}`}>
+                className={`p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 hover:bg-white/[0.03]  group ${entry.userId === userId ? 'bg-primary/10' : ''}`}>
                 
                           <div className="flex flex-row items-center gap-4 sm:gap-8 w-full min-w-0">
-                             <span className="w-8 text-2xl font-black text-gray-700 group-hover:text-primary transition-colors text-center shrink-0">{entry.rank}</span>
-                             <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:scale-110 group-hover:rotate-6 transition-all shrink-0">
+                             <span className="w-8 text-2xl font-black text-gray-700 group-hover:text-primary  text-center shrink-0">{entry.rank}</span>
+                             <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white  shrink-0">
                                  {entry.username!.charAt(0).toUpperCase()}
                              </div>
                              <div className="space-y-1 min-w-0">
-                                <div className="font-black text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2 flex-wrap">
+                                <div className="font-black text-lg text-white group-hover:text-primary  flex items-center gap-2 flex-wrap">
                                    {entry.username}
                                    {entry.userId === userId && <Badge className="me-3 bg-primary text-[10px] font-black h-5 uppercase">Ø£Ù†Øª</Badge>}
                                 </div>
@@ -248,7 +236,7 @@ export default function LeaderboardPage() {
                              <p className="text-2xl font-black text-white">{entry.totalXP.toLocaleString()}</p>
                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP Ø¹Ø³ÙƒØ±ÙŠ</p>
                           </div>
-                       </m.div>
+                       </div>
               )
               }
               </div>
@@ -262,8 +250,8 @@ export default function LeaderboardPage() {
           { label: "Ø£Ø¹Ù„Ù‰ Ù†Ù‚Ø§Ø· Ù…Ø³Ø¬Ù„Ø©", val: safeLeaderboard.length > 0 ? Math.max(...safeLeaderboard.map((l) => l.totalXP)).toLocaleString() : '0', icon: Crown, color: "text-amber-400" },
           { label: "Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØªÙÙˆÙ‚", val: userProgress ? Math.floor((userProgress.totalStudyTime ?? 0) / 60) : 0, icon: Clock, color: "text-purple-400" }].
           map((stat, i) =>
-          <div key={i} className={STYLES.glass + " p-6 flex items-center gap-6 group hover:translate-y-[-5px] transition-all"}>
-                 <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>
+          <div key={i} className={STYLES.glass + " p-6 flex items-center gap-6 group "}>
+                 <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${stat.color} `}>
                     <stat.icon className="w-6 h-6" />
                  </div>
                  <div>

@@ -1,13 +1,13 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CommunityLoading() {
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col gap-4 mb-8">
-        <Skeleton className="h-10 w-64 bg-primary/10 rounded-xl" />
+        <Skeleton className="h-10 w-64 rounded-xl" />
         <Skeleton className="h-4 w-96 bg-muted/50 rounded-lg" />
       </div>
 

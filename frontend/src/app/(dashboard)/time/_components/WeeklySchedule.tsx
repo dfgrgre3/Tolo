@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from 'date-fns';
-import { m } from "framer-motion";
-
 import type { TimeBlock, WeeklyScheduleProps, Schedule } from './WeeklySchedule/types';
 import { calculateWeekStats, addMinutesToTime } from './WeeklySchedule/utils';
 import { ScheduleHeader } from './WeeklySchedule/ScheduleHeader';
@@ -135,6 +133,7 @@ export default function WeeklySchedule({
   }, [schedule]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching external data on mount/param change; setState in async callback is intentional sync
     loadScheduleData();
   }, [loadScheduleData]);
 
@@ -339,9 +338,7 @@ export default function WeeklySchedule({
         onShowCompletedToggle={() => setShowCompleted(!showCompleted)}
       />
 
-      <m.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="relative"
       >
         <div className="absolute inset-0 bg-orange-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
@@ -375,7 +372,7 @@ export default function WeeklySchedule({
             )}
           </CardContent>
         </Card>
-      </m.div>
+      </div>
 
       <BlockFormDialog
         isOpen={isDialogOpen}

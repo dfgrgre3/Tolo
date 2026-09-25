@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import { errorService as errorManager } from "@/lib/logging/error-service";
-import { toast } from "sonner";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { registerServiceWorker } from "@/lib/service-worker";
 import { useEfficiency } from "@/hooks/use-efficiency";

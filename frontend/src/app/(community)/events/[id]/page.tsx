@@ -210,7 +210,6 @@ export default function EventPage() {
                 fill
                 sizes="(max-width: 896px) 100vw, 896px"
                 className="w-full h-full object-cover"
-                unoptimized
               />
             </div>
           ) : (
@@ -336,7 +335,6 @@ export default function EventPage() {
                         fill
                         sizes="64px"
                         className="w-full h-full rounded-full object-cover"
-                        unoptimized
                       />
                     ) : (
                       <span className="text-xl">{attendee.name.charAt(0)}</span>

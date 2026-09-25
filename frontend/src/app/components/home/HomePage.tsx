@@ -29,8 +29,13 @@ export default function HomePage({ user, hasSession }: HomePageProps) {
   // تسخين chunk اللوحة في وقت الخمول: إن كان الزائر سيصبح مسجلاً هنا
   // (أو لديه جلسة قيد التحقق) ينزل الكود دون أن ينافس أي شيء، فيظهر
   // الـ dashboard فور جاهزية البيانات بدل انتقالة التنزيل.
+  // The early return below guards re-runs: the warm import fires at most
+  // once per session state, so listing the session signals as deps is safe.
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Warm dashboard chunk only for users likely to need it (has session),
+    // so guests never download the 14-section UserHome bundle.
+    if (!hasSession && !hasSessionHint && !currentUser) return;
     const warm = () => {
       void import('./dashboard/UserHome');
     };
@@ -43,7 +48,7 @@ export default function HomePage({ user, hasSession }: HomePageProps) {
       cancel = () => clearTimeout(t);
     }
     return cancel;
-  }, []);
+  }, [currentUser, hasSession, hasSessionHint]);
 
   // للزائر تُعرض صفحة الهبوط فورًا. أما صاحب الجلسة فيرى هيكل اللوحة
   // أثناء جلب بياناته، فلا يحدث وميض بين الصفحتين.

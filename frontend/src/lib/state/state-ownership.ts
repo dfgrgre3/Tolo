@@ -16,7 +16,6 @@
  */
 
 import type { QueryClient } from "@tanstack/react-query";
-import type { LessonProgressResponse } from "@/types/domain/mappers";
 
 /**
  * Centralized query key factory for course, learning hub, and progress queries.

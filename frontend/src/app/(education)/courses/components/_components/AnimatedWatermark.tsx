@@ -1,32 +1,24 @@
-"use client";
-
-import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-interface AnimatedWatermarkProps {
+interface StaticWatermarkProps {
   text: string;
   positionClass: string | undefined;
 }
 
-export function AnimatedWatermark({ text, positionClass }: AnimatedWatermarkProps) {
+// اسم موحد: علامة مائية ثابتة — بدون "use client" (مكون ثابت خالص يُرسم
+// من الخادم) وبدون backdrop-blur (فلتر ثقيل على الـ GPU) وبدون أي أنيميشن.
+export function StaticWatermark({ text, positionClass }: StaticWatermarkProps) {
   return (
-    <m.div
-      animate={{
-        x: [0, 100, -100, 0],
-        y: [0, -50, 50, 0],
-        opacity: [0.3, 0.5, 0.3],
-      }}
-      transition={{
-        duration: 20,
-        repeat: Infinity,
-        ease: "linear",
-      }}
+    <div
       className={cn(
-        "pointer-events-none absolute z-20 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-bold text-white/40 backdrop-blur-md",
+        "pointer-events-none absolute z-20 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-bold text-white/40",
         positionClass
       )}
     >
       {text}
-    </m.div>
+    </div>
   );
 }
+
+// alias للتوافق مع الاستيرادات القديمة.
+export { StaticWatermark as AnimatedWatermark };

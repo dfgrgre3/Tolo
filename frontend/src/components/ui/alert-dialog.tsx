@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 // @ts-ignore - @radix-ui/react-alert-dialog type declarations issue
@@ -19,7 +19,7 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/60",
       className
     )}
     {...props}
@@ -38,13 +38,10 @@ const AlertDialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Mobile-first responsive
-        "fixed z-50 grid gap-3 sm:gap-4 border bg-background shadow-lg duration-200",
+        "fixed z-50 grid gap-3 sm:gap-4 border border-border bg-background shadow-lg",
         "w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto",
         "left-2 right-2 top-1/2 -translate-y-1/2",
-        "rounded-lg p-4 sm:p-6",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "rounded-xl p-4 sm:p-6",
         "sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:-translate-y-1/2",
         "sm:w-full sm:max-w-lg sm:max-h-[85vh]",
         className

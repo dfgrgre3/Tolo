@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { Shield, Star, Zap, Users, Crown, Target, Heart, Compass } from "lucide-react";
 import Link from "next/link";
 import { SITE } from "@thanawy/shared/site-config";
+import { AboutStats } from "@/app/about/AboutStats";
 
 export const metadata: Metadata = {
-  title: `عن ${SITE.name} | مملكة التعلم`,
-  description: `تعرّف على قصة ${SITE.name} — المنصة التي تحوّل دراستك إلى مغامرة ملحمية. مهمتنا، رؤيتنا، وفريقنا.`,
+  title: `عن ${SITE.name} | منصة تعليمية متكاملة`,
+  description: `تعرّف على قصة ${SITE.name} — المنصة التعليمية العربية المتكاملة. مهمتنا، رؤيتنا، وفريقنا.`,
 };
 
 const values = [
@@ -13,15 +14,15 @@ const values = [
     icon: <Crown className="w-7 h-7" />,
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
-    title: "التميز الملكي",
-    description: "نؤمن أن كل طالب يستحق أفضل تجربة تعليمية. لا مساومة في الجودة.",
+    title: "التميز في الجودة",
+    description: "نؤمن أن كل طالب يستحق أفضل تجربة تعليمية. لا مساومة في جودة المحتوى والشرح.",
   },
   {
     icon: <Zap className="w-7 h-7" />,
     color: "text-orange-400",
     bg: "bg-orange-500/10 border-orange-500/20",
     title: "الإبداع والابتكار",
-    description: "نكسر قوالب التعليم التقليدي بتحويل كل درس إلى مهمة مثيرة.",
+    description: "نستخدم أحدث تقنيات التعليم الإلكتروني والذكاء الاصطناعي لتقديم تجربة تعلم فريدة.",
   },
   {
     icon: <Heart className="w-7 h-7" />,
@@ -34,16 +35,9 @@ const values = [
     icon: <Users className="w-7 h-7" />,
     color: "text-blue-400",
     bg: "bg-blue-500/10 border-blue-500/20",
-    title: "مجتمع قوي",
-    description: "نبني مجتمعاً من المتعلمين يدعمون بعضهم ويتنافسون بشرف.",
+    title: "مجتمع داعم",
+    description: "نبني مجتمعاً من المتعلمين والمعلمين يدعمون بعضهم ويتبادلون المعرفة.",
   },
-];
-
-const stats = [
-  { value: "50K+", label: "طالب مغامر" },
-  { value: "500+", label: "كورس متاح" },
-  { value: "4.9/5", label: "تقييم المستخدمين" },
-  { value: "98%", label: "نسبة رضا الطلاب" },
 ];
 
 export default function AboutPage() {
@@ -58,9 +52,9 @@ export default function AboutPage() {
       <div className="max-w-6xl mx-auto px-4 py-20">
         {/* Hero */}
         <div className="text-center mb-24 space-y-8">
-          <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary">
+          <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary-strong">
             <Shield className="h-4 w-4" />
-            <span>قصة المملكة</span>
+            <span>قصتنا</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight">
             نحن لسنا مجرد{" "}
@@ -69,50 +63,40 @@ export default function AboutPage() {
             </span>
           </h1>
           <p className="text-xl text-muted-foreground font-medium max-w-3xl mx-auto leading-relaxed">
-            {SITE.name} وُلدت من إيمان راسخ: أن الدراسة يجب أن تكون مغامرة لا مجرد واجب.
-            نحن نبني عالماً يجعل كل طالب بطلاً في قصته الخاصة.
+            {SITE.name} وُلدت من إيمان راسخ بأن التعليم الجيد حق لكل طالب عربي.
+            نحن نبني منصة تجعل التعلم ممتعاً وفعالاً ومتاحاً للجميع.
           </p>
         </div>
 
-        {/* Story */}
+        {/* Story + Real Stats from Backend */}
         <div className="py-10 md:py-16 mb-20 border-t border-b border-border">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-3xl font-black">كيف بدأت القصة؟</h2>
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  في عام 2024، لاحظنا أن ملايين الطلاب يكافحون مع الملل والإحباط الدراسي.
-                  المناهج التقليدية لا تلهم — هي تُرغم.
+                  في عام 2024، لاحظنا أن الطلاب يحتاجون إلى منصة تعليمية عربية
+                  متكاملة تجمع بين جودة المحتوى وسهولة الاستخدام.
                 </p>
                 <p>
-                  قررنا أن نغير القواعد. استلهمنا من عالم الألعاب، مناهج التعلم النشط،
-                  وعلم النفس السلوكي لنبني منصة تجعل التعلم إدماناً إيجابياً.
+                  قررنا بناء {SITE.name} لنقدم تجربة تعليمية مختلفة — كورسات احترافية،
+                  معلمون مؤهلون، وأدوات ذكية تساعد كل طالب على تحقيق أهدافه.
                 </p>
                 <p>
-                  اليوم، {SITE.name} هي بيت لأكثر من 50,000 طالب يحصدون النجاحات
-                  ويكسبون نقاط الخبرة في رحلتهم نحو التفوق.
+                  اليوم، {SITE.name} تخدم مجتمعاً متنامياً من الطلاب والمعلمين
+                  الذين يسعون معاً نحو التفوق والنجاح.
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {stats.map((stat, i) => (
-                <div
-                  key={i}
-                  className="py-6 border-t border-border text-center"
-                >
-                  <p className="text-3xl font-black text-primary">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
+            {/* Stats fetched from the real backend API */}
+            <AboutStats />
           </div>
         </div>
 
         {/* Values */}
         <div className="mb-20">
           <div className="text-center mb-12 space-y-3">
-            <h2 className="text-3xl font-black">قيم مملكة {SITE.name}</h2>
+            <h2 className="text-3xl font-black">قيم {SITE.name}</h2>
             <p className="text-muted-foreground">المبادئ التي تحكم كل قرار نتخذه</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -151,15 +135,15 @@ export default function AboutPage() {
 
         {/* CTA */}
         <div className="text-center space-y-6">
-          <h2 className="text-3xl font-black">انضم إلى المملكة اليوم</h2>
-          <p className="text-muted-foreground">كن جزءاً من قصة نجاح تُكتب كل يوم.</p>
+          <h2 className="text-3xl font-black">انضم إلينا اليوم</h2>
+          <p className="text-muted-foreground">كن جزءاً من مجتمع {SITE.name} التعليمي.</p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
               href="/register"
               className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-black font-black rounded-2xl hover:scale-105 transition-transform"
             >
               <Crown className="w-4 h-4" />
-              ابدأ مغامرتك
+              ابدأ التعلم
             </Link>
             <Link
               href="/contact"

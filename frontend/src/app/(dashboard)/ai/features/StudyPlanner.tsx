@@ -27,11 +27,11 @@ export default function StudyPlanner() {
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<PlanHistory[]>([]);
+  const [history, setHistory] = useState<PlanHistory[]>(() => (typeof window === "undefined" ? [] : loadLocal<PlanHistory[]>(HISTORY_KEY, [])));
   const { copied, copy } = useCopyText();
 
   useEffect(() => {
-    setHistory(loadLocal<PlanHistory[]>(HISTORY_KEY, []));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seeding form field from context once on mount; intentional sync
     if (context.subject) setSubjectsText((s) => s || context.subject!);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

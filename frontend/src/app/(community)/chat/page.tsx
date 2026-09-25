@@ -96,7 +96,6 @@ function ConversationItem({
                 fill
                 sizes="48px"
                 className="w-full h-full rounded-full object-cover"
-                unoptimized
               />
             ) : (
               <span className="text-lg">{conversation.name.charAt(0)}</span>
@@ -143,7 +142,6 @@ function ChatHeader({ user }: { user: User }) {
               fill
               sizes="40px"
               className="w-full h-full rounded-full object-cover"
-              unoptimized
             />
           ) : (
             <span className="text-lg">{user.name.charAt(0)}</span>

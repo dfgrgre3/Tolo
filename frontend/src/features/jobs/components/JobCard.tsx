@@ -65,6 +65,9 @@ export function JobCard({ job, savedAt }: { job: Job; savedAt?: string }) {
               // eslint-disable-next-line @next/next/no-img-element -- company logos are arbitrary external hosts, not in the Next image allowlist
               <img
                 src={job.company.logoUrl}
+                 width={48}
+                 height={48}
+                 decoding="async"
                 alt=""
                 className="h-full w-full object-cover"
                 loading="lazy"

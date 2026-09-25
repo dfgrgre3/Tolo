@@ -30,7 +30,7 @@ export function QuizManagementPanel({ courses }: { courses: Course[] }) {
         </div>
         <p className="text-sm font-bold text-slate-700 dark:text-slate-200">لا توجد اختبارات بعد</p>
         <p className="text-xs text-slate-400 max-w-sm mx-auto">
-          أنشئ اختباراً تفاعلياً لأي كورس عبر خطوة "اختبار الكورس" في معالج إنشاء الكورس.
+          أنشئ اختباراً تفاعلياً لأي كورس عبر خطوة &quot;اختبار الكورس&quot; في معالج إنشاء الكورس.
         </p>
       </div>
     );

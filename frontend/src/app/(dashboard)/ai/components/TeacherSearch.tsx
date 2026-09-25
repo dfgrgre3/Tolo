@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Search, User, Star, BookOpen, Zap, ExternalLink, Loader2, Youtube, RotateCcw } from "lucide-react";
 
@@ -62,11 +62,7 @@ export default function TeacherSearch({
   const [isSearching, setIsSearching] = useState(false);
   const [teachers, setTeachers] = useState<TeacherResults | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
-
-  useEffect(() => {
-    setHistory(loadLocal<string[]>(HISTORY_KEY, []));
-  }, []);
+  const [history, setHistory] = useState<string[]>(() => (typeof window === "undefined" ? [] : loadLocal<string[]>(HISTORY_KEY, [])));
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();

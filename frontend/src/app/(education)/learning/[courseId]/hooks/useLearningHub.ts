@@ -424,7 +424,7 @@ export function useLearningHub(options: LearningHubOptions) {
         toast.error("تعذر تسجيل إكمال الدرس.");
       }
     },
-    []
+    [courseId, queryClient]
   );
 
   const completedLessonsCount = useMemo(
@@ -533,7 +533,7 @@ export function useLearningHub(options: LearningHubOptions) {
         setAiLoading(false);
       }
     },
-    [activeLesson?.content, activeLesson?.name, aiConversationId, aiInput, aiLoading, courseId]
+    [activeLesson, aiConversationId, aiInput, aiLoading, courseId]
   );
 
   return {

@@ -97,7 +97,7 @@
   z-index: 99999;
   pointer-events: none;
   opacity: 0.5;
-  transition: opacity 0.3s;
+  transition: none !important;
 }
 .tolo-perf-indicator:hover {
   opacity: 1;

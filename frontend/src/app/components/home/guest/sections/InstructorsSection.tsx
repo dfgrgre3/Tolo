@@ -69,7 +69,7 @@ export function InstructorsSection({ instructors, loading }: InstructorsSectionP
                 >
                   <div className="relative h-16 w-16 rounded-full overflow-hidden mb-2.5 ring-2 ring-[#E2E8F0] group-hover:ring-[#0F766E]">
                     {avatar ? (
-                      <Image src={avatar} alt={name} fill className="object-cover" />
+                      <Image src={avatar} alt={name} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
                     ) : (
                       <div className="h-full w-full bg-gradient-to-br from-[#0F766E] to-emerald-500 text-white font-bold flex items-center justify-center text-xl">
                         {initial}

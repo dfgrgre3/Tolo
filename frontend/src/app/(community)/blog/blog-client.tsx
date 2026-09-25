@@ -234,7 +234,7 @@ export default function BlogClient({
 
                      <div className="relative aspect-[16/10] overflow-hidden">
                         {post.coverImageUrl ?
-                <Image src={post.coverImageUrl} alt={post.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-all duration-700 group-hover:scale-110" unoptimized /> :
+                <Image src={post.coverImageUrl} alt={post.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover transition-all duration-700 group-hover:scale-110" /> :
 
                 <div className="w-full h-full bg-gradient-to-br from-primary/10 via-black to-black border-b border-white/5 flex items-center justify-center">
                              <Scroll className="w-16 h-16 text-primary/10 group-hover:scale-125 transition-transform" />
@@ -281,7 +281,7 @@ export default function BlogClient({
             )}
              </div> :
 
-          <div className="py-40 text-center space-y-8 animate-in fade-in zoom-in">
+          <div className="py-24 text-center space-y-6">
                 <div className="p-8 bg-white/5 rounded-full w-max mx-auto border border-dashed border-white/10">
                    <Info className="w-20 h-20 text-gray-700" />
                 </div>

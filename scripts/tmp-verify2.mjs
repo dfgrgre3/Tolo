@@ -1,0 +1,11 @@
+﻿import { chromium } from '@playwright/test';
+const browser = await chromium.launch();
+const page = await browser.newPage();
+let errs = [];
+page.on('console', m => { if (/Hydration failed/i.test(m.text())) errs.push(1); });
+page.on('pageerror', e => { if (/Hydration/i.test(String(e))) errs.push(1); });
+await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(()=>{});
+await page.waitForTimeout(4000);
+console.log('fresh => hydrationErrors:', errs.length);
+console.log('header present:', await page.evaluate(() => !!document.querySelector('header[data-header-root]')).catch(()=> 'eval-failed'));
+await browser.close();

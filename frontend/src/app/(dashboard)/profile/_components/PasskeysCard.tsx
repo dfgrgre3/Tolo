@@ -39,6 +39,7 @@ export default function PasskeysCard() {
     isPasskeySupported().then((ok) => {
       if (!controller.signal.aborted) setSupported(ok);
     });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetching external data on mount/param change; setState in async callback is intentional sync
     reload(controller.signal);
     return () => controller.abort();
   }, [reload]);

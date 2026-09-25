@@ -76,8 +76,9 @@ export function useLoginForm() {
   // Switching the typed email swaps to that account's own throttle state,
   // so a lockout on one account never bleeds into another.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading external throttle store per account; intentional sync
     setLoginThrottle(getThrottle("login", accountKey));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [accountKey]);
 
   const completeLogin = async () => {
@@ -111,6 +112,7 @@ export function useLoginForm() {
     window.history.replaceState(null, "", url.toString());
     if (social === "success") {
       toast.success("تم تسجيل الدخول بنجاح");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- completing social login redirect exactly once on mount; intentional one-shot sync
       void completeLogin();
     } else {
       setError("فشل تسجيل الدخول الاجتماعي — حاول مرة أخرى");

@@ -2,8 +2,6 @@
 import { cn } from '@/lib/utils';
 import { formatTimeRange, getBlockDuration } from './utils';
 import type { TimeBlock } from './types';
-import { m } from "framer-motion";
-
 interface TimeBlockCardProps {
   block: TimeBlock;
   compactView: boolean;
@@ -31,10 +29,7 @@ export function TimeBlockCard({
   };
 
   return (
-    <m.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ y: -2, scale: 1.02 }}
+    <div
       className={cn(
         "absolute inset-x-1 top-1 z-20 rounded-xl p-2 text-[10px] cursor-pointer border-r-4 transition-all duration-300 shadow-lg backdrop-blur-md group",
         "bg-[#0F172A]/80 border-border",
@@ -105,6 +100,6 @@ export function TimeBlockCard({
 
       {/* Glossy Overlay Effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-muted/40 to-transparent pointer-events-none rounded-xl" />
-    </m.div>
+    </div>
   );
 }

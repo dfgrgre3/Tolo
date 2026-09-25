@@ -8,7 +8,6 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
-import { AnimatePresence, m } from "framer-motion";
 import type { BookmarkItem, ThumbnailCue, TimelineNote, InteractiveQuestion } from "../types";
 import {
   clamp,
@@ -258,22 +257,16 @@ export const ProgressRail = memo(function ProgressRail({
       >
         {/* Double-tap hint for mobile users */}
         {showDoubleTapHint && (
-          <m.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+          <div
             className="absolute -top-10 left-1/2 -translate-x-1/2 rounded-full bg-blue-500/20 px-4 py-1.5 text-[11px] font-bold text-blue-200 backdrop-blur-md sm:hidden"
           >
             انقر مرتين لتسريع التشغيل
-          </m.div>
+          </div>
         )}
 
-        <AnimatePresence>
+        <>
           {previewTime !== null && !isDragging ? (
-            <m.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
+            <div
               className={cn(
                 "pointer-events-none absolute z-20 -translate-x-1/2",
                 previewPositionClass
@@ -283,9 +276,9 @@ export const ProgressRail = memo(function ProgressRail({
               <div className="rounded-xl border border-white/10 bg-black/90 px-3 py-1.5 text-[12px] font-bold text-white shadow-xl sm:px-2 sm:py-1 sm:text-[11px]">
                 {formatDuration(previewTime ?? 0)}
               </div>
-            </m.div>
+            </div>
           ) : null}
-        </AnimatePresence>
+        </>
 
         {/* Progress Rail - thicker on mobile */}
         <div className="relative h-3 overflow-hidden rounded-full bg-white/20 transition-all duration-300 group-hover/progress:h-4 group-focus-within/progress:h-4 sm:h-2 sm:group-hover/progress:h-2.5 sm:group-focus-within/progress:h-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
@@ -309,7 +302,7 @@ export const ProgressRail = memo(function ProgressRail({
           {loopRegion?.pending && (
             <div
               className={cn(
-                "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-gradient-to-br from-violet-400 to-purple-400 animate-pulse shadow-[0_0_20px_rgba(139,92,246,0.6)] ring-2 ring-violet-400/50 transition-all duration-300",
+                "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-violet-500 ring-1 ring-violet-400",
                 isDragging ? "h-7 w-1.5" : "h-5 w-1"
               )}
               style={{ left: `${loopRegion.start}%` }}
@@ -317,7 +310,7 @@ export const ProgressRail = memo(function ProgressRail({
           )}
 
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-cyan-400 shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-all duration-300"
+            className="absolute inset-y-0 left-0 rounded-full bg-primary"
             style={{ width: `${safeProgressPercent}%` }}
           />
 
@@ -332,7 +325,7 @@ export const ProgressRail = memo(function ProgressRail({
             return width ? (
               <div
                 key={`${marker.time}-${marker.label}-segment`}
-                className="absolute inset-y-0 rounded-full bg-gradient-to-r from-amber-300/25 to-orange-300/25 border border-amber-400/20"
+                className="absolute inset-y-0 rounded-full bg-amber-400/30 border border-amber-500/40"
                 style={{ left: `${left}%`, width: `${width}%` }}
                 title={marker.label}
               />
@@ -340,7 +333,7 @@ export const ProgressRail = memo(function ProgressRail({
               <div
                 key={`${marker.time}-${marker.label}`}
                 className={cn(
-                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 shadow-[0_0_12px_rgba(251,191,36,0.5)] ring-1 ring-amber-400/30 transition-all duration-300 hover:scale-125 cursor-pointer",
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-amber-400 ring-1 ring-amber-500 cursor-pointer",
                   markerHeight,
                   "w-[3px]"
                 )}
@@ -358,12 +351,12 @@ export const ProgressRail = memo(function ProgressRail({
               <div
                 key={note.id}
                 className={cn(
-                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full transition-all duration-300 ring-1 ring-orange-400/30 hover:scale-125 cursor-pointer",
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full cursor-pointer ring-1 ring-orange-400",
                   isNear
-                    ? "h-5 w-5 bg-gradient-to-br from-orange-400 to-red-400 shadow-[0_0_20px_rgba(251,146,60,0.6)] animate-pulse"
-                    : "h-3 w-3 bg-gradient-to-br from-orange-400 to-orange-500/80 shadow-[0_0_8px_rgba(251,146,60,0.4)]"
+                    ? "h-4 w-4 bg-orange-500"
+                    : "h-3 w-3 bg-orange-400"
                 )}
-                style={{ left: `${left}%`, marginLeft: "-4px" }}
+                style={{ left: `${left}%`, marginLeft: isNear ? "-8px" : "-6px" }}
                 title={note.text}
               />
             );
@@ -378,12 +371,12 @@ export const ProgressRail = memo(function ProgressRail({
               <div
                 key={q.id}
                 className={cn(
-                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full border-2 border-white/50 transition-all duration-300 ring-2 ring-emerald-400/30 hover:scale-125 cursor-pointer",
+                  "absolute top-1/2 z-10 -translate-y-1/2 rounded-full border border-white cursor-pointer ring-1 ring-emerald-500",
                   isNear
-                    ? "h-5 w-5 bg-gradient-to-br from-emerald-400 to-green-400 shadow-[0_0_20px_rgba(52,211,153,0.6)] animate-pulse"
-                    : "h-3 w-3 bg-gradient-to-br from-emerald-500 to-green-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                    ? "h-4 w-4 bg-emerald-500"
+                    : "h-3 w-3 bg-emerald-600"
                 )}
-                style={{ left: `${left}%`, marginLeft: "-6px" }}
+                style={{ left: `${left}%`, marginLeft: isNear ? "-8px" : "-6px" }}
                 title="سؤال تفاعلي"
               />
             );

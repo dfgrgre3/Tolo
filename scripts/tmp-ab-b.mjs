@@ -1,0 +1,13 @@
+﻿import { chromium } from '@playwright/test';
+const browser = await chromium.launch();
+const ctx = await browser.newContext();
+await ctx.addInitScript((s) => { localStorage.setItem('tolo-device-signals', JSON.stringify(s)); }, { score: 95, gpuType: 'hardware', effectiveType: '4g', recommended: 'performance' });
+const page = await ctx.newPage();
+let errs = 0;
+page.on('console', m => { if (/Hydration failed/i.test(m.text())) errs++; });
+page.on('pageerror', e => { if (/Hydration/i.test(String(e))) errs++; });
+await page.goto('http://localhost:3000', { waitUntil: 'load', timeout: 60000 }).catch(()=>{});
+await page.waitForTimeout(3000);
+const mode = await page.evaluate(() => document.documentElement.getAttribute('data-perf-mode'));
+console.log('B seeded-performance => hydrationErrors:', errs, '| data-perf-mode:', mode);
+await browser.close();

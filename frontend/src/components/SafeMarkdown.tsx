@@ -1,6 +1,9 @@
 import React from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
+import dynamic from 'next/dynamic';
+import type { Components } from 'react-markdown';
 import DOMPurify from 'isomorphic-dompurify';
+
+const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: true });
 
 interface SafeMarkdownProps {
   children: string;

@@ -68,16 +68,10 @@ interface Props {
 }
 
 export default function TaskTemplates({ onTaskCreate }: Props) {
-  const [custom, setCustom] = useState<Template[]>([]);
+  const [custom, setCustom] = useState<Template[]>(() => { try { if (typeof window === "undefined") return []; const raw = localStorage.getItem(KEY); return raw ? (JSON.parse(raw) as Template[]) : []; } catch { return []; } });
   const [name, setName] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setCustom(JSON.parse(raw) as Template[]);
-    } catch { /* ignore */ }
-  }, []);
   useEffect(() => { localStorage.setItem(KEY, JSON.stringify(custom)); }, [custom]);
 
   // NOTE: intentionally NOT named `use*` — this is a plain event handler,

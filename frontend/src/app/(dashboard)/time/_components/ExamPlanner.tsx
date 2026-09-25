@@ -81,6 +81,7 @@ export default function ExamPlanner({ tasks }: { tasks: Task[] }) {
 
   useEffect(() => {
     const local = load<ExamPlanRecord[]>(EXAMS_KEY, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating from localStorage then merging server snapshot; restructuring risks behavior change
     setExams(local);
     setReady(true);
 

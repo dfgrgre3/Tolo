@@ -79,6 +79,7 @@ function PaginatedGrid({ filteredCourses }: { filteredCourses: CourseSummary[] }
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting pagination when filtered list changes; intentional sync
     setVisibleCount(PAGE_SIZE);
   }, [filteredCourses.length]);
 

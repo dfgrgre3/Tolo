@@ -22,7 +22,6 @@ import {
 import { SITE, CONTACT, LEGAL, SOCIAL, APP_VERSION } from "@thanawy/shared/site-config";
 import { toSafeJsonLd } from "@/lib/security/json-ld";
 import { fetchCategoriesRaw } from "@/features/courses/api/courses-gateway";
-import { apiRoutes } from "@/lib/api/routes";
 import { queryProfiles } from "@/lib/query/query-profiles";
 
 // ─── Types ───────────────────────────────────────────────────────

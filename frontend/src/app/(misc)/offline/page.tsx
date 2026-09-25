@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { WifiOff, RefreshCw, Home } from "lucide-react";
@@ -56,10 +56,7 @@ export default function OfflinePage() {
 			<div className="max-w-md w-full text-center space-y-6">
 				<div className="flex justify-center">
 					<div className="relative">
-						<WifiOff className="h-24 w-24 text-muted-foreground" />
-						<div className="absolute inset-0 animate-ping">
-							<WifiOff className="h-24 w-24 text-muted-foreground opacity-20" />
-						</div>
+						<WifiOff className="h-20 w-20 text-muted-foreground" />
 					</div>
 				</div>
 

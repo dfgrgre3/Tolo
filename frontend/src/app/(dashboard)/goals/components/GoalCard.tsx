@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import { m } from "framer-motion";
 import { CustomGoal } from '@/features/gamification';
 
 interface GoalCardProps {
@@ -11,10 +10,7 @@ interface GoalCardProps {
 
 export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) {
   return (
-    <m.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+    <div
       className={`bg-white rounded-xl shadow-lg p-6 border-2 ${
         goal.isCompleted
           ? 'border-green-200 bg-green-50'
@@ -53,9 +49,8 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
-          <m.div
-            initial={{ width: 0 }}
-            animate={{
+          <div
+            style={{
               width: `${Math.min((goal.currentValue / goal.targetValue) * 100, 100)}%`
             }}
             className={`h-3 rounded-full ${
@@ -97,6 +92,6 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
           تم الإكمال في {new Date(goal.completedAt).toLocaleDateString('ar-SA')}
         </div>
       )}
-    </m.div>
+    </div>
   );
 }

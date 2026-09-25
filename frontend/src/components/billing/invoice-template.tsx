@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { format } from "date-fns";
 
 import Image from "next/image";
-import { create as createQrCode } from "qrcode";
 
 interface InvoiceData {
   paymentId: string;
@@ -25,21 +24,25 @@ interface InvoiceData {
 /* رمز QR للتحقق — عبر حزمة `qrcode` (B-11: بدل الملف المورّد المحذوف
    lib/qr/qrcodegen.ts). المصفوفة تُرسم بمربعات عادية كما قبل تمامًا. */
 function InvoiceQr({ value }: { value: string }) {
-  const modules = useMemo(() => {
-    try {
-      // NOTE: BitMatrix.get(row, col) — الصف أولًا، عكس getModule(x,y) القديمة.
-      const qr = createQrCode(value, { errorCorrectionLevel: "M" });
-      const n = qr.modules.size;
-      const rows: boolean[][] = [];
-      for (let y = 0; y < n; y++) {
-        const row: boolean[] = [];
-        for (let x = 0; x < n; x++) row.push(qr.modules.get(y, x) === 1);
-        rows.push(row);
+  const [modules, setModules] = useState<boolean[][] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    import("qrcode").then(({ create }) => {
+      try {
+        const qr = create(value, { errorCorrectionLevel: "M" });
+        const n = qr.modules.size;
+        const rows: boolean[][] = [];
+        for (let y = 0; y < n; y++) {
+          const row: boolean[] = [];
+          for (let x = 0; x < n; x++) row.push(qr.modules.get(y, x) === 1);
+          rows.push(row);
+        }
+        if (!cancelled) setModules(rows);
+      } catch {
+        if (!cancelled) setModules(null);
       }
-      return rows;
-    } catch {
-      return null;
-    }
+    });
+    return () => { cancelled = true; };
   }, [value]);
 
   if (!modules) return null;
@@ -63,7 +66,7 @@ function InvoiceQr({ value }: { value: string }) {
   );
 }
 
-export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
+export const InvoiceTemplate = memo(function InvoiceTemplate({ data }: {data: InvoiceData;}) {
   const verificationUrl = `https://thanawy.online/verify/${data.paymentId}`;
 
   return (
@@ -184,8 +187,8 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
       {/* Footer / Legal info */}
       <div className="mt-20 pt-8 border-t border-gray-100 text-center">
           <div className="flex justify-center gap-12 mb-6 text-[10px] text-gray-500 font-bold grayscale opacity-50">
-               <Image src="/pci-logo.png" alt="PCI DSS" width={64} height={16} className="h-4" unoptimized />
-               <Image src="/paymob-logo.png" alt="Paymob Secured" width={64} height={16} className="h-4" unoptimized />
+               <Image src="/pci-logo.png" alt="PCI DSS" width={64} height={16} className="h-4" />
+               <Image src="/paymob-logo.png" alt="Paymob Secured" width={64} height={16} className="h-4" />
                <p>SECURE TRANSACTION</p>
           </div>
           <p className="text-[11px] text-gray-400 mb-2 leading-relaxed">
@@ -204,4 +207,4 @@ export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
       `}</style>
     </div>);
 
-};
+});

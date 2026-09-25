@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, m } from "framer-motion";
 import { useRef } from "react";
 import { Bookmark, Check, ChevronRight, Clock3, ListVideo, MessageSquare, Search, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -300,21 +299,17 @@ export function SidebarPanel({
   const isMobile = useIsMobile();
   // P2-27: docked side content = complementary landmark (never a modal
   // trap); focus moves in on open and restores on close.
-  const panelRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   useDialogFocus(panelRef, isSidebarOpen);
   
   return (
-    <AnimatePresence>
+    <>
       {isSidebarOpen ? (
-        <m.aside
+        <div
           ref={panelRef}
           role="complementary"
           aria-label="لوحة الدراسة"
           tabIndex={-1}
-          initial={isMobile ? { y: "100%" } : { x: 360, opacity: 0 }}
-          animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
-          exit={isMobile ? { y: "100%" } : { x: 360, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
           className={cn(
             "fixed inset-0 z-30 flex h-full w-full flex-col bg-slate-950", // Mobile full screen
             "sm:absolute sm:bottom-0 sm:right-0 sm:top-0 sm:max-w-[360px] sm:border-r sm:border-white/10 sm:bg-slate-950/92 sm:p-4 sm:shadow-2xl sm:h-auto sm:w-auto sm:rounded-t-3xl", // Desktop
@@ -401,8 +396,8 @@ export function SidebarPanel({
           
           {/* Mobile: Safe area padding for iPhone notch/home indicator */}
           {isMobile && <div className="h-8" />}
-        </m.aside>
+        </div>
       ) : null}
-    </AnimatePresence>
+    </>
   );
 }

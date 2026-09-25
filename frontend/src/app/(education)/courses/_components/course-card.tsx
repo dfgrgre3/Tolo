@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { m } from "framer-motion";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -30,7 +29,7 @@ import { useAddToCart } from "@/features/cart";
 
 export function CourseCard({
   course,
-  index,
+  index: _index,
 }: {
   course: CourseSummary;
   index: number;
@@ -82,10 +81,7 @@ export function CourseCard({
   };
 
   return (
-    <m.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.04 }}
+    <div
       className="group overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_80px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/70 dark:shadow-none"
     >
       <div className="relative aspect-[16/10] overflow-hidden">
@@ -250,6 +246,6 @@ export function CourseCard({
           )}
         </div>
       </div>
-    </m.article>
+    </div>
   );
 }

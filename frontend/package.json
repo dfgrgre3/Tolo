@@ -55,7 +55,6 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "date-fns": "^4.1.0",
-        "framer-motion": "^13.2.0",
         "hls.js": "^1.6.16",
         "html2canvas": "^1.4.1",
         "idb-keyval": "^6.3.0",

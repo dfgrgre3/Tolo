@@ -103,7 +103,7 @@ export default function WishlistPage() {
             >
               <Link href={`/courses/${item.subjectId}`} className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
                 {item.subject?.thumbnailUrl && (
-                  <Image src={item.subject.thumbnailUrl} alt={item.subject.name} fill className="object-cover" />
+                  <Image src={item.subject.thumbnailUrl} alt={item.subject.name} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
                 )}
               </Link>
               <div className="min-w-0 flex-1">

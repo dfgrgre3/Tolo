@@ -1,4 +1,3 @@
-import { AnimatePresence, m } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 import {
   AlertCircle,
@@ -56,54 +55,33 @@ export function PlayerOverlays({
 
   return (
     <>
-      <AnimatePresence>
+      <>
         {feedback ? (
-          <m.div
-            initial={{ opacity: 0, scale: 0.85, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.85, y: 8 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          <div
             className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
           >
             <div className="rounded-3xl border border-white/10 bg-black/65 px-5 py-4 text-center shadow-2xl backdrop-blur-xl transition-all duration-300">
               {feedback.icon && <feedback.icon className="mx-auto h-7 w-7 text-white" />}
               <p className="mt-2 text-sm font-bold text-white">{feedback.label}</p>
             </div>
-          </m.div>
+          </div>
         ) : null}
-      </AnimatePresence>
+      </>
 
-      <AnimatePresence>
+      <>
         {isLoading ? (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 z-30 flex items-center justify-center bg-black/35 backdrop-blur-[2px]"
-          >
-            <div className="relative flex items-center justify-center">
-              {/* Outer ring */}
-              <div className="absolute h-20 w-20 animate-spin rounded-full border-2 border-transparent border-t-blue-400/80" />
-              {/* Middle ring (opposite direction) */}
-              <div className="absolute h-14 w-14 animate-spin rounded-full border-2 border-transparent border-b-cyan-400/60" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-              {/* Inner icon */}
-              <div className="rounded-3xl border border-white/10 bg-black/60 p-4 shadow-xl backdrop-blur-xl transition-all duration-300 hover:scale-110">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-              </div>
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50">
+            <div className="rounded-2xl border border-white/20 bg-black/80 p-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          </m.div>
+          </div>
         ) : null}
-      </AnimatePresence>
+      </>
 
-      <AnimatePresence>
+      <>
         {errorMessage ? (
-          <m.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="absolute left-4 right-4 top-20 z-40 rounded-2xl border border-rose-400/20 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 backdrop-blur-xl shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+          <div
+            className="absolute left-4 right-4 top-20 z-40 rounded-xl border border-rose-500/40 bg-rose-950/90 px-4 py-3 text-sm font-bold text-rose-100"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -131,17 +109,13 @@ export function PlayerOverlays({
                 </button>
               </div>
             </div>
-          </m.div>
+          </div>
         ) : null}
-      </AnimatePresence>
+      </>
 
-      <AnimatePresence>
+      <>
         {resumeTime !== null ? (
-          <m.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          <div
             className="absolute left-4 right-4 top-24 z-40 rounded-[26px] border border-blue-400/20 bg-slate-950/80 p-4 shadow-2xl backdrop-blur-2xl sm:left-auto sm:right-6 sm:w-[340px]"
           >
             <div className="flex items-start justify-between gap-4">
@@ -177,17 +151,13 @@ export function PlayerOverlays({
                 تجاهل
               </button>
             </div>
-          </m.div>
+          </div>
         ) : null}
-      </AnimatePresence>
+      </>
 
-      <AnimatePresence>
+      <>
         {isEnded ? (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+          <div
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-xl"
           >
             <div className="w-full max-w-md rounded-[30px] border border-white/10 bg-slate-950/85 p-8 text-center shadow-2xl">
@@ -267,9 +237,9 @@ export function PlayerOverlays({
                 ) : null}
               </div>
             </div>
-          </m.div>
+          </div>
         ) : null}
-      </AnimatePresence>
+      </>
 
     </>
   );

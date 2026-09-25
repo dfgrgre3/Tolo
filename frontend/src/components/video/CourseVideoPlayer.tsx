@@ -12,11 +12,10 @@ import {
   Sparkles,
   HelpCircle,
 } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 // Extracted sub-components
-import { AnimatedWatermark } from "@/app/(education)/courses/components/_components/AnimatedWatermark";
+import { StaticWatermark as AnimatedWatermark } from "@/app/(education)/courses/components/_components/AnimatedWatermark";
 import { SidebarHint } from "@/app/(education)/courses/components/_components/SidebarHint";
 
 import {
@@ -100,7 +99,7 @@ export function CourseVideoPlayer(props: CourseVideoPlayerProps) {
   // The scope is keyed by course+lesson and created once per mount.
   const scope = useMemo(
     () => createPlayerScope(props.courseId, props.lessonId),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- new lesson = new identity via key/remount contract
+     
     [props.courseId, props.lessonId]
   );
   return (
@@ -268,7 +267,7 @@ function CourseVideoPlayerInner({
         if (playerContainerRef.current) playerContainerRef.current.style.cursor = "none";
       }
     }, CONTROLS_HIDE_TIMEOUT_MS);
-  }, [setUIState]);
+  }, [setUIState, stores.playback, stores.ui]);
 
   // --- Hook: Player Adapter ---
   const getAdapter = usePlayerAdapter({ provider, videoRef, youtubePlayerRuntimeRef });
@@ -416,7 +415,7 @@ function CourseVideoPlayerInner({
       setSettingsState({ zoomFactor: 2, panOffset: { x: 0, y: 0 } });
       flashFeedback({ icon: Sparkles, label: "تكبير 2x" });
     }
-  }, [flashFeedback, setSettingsState]);
+  }, [flashFeedback, setSettingsState, stores.settings]);
 
   useEffect(() => {
     const container = playerContainerRef.current;
@@ -438,7 +437,7 @@ function CourseVideoPlayerInner({
     return () => {
       container.removeEventListener("wheel", handleWheel);
     };
-  }, [flashFeedback, setSettingsState]);
+  }, [flashFeedback, setSettingsState, stores.settings]);
 
   const dynamicWatermark = usePlayerWatermark(watermarkText);
   const thumbnailCues = useThumbnailCues(thumbnailVttUrl);
@@ -529,7 +528,7 @@ function CourseVideoPlayerInner({
         onProgress(nextTime, duration);
       }
     }
-  }, [getAdapter, effectiveQuestions, flashFeedback, onProgress, setPlaybackState, setUIState]);
+  }, [getAdapter, effectiveQuestions, flashFeedback, onProgress, setPlaybackState, setUIState, stores.playback]);
 
   
   const runPlaybackLoop = useCallback(() => {
@@ -540,7 +539,7 @@ function CourseVideoPlayerInner({
     } else {
       animationFrameRef.current = null;
     }
-  }, [saveProgress, syncPlaybackSnapshot]);
+  }, [saveProgress, syncPlaybackSnapshot, stores.playback]);
 
   useEffect(() => {
     runPlaybackLoopRef.current = runPlaybackLoop;
@@ -726,7 +725,7 @@ function CourseVideoPlayerInner({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset cached YouTube rates when the lesson changes
     setYoutubePlaybackRates([]);
     setNoteDraft("");
-  }, [lessonId, setNoteDraft]);
+  }, [lessonId, setNoteDraft, stores.playback, stores.settings, stores.ui]);
 
   useEffect(() => {
     // P2-44: version-stamped payload so future upgrades migrate explicitly.
@@ -951,7 +950,7 @@ function CourseVideoPlayerInner({
       className={cn(
         "group/player relative aspect-video w-full max-h-[70vh] md:max-h-[75vh] lg:max-h-[80vh] select-none overflow-hidden rounded-[28px] border border-white/10 bg-[#030712] text-white shadow-[0_28px_90px_rgba(2,6,23,0.45)] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
         store.isFullscreen && "rounded-none max-h-none",
-        store.isMiniPlayer && "fixed bottom-4 right-4 z-50 w-[340px] h-auto aspect-video max-h-none rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/20 animate-in fade-in slide-in-from-bottom-4",
+        store.isMiniPlayer && "fixed bottom-4 right-4 z-50 w-[340px] h-auto aspect-video max-h-none rounded-xl shadow-lg border border-white/20",
         className
       )}
     >
@@ -1034,7 +1033,7 @@ function CourseVideoPlayerInner({
         onDoubleClick={handleDoubleClick}
       />
 
-<AnimatePresence>
+<>
         {!store.isMiniPlayer && store.activeQuestionId && (() => {
           const question = effectiveQuestions.find(q => q.id === store.activeQuestionId);
           if (!question) return null;
@@ -1056,7 +1055,7 @@ function CourseVideoPlayerInner({
             />
           );
         })()}
-      </AnimatePresence>
+      </>
 
       {!store.isMiniPlayer && <ActiveNotePopup notes={notes} />}
 

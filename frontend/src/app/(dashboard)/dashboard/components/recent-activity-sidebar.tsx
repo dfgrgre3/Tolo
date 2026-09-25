@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { m } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +17,8 @@ export function RecentActivitySidebar({ recentActivities, glassStyle }: RecentAc
         recentActivities.map((activity) => {
           const Icon = activity.icon;
           return (
-            <m.div
+            <div
               key={activity.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
               className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all cursor-default group"
             >
               <div className="flex items-center gap-4">
@@ -38,7 +35,7 @@ export function RecentActivitySidebar({ recentActivities, glassStyle }: RecentAc
                   {activity.xp}
                 </Badge>
               )}
-            </m.div>
+            </div>
           );
         })
       ) : (

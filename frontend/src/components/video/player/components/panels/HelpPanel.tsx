@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, m } from "framer-motion";
 import { ChevronRight, Keyboard } from "lucide-react";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -22,18 +21,14 @@ export function HelpPanel({
   useDialogFocus(dialogRef, isHelpOpen, { trap: true });
 
   return (
-    <AnimatePresence>
+    <>
       {isHelpOpen ? (
-        <m.div
+        <div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="اختصارات لوحة المفاتيح"
           tabIndex={-1}
-          initial={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-          animate={isEfficiencyMode ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-          exit={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-          transition={isEfficiencyMode ? { duration: 0 } : undefined}
           className={cn("absolute inset-0 z-40 flex items-center justify-center bg-black/75 p-6", !isEfficiencyMode && "backdrop-blur-xl")}
           onClick={onCloseHelp}>
           <div className="w-full max-w-2xl rounded-[30px] border border-white/10 bg-slate-950/90 p-6 shadow-2xl"
@@ -60,8 +55,8 @@ export function HelpPanel({
               ))}
             </div>
           </div>
-        </m.div>
+        </div>
       ) : null}
-    </AnimatePresence>
+    </>
   );
 }

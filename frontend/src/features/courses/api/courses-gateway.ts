@@ -18,7 +18,6 @@ import { apiClient } from "@/lib/api/api-client";
 import { apiRoutes } from "@/lib/api/routes";
 
 type RawPayload = Record<string, unknown>;
-type RequestOptions = { signal?: AbortSignal; retries?: number };
 
 // ─── المفضلة ───────────────────────────────────────────────────────
 

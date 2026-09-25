@@ -18,6 +18,7 @@ export default function CompaniesPage() {
   const [page, setPage] = React.useState(1);
   const debouncedSearch = useDebounce(search, 400);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting pagination on filter change is intentional sync, not derived render state
   React.useEffect(() => setPage(1), [debouncedSearch]);
 
   const { data, isLoading, isError, refetch } = useCompanies({

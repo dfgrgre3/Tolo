@@ -2,17 +2,11 @@ import {
   DEFAULT_PLAYER_PREFERENCES,
   AUTO_COMPLETE_PERCENT,
   LEGACY_PREFERENCES_KEY,
-  NOTES_TIMELINE_END,
-  NOTES_TIMELINE_START,
   PLAYER_PREFERENCES_KEY,
   PREFERENCES_SCHEMA_VERSION,
 } from "./constants";
 import type {
-  BookmarkItem,
   PlayerPreferences,
-  ThumbnailCue,
-  TimelineNote,
-  TranscriptCue,
   VideoProvider,
 } from "./types";
 
